@@ -5,7 +5,7 @@
 replicaCount: 1
 
 image:
-  repository: airia/test-pod
+  repository: ghcr.io/davidpacold/airia-test-pod
   pullPolicy: IfNotPresent
   tag: "latest"
 

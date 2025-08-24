@@ -2,16 +2,46 @@
 
 A comprehensive Kubernetes application that validates infrastructure readiness before deploying production applications. This tool tests connectivity to essential Azure services and provides actionable feedback for resolving common configuration issues.
 
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/davidpacold/airia-test-pod)
+![Container Image](https://img.shields.io/badge/container-ghcr.io-blue)
+![License](https://img.shields.io/github/license/davidpacold/airia-test-pod)
+
 ## 🚀 Quick Start
+
+### Using Published Container Image
 
 ```bash
 # 1. Create your configuration file (my-test-values.yaml)
-# 2. Deploy with Helm
-helm install airia-test-pod ./helm/airia-test-pod -f my-test-values.yaml
+cat > my-test-values.yaml << EOF
+image:
+  repository: ghcr.io/davidpacold/airia-test-pod
+  tag: latest
+
+config:
+  auth:
+    username: "admin"
+    password: "YourSecurePassword123!"
+    secretKey: "your-random-jwt-secret-key"
+  # Add your service configurations here...
+EOF
+
+# 2. Deploy with Helm using published image
+helm install airia-test-pod oci://ghcr.io/davidpacold/airia-test-pod/helm/airia-test-pod -f my-test-values.yaml
 
 # 3. Access the dashboard
 kubectl port-forward -n airia-preprod svc/airia-test-pod 8080:80
-# Open http://localhost:8080 (default: admin/changeme)
+# Open http://localhost:8080
+```
+
+### Using Local Source
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/davidpacold/airia-test-pod.git
+cd airia-test-pod
+
+# 2. Create configuration and deploy
+helm install airia-test-pod ./helm/airia-test-pod -f my-test-values.yaml
 ```
 
 **⏱️ Complete deployment takes 5-10 minutes**
@@ -28,7 +58,11 @@ kubectl port-forward -n airia-preprod svc/airia-test-pod 8080:80
 - **Azure Document Intelligence** - Document processing API
 - **Self-hosted OpenAI-compatible models** - Local LLM deployments  
 - **Self-hosted Llama models** - Ollama or similar
-- **SSL Certificate Validation** - Certificate chain and expiration checks
+- **Enhanced SSL Certificate Validation** - Full certificate chain analysis (like `openssl s_client -showcerts`)
+  - Detects missing intermediate certificates
+  - Validates certificate chain completeness  
+  - Checks certificate expiration and hostname matching
+  - Identifies SSL misconfigurations that cause client failures
 
 ## 📖 Documentation
 
