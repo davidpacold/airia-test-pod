@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "airia-test-pod.fullname" . }}
+  namespace: {{ include "airia-test-pod.namespace" . }}
+  labels:
+    {{- include "airia-test-pod.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "airia-test-pod.selectorLabels" . | nindent 4 }}

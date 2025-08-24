@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - {{ title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}">
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <style>
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .logout-button {
+            background-color: #e74c3c;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .logout-button:hover {
+            background-color: #c0392b;
+        }
+        
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            background-color: #28a745;
+        }
+        
+        .real-time-badge {
+            background-color: #28a745;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 11px;
+            margin-left: 8px;
+        }
+        
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .test-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .test-card h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .test-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .test-status.ready {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .test-status.running {
+            background-color: #cfe2ff;
+            color: #084298;
+        }
+        
+        .test-status.passed {
+            background-color: #d1e7dd;
+            color: #0f5132;
+        }
+        
+        .test-status.failed {
+            background-color: #f8d7da;
+            color: #842029;
+        }
+        
+        .test-status.pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .test-button {
+            background-color: #0d6efd;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-top: 10px;
+        }
+        
+        .test-button:hover:not(:disabled) {
+            background-color: #0b5ed7;
+        }
+        
+        .test-button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        .test-details {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .test-details.show {
+            display: block;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .run-tests-button {
+            background-color: #27ae60;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-top: 20px;
+        }
+        
+        .run-tests-button:hover {
+            background-color: #229954;
+        }
+        
+        .welcome-section {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="dashboard-header">
+            <div>
+                <h1>{{ title }}</h1>
+                <div class="connection-status">
+                    <span class="status-indicator" id="connectionIndicator"></span>
+                    <span id="connectionStatus">Manual refresh mode</span>
+                    <span class="real-time-badge">READY</span>
+                </div>
+            </div>
+            <div class="user-info">
+                <span>Welcome, <strong>{{ username }}</strong></span>
+                <a href="/logout" class="logout-button">Logout</a>
+            </div>
+        </header>
+        
+        <main>
+            <div class="welcome-section">
+                <h2>Infrastructure Readiness Dashboard</h2>
+                <p>This dashboard helps you validate your infrastructure before deploying the main application. Run tests to check connectivity to all required services.</p>
+                
+                <button class="run-tests-button" onclick="runAllTests()" id="runAllTestsBtn">
+                    Run All Tests
+                </button>
+            </div>
+            
+            <div class="test-grid" id="testGrid">
+                <div class="test-card" id="postgresqlv2-card">
+                    <h3>PostgreSQL Database</h3>
+                    <p>Tests connection, databases, and extensions</p>
+                    <span class="test-status ready" id="postgresqlv2-status">Ready to Test</span>
+                    <button class="test-button" onclick="runTest('postgresqlv2')" id="postgresqlv2-btn">Run Test</button>
+                    <div class="test-details" id="postgresqlv2-details"></div>
+                </div>
+                
+                <div class="test-card" id="blobstorage-card">
+                    <h3>Azure Blob Storage</h3>
+                    <p>Tests authentication and file operations</p>
+                    <span class="test-status ready" id="blobstorage-status">Ready to Test</span>
+                    <button class="test-button" onclick="runTest('blobstorage')" id="blobstorage-btn">Run Test</button>
+                    <div class="test-details" id="blobstorage-details"></div>
+                </div>
+                
+                <div class="test-card" id="openai-card">
+                    <h3>AI Models (OpenAI/Llama)</h3>
+                    <p>Tests API connectivity and models</p>
+                    <span class="test-status ready" id="openai-status">Ready to Test</span>
+                    <button class="test-button" onclick="runTest('openai')" id="openai-btn">Run Test</button>
+                    <div class="test-details" id="openai-details"></div>
+                </div>
+                
+                <div class="test-card" id="llama-card">
+                    <h3>Llama Model</h3>
+                    <p>Tests Llama model connectivity and text generation</p>
+                    <span class="test-status ready" id="llama-status">Ready to Test</span>
+                    <button class="test-button" onclick="runTest('llama')" id="llama-btn">Run Test</button>
+                    <div class="test-details" id="llama-details"></div>
+                </div>
+                
+                <div class="test-card" id="pvc-card">
+                    <h3>Kubernetes PVC</h3>
+                    <p>Tests storage class and permissions</p>
+                    <span class="test-status ready" id="pvc-status">Ready to Test</span>
+                    <button class="test-button" onclick="runTest('pvc')" id="pvc-btn">Run Test</button>
+                    <div class="test-details" id="pvc-details"></div>
+                </div>
+                
+                <div class="test-card" id="ssl-card">
+                    <h3>SSL Certificates</h3>
+                    <p>Validates certificate chains</p>
+                    <span class="test-status ready" id="ssl-status">Ready to Test</span>
+                    <button class="test-button" onclick="runTest('ssl')" id="ssl-btn">Run Test</button>
+                    <div class="test-details" id="ssl-details"></div>
+                </div>
+                
+                <div class="test-card" id="docintel-card">
+                    <h3>Document Intelligence</h3>
+                    <p>Tests document processing API</p>
+                    <span class="test-status ready" id="docintel-status">Ready to Test</span>
+                    <button class="test-button" onclick="runTest('docintel')" id="docintel-btn">Run Test</button>
+                    <div class="test-details" id="docintel-details"></div>
+                </div>
+            </div>
+        </main>
+        
+        <footer>
+            <p>Airia Infrastructure Test Pod v1.0.0</p>
+        </footer>
+    </div>
+    
+    <script>
+        // Initialize dashboard
+        window.addEventListener('load', function() {
+            checkTestStatus(); // Load current test status
+        });
+        
+        // Test functions
+        async function runTest(testName) {
+            const statusElement = document.getElementById(`${testName}-status`);
+            const buttonElement = document.getElementById(`${testName}-btn`);
+            const detailsElement = document.getElementById(`${testName}-details`);
+            
+            // Update UI to show running
+            statusElement.textContent = 'Running...';
+            statusElement.className = 'test-status running';
+            buttonElement.disabled = true;
+            buttonElement.innerHTML = 'Running <span class="loading-spinner"></span>';
+            detailsElement.classList.remove('show');
+            
+            try {
+                // Get a fresh token first
+                const tokenResponse = await axios.post('/token', new URLSearchParams({
+                    'username': 'admin',
+                    'password': 'changeme'
+                }));
+                
+                const token = tokenResponse.data.access_token;
+                
+                const response = await axios.post(`/api/tests/${testName}`, {}, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const result = response.data;
+                
+                // Update status based on result
+                const testResult = result.result || result;
+                if (testResult.status === 'passed') {
+                    statusElement.textContent = 'Passed';
+                    statusElement.className = 'test-status passed';
+                } else if (testResult.status === 'failed') {
+                    statusElement.textContent = 'Failed';
+                    statusElement.className = 'test-status failed';
+                } else if (testResult.status === 'skipped') {
+                    statusElement.textContent = 'Skipped';
+                    statusElement.className = 'test-status pending';
+                }
+                
+                // Show details
+                detailsElement.innerHTML = formatTestDetails(testResult);
+                detailsElement.classList.add('show');
+                
+            } catch (error) {
+                statusElement.textContent = 'Error';
+                statusElement.className = 'test-status failed';
+                detailsElement.innerHTML = `<strong>Error:</strong> ${error.response?.data?.detail || error.message}`;
+                detailsElement.classList.add('show');
+            } finally {
+                buttonElement.disabled = false;
+                buttonElement.innerHTML = 'Run Test';
+            }
+        }
+        
+        async function runAllTests() {
+            const button = document.getElementById('runAllTestsBtn');
+            button.disabled = true;
+            button.innerHTML = 'Running All Tests <span class="loading-spinner"></span>';
+            
+            try {
+                // Get a fresh token first
+                const tokenResponse = await axios.post('/token', new URLSearchParams({
+                    'username': 'admin',
+                    'password': 'changeme'
+                }));
+                
+                const token = tokenResponse.data.access_token;
+                
+                const response = await axios.post('/api/tests/run-all', {}, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const data = response.data;
+                const results = data.results || {};
+                
+                // Update individual test results
+                for (const [testId, result] of Object.entries(results)) {
+                    const statusElement = document.getElementById(`${testId}-status`);
+                    const detailsElement = document.getElementById(`${testId}-details`);
+                    
+                    if (statusElement) {
+                        if (result.status === 'passed') {
+                            statusElement.textContent = 'Passed';
+                            statusElement.className = 'test-status passed';
+                        } else if (result.status === 'failed') {
+                            statusElement.textContent = 'Failed';
+                            statusElement.className = 'test-status failed';
+                        } else if (result.status === 'skipped') {
+                            statusElement.textContent = 'Skipped';
+                            statusElement.className = 'test-status pending';
+                        }
+                        
+                        if (detailsElement) {
+                            detailsElement.innerHTML = formatTestDetails(result);
+                            detailsElement.classList.add('show');
+                        }
+                    }
+                }
+                
+                // Show overall summary
+                if (data.overall_status) {
+                    const message = `Tests completed: ${data.passed_count || 0} passed, ${data.failed_count || 0} failed, ${data.skipped_count || 0} skipped`;
+                    alert(message);
+                }
+                
+            } catch (error) {
+                alert('Error running tests: ' + (error.response?.data?.detail || error.message));
+            } finally {
+                button.disabled = false;
+                button.innerHTML = 'Run All Tests';
+            }
+        }
+        
+        function formatTestDetails(result) {
+            let html = `<strong>Duration:</strong> ${result.duration_seconds?.toFixed(2) || 'N/A'} seconds<br>`;
+            html += `<strong>Status:</strong> ${result.status}<br>`;
+            html += `<strong>Message:</strong> ${result.message}<br>`;
+            
+            if (result.remediation) {
+                html += `<br><strong>Remediation:</strong><br><em>${result.remediation}</em><br>`;
+            }
+            
+            if (result.sub_tests) {
+                html += '<br><strong>Sub-tests:</strong><br>';
+                for (const [testName, testResult] of Object.entries(result.sub_tests)) {
+                    const icon = testResult.success ? '✅' : '❌';
+                    html += `${icon} <strong>${testName}:</strong> ${testResult.message}<br>`;
+                    
+                    if (testResult.remediation) {
+                        html += `&nbsp;&nbsp;<em>→ ${testResult.remediation}</em><br>`;
+                    }
+                }
+            }
+            
+            if (result.logs && result.logs.length > 0) {
+                html += '<br><strong>Logs:</strong><br>';
+                result.logs.forEach(log => {
+                    html += `[${log.level}] ${log.message}<br>`;
+                });
+            }
+            
+            return html;
+        }
+        
+        // Check test status on page load
+        async function checkTestStatus() {
+            try {
+                const response = await axios.get('/api/tests/status');
+                const tests = response.data.tests || {};
+                
+                for (const [testName, testData] of Object.entries(tests)) {
+                    const statusElement = document.getElementById(`${testName}-status`);
+                    if (statusElement && testData.status) {
+                        const lastRun = testData.last_run ? new Date(testData.last_run).toLocaleString() : 'Never';
+                        
+                        if (testData.status === 'passed') {
+                            statusElement.textContent = `Last Run: Passed (${lastRun})`;
+                            statusElement.className = 'test-status passed';
+                        } else if (testData.status === 'failed') {
+                            statusElement.textContent = `Last Run: Failed (${lastRun})`;
+                            statusElement.className = 'test-status failed';
+                        } else if (testData.status === 'skipped') {
+                            statusElement.textContent = `Last Run: Skipped (${lastRun})`;
+                            statusElement.className = 'test-status pending';
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking test status:', error);
+            }
+        }
+    </script>
+</body>
+</html>

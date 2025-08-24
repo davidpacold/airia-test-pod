@@ -1,0 +1,156 @@
+# Default values for airia-test-pod
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: airia/test-pod
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Service account configuration
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+  hosts:
+    - host: test.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: readiness.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: infra-test.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: validation.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: precheck.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: airia-test-pod-tls
+      hosts:
+        - test.example.com
+        - readiness.example.com
+        - infra-test-example.com
+        - validation.example.com
+        - precheck.example.com
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Application configuration
+config:
+  # Authentication (required)
+  auth:
+    username: "admin"
+    password: "changeme"
+    secretKey: "your-super-secret-key-change-this"
+  
+  # PostgreSQL configuration (optional)
+  postgresql:
+    enabled: false
+    host: "your-postgres-server.postgres.database.azure.com"
+    port: "5432"
+    database: "postgres"
+    sslmode: "require"
+    username: ""
+    password: ""
+  
+  # Azure Blob Storage configuration (optional)
+  blobStorage:
+    enabled: false
+    accountName: ""
+    accountKey: ""
+    containerName: "test-container"
+  
+  # Azure OpenAI configuration (optional)
+  openai:
+    enabled: false
+    endpoint: "https://your-openai.openai.azure.com/"
+    apiKey: ""
+    deploymentName: "gpt-35-turbo"
+    embeddingDeployment: ""
+  
+  # Azure Document Intelligence configuration (optional)
+  documentIntelligence:
+    enabled: false
+    endpoint: "https://your-doc-intel.cognitiveservices.azure.com/"
+    apiKey: ""
+    model: "prebuilt-document"
+  
+  # SSL certificate testing (optional)
+  ssl:
+    enabled: false
+    testUrls: "https://api.example.com,https://app.example.com"
+    connectTimeout: 10
+    warningDays: 30
+  
+  # Kubernetes storage testing (optional)
+  kubernetes:
+    storageClass: "default"
+    testPvcSize: "1Gi"
+
+# Namespace configuration
+namespace:
+  create: true
+  name: "airia-preprod"

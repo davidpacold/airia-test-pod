@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "airia-test-pod.fullname" . }}-config
+  namespace: {{ include "airia-test-pod.namespace" . }}
+  labels:
+    {{- include "airia-test-pod.labels" . | nindent 4 }}
+data:
+  {{- if .Values.config.postgresql.enabled }}
+  # PostgreSQL configuration
+  postgres-host: {{ .Values.config.postgresql.host | quote }}
+  postgres-port: {{ .Values.config.postgresql.port | quote }}
+  postgres-database: {{ .Values.config.postgresql.database | quote }}
+  postgres-sslmode: {{ .Values.config.postgresql.sslmode | quote }}
+  {{- end }}
+  
+  {{- if .Values.config.blobStorage.enabled }}
+  # Azure Blob Storage configuration
+  blob-account-name: {{ .Values.config.blobStorage.accountName | quote }}
+  blob-container-name: {{ .Values.config.blobStorage.containerName | quote }}
+  {{- end }}
+  
+  {{- if .Values.config.openai.enabled }}
+  # Azure OpenAI configuration
+  azure-openai-endpoint: {{ .Values.config.openai.endpoint | quote }}
+  azure-openai-deployment-name: {{ .Values.config.openai.deploymentName | quote }}
+  {{- if .Values.config.openai.embeddingDeployment }}
+  azure-openai-embedding-deployment: {{ .Values.config.openai.embeddingDeployment | quote }}
+  {{- end }}
+  {{- end }}
+  
+  {{- if .Values.config.documentIntelligence.enabled }}
+  # Azure Document Intelligence configuration
+  azure-doc-intel-endpoint: {{ .Values.config.documentIntelligence.endpoint | quote }}
+  azure-doc-intel-model: {{ .Values.config.documentIntelligence.model | quote }}
+  {{- end }}
+  
+  {{- if .Values.config.ssl.enabled }}
+  # SSL certificate testing URLs
+  ssl-test-urls: {{ .Values.config.ssl.testUrls | quote }}
+  ssl-connect-timeout: {{ .Values.config.ssl.connectTimeout | quote }}
+  ssl-warning-days: {{ .Values.config.ssl.warningDays | quote }}
+  {{- end }}
+  
+  # Kubernetes configuration
+  storage-class: {{ .Values.config.kubernetes.storageClass | quote }}
+  test-pvc-size: {{ .Values.config.kubernetes.testPvcSize | quote }}

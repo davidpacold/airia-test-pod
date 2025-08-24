@@ -1,0 +1,18 @@
+apiVersion: v2
+name: airia-test-pod
+description: A Helm chart for Airia Infrastructure Test Pod - validates customer infrastructure readiness
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+- infrastructure
+- testing
+- validation
+- azure
+- kubernetes
+home: https://github.com/airia/test-pod
+sources:
+- https://github.com/airia/test-pod
+maintainers:
+- name: Airia Team
+  email: support@airia.com

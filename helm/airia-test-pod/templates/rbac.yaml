@@ -1,0 +1,39 @@
+{{- if .Values.serviceAccount.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: {{ include "airia-test-pod.namespace" . }}
+  name: {{ include "airia-test-pod.fullname" . }}-role
+  labels:
+    {{- include "airia-test-pod.labels" . | nindent 4 }}
+rules:
+# Allow managing PVCs for testing
+- apiGroups: [""]
+  resources: ["persistentvolumeclaims"]
+  verbs: ["get", "list", "create", "delete"]
+# Allow reading storage classes
+- apiGroups: ["storage.k8s.io"]
+  resources: ["storageclasses"]
+  verbs: ["get", "list"]
+# Allow reading pods and services for health checks
+- apiGroups: [""]
+  resources: ["pods", "services"]
+  verbs: ["get", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "airia-test-pod.fullname" . }}-rolebinding
+  namespace: {{ include "airia-test-pod.namespace" . }}
+  labels:
+    {{- include "airia-test-pod.labels" . | nindent 4 }}
+subjects:
+- kind: ServiceAccount
+  name: {{ include "airia-test-pod.serviceAccountName" . }}
+  namespace: {{ include "airia-test-pod.namespace" . }}
+roleRef:
+  kind: Role
+  name: {{ include "airia-test-pod.fullname" . }}-role
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

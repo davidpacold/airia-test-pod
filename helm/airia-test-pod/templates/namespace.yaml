@@ -1,0 +1,10 @@
+{{- if .Values.namespace.create }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ include "airia-test-pod.namespace" . }}
+  labels:
+    {{- include "airia-test-pod.labels" . | nindent 4 }}
+    name: {{ include "airia-test-pod.namespace" . }}
+    purpose: infrastructure-testing
+{{- end }}

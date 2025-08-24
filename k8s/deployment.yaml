@@ -1,0 +1,151 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: airia-test-pod
+  namespace: airia-preprod
+  labels:
+    app: airia-test-pod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: airia-test-pod
+  template:
+    metadata:
+      labels:
+        app: airia-test-pod
+    spec:
+      serviceAccountName: airia-test-pod
+      containers:
+      - name: airia-test-pod
+        image: airia/test-pod:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: PORT
+          value: "8080"
+        - name: AUTH_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: airia-test-pod-auth
+              key: username
+              optional: true
+        - name: AUTH_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: airia-test-pod-auth
+              key: password
+              optional: true
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: airia-test-pod-auth
+              key: secret-key
+              optional: true
+        - name: POSTGRES_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: airia-test-pod-config
+              key: postgres-host
+              optional: true
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: airia-test-pod-postgres
+              key: username
+              optional: true
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: airia-test-pod-postgres
+              key: password
+              optional: true
+        - name: BLOB_ACCOUNT_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: airia-test-pod-config
+              key: blob-account-name
+              optional: true
+        - name: BLOB_ACCOUNT_KEY
+          valueFrom:
+            secretKeyRef:
+              name: airia-test-pod-blob
+              key: account-key
+              optional: true
+        - name: BLOB_CONTAINER_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: airia-test-pod-config
+              key: blob-container-name
+              optional: true
+        - name: POSTGRES_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: airia-test-pod-config
+              key: postgres-database
+              optional: true
+        - name: AZURE_OPENAI_ENDPOINT
+          valueFrom:
+            configMapKeyRef:
+              name: airia-test-pod-config
+              key: azure-openai-endpoint
+              optional: true
+        - name: AZURE_OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: airia-test-pod-openai
+              key: api-key
+              optional: true
+        - name: AZURE_OPENAI_DEPLOYMENT_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: airia-test-pod-config
+              key: azure-openai-deployment-name
+              optional: true
+        - name: AZURE_DOC_INTEL_ENDPOINT
+          valueFrom:
+            configMapKeyRef:
+              name: airia-test-pod-config
+              key: azure-doc-intel-endpoint
+              optional: true
+        - name: AZURE_DOC_INTEL_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: airia-test-pod-doc-intel
+              key: api-key
+              optional: true
+        - name: SSL_TEST_URLS
+          valueFrom:
+            configMapKeyRef:
+              name: airia-test-pod-config
+              key: ssl-test-urls
+              optional: true
+        - name: KUBERNETES_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: STORAGE_CLASS
+          valueFrom:
+            configMapKeyRef:
+              name: airia-test-pod-config
+              key: storage-class
+              optional: true
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
