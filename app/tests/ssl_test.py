@@ -244,7 +244,6 @@ class SSLTest(BaseTest):
                         })
                 
                 return {
-                    "cert": cert,
                     "cert_pem": cert_pem,
                     "subject": cert.subject.rfc4514_string(),
                     "issuer": cert.issuer.rfc4514_string(),
