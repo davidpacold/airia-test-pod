@@ -63,7 +63,7 @@ jobs:
       with:
         version: v3.14.0
 
-    - name: Update Helm chart with release tag
+    - name: Update all version references
       run: |
         # Extract version from tag or use manual input
         if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
@@ -77,7 +77,18 @@ jobs:
         sed -i "s/^version:.*/version: $VERSION/" helm/airia-test-pod/Chart.yaml
         sed -i "s/^appVersion:.*/appVersion: \"$VERSION\"/" helm/airia-test-pod/Chart.yaml
         
-        echo "Updated Helm chart to version $VERSION"
+        # Update application version references
+        sed -i "s/version: str = \"[^\"]*\"/version: str = \"$VERSION\"/" app/config.py
+        sed -i "s/app = FastAPI(title=\"Airia Infrastructure Test Pod\", version=\"[^\"]*\")/app = FastAPI(title=\"Airia Infrastructure Test Pod\", version=\"$VERSION\")/" app/main.py
+        sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" app/main.py
+        
+        echo "Updated all version references to $VERSION"
+        
+        # Show what changed
+        echo "Changes made:"
+        git diff --no-index /dev/null helm/airia-test-pod/Chart.yaml | grep "^+" | grep -E "(version|appVersion)" || true
+        git diff --no-index /dev/null app/config.py | grep "^+" | grep version || true
+        git diff --no-index /dev/null app/main.py | grep "^+" | grep version || true
 
     - name: Package Helm chart
       run: |
