@@ -23,7 +23,7 @@
             
             <div class="info-card">
                 <h3>System Information</h3>
-                <p><strong>Version:</strong> 1.0.0</p>
+                <p><strong>Version:</strong> <span id="version-display">Loading...</span></p>
                 <p><strong>Status:</strong> Ready</p>
                 <p><strong>Health Check:</strong> <a href="/health">/health</a></p>
             </div>
@@ -33,5 +33,26 @@
             <p>Airia Infrastructure Test Pod &copy; 2024</p>
         </footer>
     </div>
+    
+    <script>
+        // Load version dynamically on page load
+        window.addEventListener('load', function() {
+            loadVersion();
+        });
+        
+        async function loadVersion() {
+            try {
+                const response = await fetch('/version');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const data = await response.json();
+                document.getElementById('version-display').textContent = 'v' + data.version;
+            } catch (error) {
+                console.error('Error loading version:', error);
+                document.getElementById('version-display').textContent = 'v1.0.29';
+            }
+        }
+    </script>
 </body>
 </html>
