@@ -3,6 +3,12 @@ name: Release
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.0.2)'
+        required: true
+        type: string
 
 env:
   REGISTRY: ghcr.io
@@ -39,6 +45,7 @@ jobs:
           type=semver,pattern={{major}}.{{minor}}
           type=semver,pattern={{major}}
           type=raw,value=stable
+          type=raw,value=${{ github.event.inputs.version }},enable=${{ github.event_name == 'workflow_dispatch' }}
 
     - name: Build and push release image
       uses: docker/build-push-action@v5
@@ -53,9 +60,13 @@ jobs:
 
     - name: Update Helm chart with release tag
       run: |
-        # Extract version from tag (remove 'v' prefix if present)
-        VERSION=${GITHUB_REF#refs/tags/}
-        VERSION=${VERSION#v}
+        # Extract version from tag or use manual input
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          VERSION="${{ github.event.inputs.version }}"
+        else
+          VERSION=${GITHUB_REF#refs/tags/}
+          VERSION=${VERSION#v}
+        fi
         
         # Update Chart.yaml version
         sed -i "s/^version:.*/version: $VERSION/" helm/airia-test-pod/Chart.yaml
@@ -67,7 +78,18 @@ jobs:
       run: |
         helm package helm/airia-test-pod --destination ./helm-packages
 
+    - name: Create Git Tag (for manual dispatch)
+      if: github.event_name == 'workflow_dispatch'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git tag -a "v${{ github.event.inputs.version }}" -m "Release v${{ github.event.inputs.version }}"
+        git push origin "v${{ github.event.inputs.version }}"
+
     - name: Upload Helm chart to release
       uses: softprops/action-gh-release@v1
       with:
+        tag_name: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', github.event.inputs.version) || github.ref_name }}
+        name: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', github.event.inputs.version) || github.ref_name }}
         files: ./helm-packages/*.tgz
+        generate_release_notes: true
