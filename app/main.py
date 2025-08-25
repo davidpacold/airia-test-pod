@@ -32,8 +32,16 @@ async def health_check():
     return {
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
-        "version": "1.0.0"
+        "version": get_settings().version
     }
+
+@app.get("/version")
+async def get_version():
+    return {"version": get_settings().version}
+
+@app.get("/api/version")
+async def get_api_version():
+    return {"version": get_settings().version}
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request, current_user: Optional[str] = Depends(get_current_user)):
