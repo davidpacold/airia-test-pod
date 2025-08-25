@@ -243,6 +243,14 @@ class SSLTest(BaseTest):
                             "is_self_signed": cert.issuer == cert.subject
                         })
                 
+                # Extract SAN (Subject Alternative Names)
+                san_list = []
+                try:
+                    san_ext = cert.extensions.get_extension_for_oid(x509.oid.ExtensionOID.SUBJECT_ALTERNATIVE_NAME)
+                    san_list = [name.value for name in san_ext.value]
+                except x509.ExtensionNotFound:
+                    san_list = []
+                
                 return {
                     "cert_pem": cert_pem,
                     "subject": cert.subject.rfc4514_string(),
@@ -250,6 +258,7 @@ class SSLTest(BaseTest):
                     "valid_from": cert.not_valid_before_utc.isoformat(),
                     "valid_until": cert.not_valid_after_utc.isoformat(),
                     "days_until_expiry": (cert.not_valid_after_utc.replace(tzinfo=None) - datetime.datetime.now()).days,
+                    "san_names": san_list,
                     "cert_chain": cert_chain,
                     "chain_length": len(cert_chain)
                 }
@@ -598,24 +607,55 @@ class SSLTest(BaseTest):
             }
 
     def _check_hostname_match_from_info(self, cert_info, hostname):
-        """Check hostname match using cert_info data"""
+        """Check hostname match using cert_info data with proper SAN validation"""
         try:
             subject = cert_info.get("subject", "")
-            # Simple hostname check - in production you'd want more sophisticated matching
-            if hostname.lower() in subject.lower():
+            san_names = cert_info.get("san_names", [])
+            hostname_lower = hostname.lower()
+            
+            # Check SAN names first (modern approach)
+            for san_name in san_names:
+                san_lower = san_name.lower()
+                # Exact match
+                if hostname_lower == san_lower:
+                    return {
+                        "success": True,
+                        "message": f"Hostname matches SAN: {san_name}",
+                        "warning": False,
+                        "details": {"hostname": hostname, "matched_san": san_name, "all_sans": san_names}
+                    }
+                # Wildcard match (*.example.com matches sub.example.com)
+                elif san_lower.startswith('*.'):
+                    wildcard_domain = san_lower[2:]  # Remove *.
+                    if hostname_lower.endswith('.' + wildcard_domain) or hostname_lower == wildcard_domain:
+                        return {
+                            "success": True,
+                            "message": f"Hostname matches wildcard SAN: {san_name}",
+                            "warning": False,
+                            "details": {"hostname": hostname, "matched_san": san_name, "all_sans": san_names}
+                        }
+            
+            # Fallback: check subject CN (legacy approach)
+            if hostname_lower in subject.lower():
                 return {
                     "success": True,
-                    "message": "Hostname matches certificate subject",
-                    "warning": False,
-                    "details": {"hostname": hostname, "subject": subject}
+                    "message": "Hostname matches certificate subject (legacy CN check)",
+                    "warning": True,  # Warn that SAN should be used instead
+                    "details": {"hostname": hostname, "subject": subject, "sans_available": len(san_names) > 0}
                 }
-            else:
-                return {
-                    "success": False,
-                    "message": f"Hostname '{hostname}' does not match certificate subject",
-                    "warning": False,
-                    "details": {"hostname": hostname, "subject": subject}
+            
+            # No match found
+            return {
+                "success": False,
+                "message": f"Hostname '{hostname}' does not match certificate",
+                "warning": False,
+                "details": {
+                    "hostname": hostname, 
+                    "subject": subject, 
+                    "san_names": san_names,
+                    "remediation": f"Add '{hostname}' to certificate SAN or use wildcard certificate"
                 }
+            }
         except Exception as e:
             return {
                 "success": False,
