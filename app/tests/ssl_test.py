@@ -334,17 +334,30 @@ class SSLTest(BaseTest):
             chain_valid = self._validate_chain_continuity(cert_chain)
             if not chain_valid["valid"]:
                 issues.extend(chain_valid["issues"])
+            # Add any warnings from chain validation
+            warnings.extend(chain_valid.get("warnings", []))
             
             # Determine if chain appears complete
+            # A chain is valid if it has multiple certificates OR ends with self-signed root
             has_root_ca = any(cert["is_self_signed"] for cert in cert_chain)
             chain_complete = has_root_ca or chain_length > 1
             
+            # Updated logic to handle normal production certificate chains
             if chain_length == 1 and not server_cert["is_self_signed"]:
-                issues.append("Certificate chain appears incomplete - no intermediate certificates found")
-                issues.append("This may cause SSL/TLS validation failures for some clients")
+                # This is often normal in production - intermediate certs may be cached
+                # Don't treat this as an error, but as a warning for troubleshooting
+                warnings.append("Only leaf certificate retrieved - intermediate certificates may be cached by clients")
+                warnings.append("This is normal for many production environments")
             elif chain_length > 1:
                 # Complete chain found, this is good!
-                pass
+                # Note: It's normal for chains to not include the root CA certificate
+                # Browsers and systems have trusted root CAs built-in
+                if not has_root_ca:
+                    # This is actually normal and expected
+                    warnings.append("Chain terminates at intermediate CA (root CA not included - this is normal)")
+                else:
+                    # Root CA is included - this is complete but unusual
+                    warnings.append("Complete chain including root CA (unusual but valid)")
             
             # Generate summary message
             status_parts = []
@@ -562,9 +575,10 @@ class SSLTest(BaseTest):
     def _validate_chain_continuity(self, cert_chain: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Validate that each certificate in the chain is signed by the next one"""
         issues = []
+        warnings = []
         
         if len(cert_chain) <= 1:
-            return {"valid": True, "issues": []}
+            return {"valid": True, "issues": [], "warnings": []}
         
         try:
             for i in range(len(cert_chain) - 1):
@@ -579,16 +593,19 @@ class SSLTest(BaseTest):
                     )
                 
                 # For the last certificate, check if it's self-signed (root CA)
+                # Note: It's normal for production chains to NOT include root CA
                 if i == len(cert_chain) - 2:  # Last pair
                     if not cert_chain[i + 1]["is_self_signed"]:
-                        issues.append("Chain does not end with a self-signed root CA certificate")
+                        # This is normal - most chains don't include root CA
+                        warnings.append("Chain terminates at intermediate CA (root CA not included - this is normal)")
             
         except Exception as e:
             issues.append(f"Error validating chain continuity: {str(e)}")
         
         return {
             "valid": len(issues) == 0,
-            "issues": issues
+            "issues": issues,
+            "warnings": warnings
         }
 
     def _check_certificate_expiration_from_info(self, cert_info):
@@ -783,21 +800,86 @@ class SSLTest(BaseTest):
         for i, cert_data in enumerate(cert_info.get("cert_chain", [])):
             cert_type = "Server (Leaf)" if i == 0 else "Intermediate CA" if not cert_data["is_self_signed"] else "Root CA"
             
+            # Parse subject and issuer to extract readable components
+            subject_parts = self._parse_distinguished_name(cert_data["subject"])
+            issuer_parts = self._parse_distinguished_name(cert_data["issuer"])
+            
+            # Get certificate sample (first 200 chars + last 100 chars for brevity)
+            cert_pem = cert_data.get("pem", "")
+            cert_sample = ""
+            if cert_pem:
+                lines = cert_pem.strip().split('\n')
+                if len(lines) > 10:
+                    # Show header + first few lines + ... + last few lines + footer
+                    cert_sample = '\n'.join(lines[:3] + ['...'] + lines[-3:])
+                else:
+                    cert_sample = cert_pem
+            
             chain_info["certificates"].append({
                 "position": i + 1,
                 "type": cert_type,
                 "subject": cert_data["subject"],
-                "issuer": cert_data["issuer"],
+                "subject_parsed": subject_parts,
+                "issuer": cert_data["issuer"], 
+                "issuer_parsed": issuer_parts,
                 "is_ca": cert_data["is_ca"],
-                "is_self_signed": cert_data["is_self_signed"]
+                "is_self_signed": cert_data["is_self_signed"],
+                "certificate_sample": cert_sample
             })
         
-        # Add analysis
+        # Add analysis and troubleshooting information
         if cert_info["chain_length"] == 1:
             chain_info["analysis"] = "Only leaf certificate retrieved - this may indicate Python SSL client limitation"
             chain_info["recommendation"] = "Certificate chain appears incomplete from client perspective, but may be complete on server"
+            chain_info["troubleshooting"] = [
+                "This is likely normal - many production servers only present the leaf certificate",
+                "Intermediate certificates are often cached by clients or resolved via AIA",
+                "Verify chain completeness with: openssl s_client -connect hostname:443 -showcerts"
+            ]
         elif cert_info["chain_length"] >= 2:
             chain_info["analysis"] = "Complete certificate chain retrieved successfully"
             chain_info["recommendation"] = "Certificate chain is properly configured"
+            chain_info["troubleshooting"] = [
+                "Chain appears complete and properly ordered",
+                "Each certificate should be signed by the next certificate in the chain",
+                f"Retrieved {cert_info['chain_length']} certificates via {retrieval_method_display}"
+            ]
+        
+        # Add validation status from checks
+        cert_chain_check = checks.get("certificate_chain", {})
+        if cert_chain_check:
+            chain_info["validation_status"] = {
+                "passed": cert_chain_check.get("success", False),
+                "issues": cert_chain_check.get("issues", []),
+                "warnings": cert_chain_check.get("warnings", []),
+                "details": cert_chain_check.get("message", "No details available")
+            }
         
         return chain_info
+    
+    def _parse_distinguished_name(self, dn_string: str) -> Dict[str, str]:
+        """Parse a distinguished name string into readable components"""
+        try:
+            parts = {}
+            # Split by commas and parse key=value pairs
+            for part in dn_string.split(','):
+                if '=' in part:
+                    key, value = part.split('=', 1)
+                    key = key.strip()
+                    value = value.strip()
+                    
+                    # Convert common DN abbreviations to readable names
+                    readable_key = {
+                        'CN': 'Common Name',
+                        'O': 'Organization',
+                        'OU': 'Organizational Unit', 
+                        'C': 'Country',
+                        'ST': 'State',
+                        'L': 'Locality',
+                        'DC': 'Domain Component'
+                    }.get(key, key)
+                    
+                    parts[readable_key] = value
+            return parts
+        except Exception:
+            return {"Raw": dn_string}
