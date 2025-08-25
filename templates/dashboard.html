@@ -448,9 +448,10 @@
                             html += `&nbsp;&nbsp;&nbsp;&nbsp;• ${ext.name} v${ext.version}<br>`;
                         });
                         if (testResult.available_extensions && testResult.available_extensions.length > 0) {
-                            html += '&nbsp;&nbsp;<em>Available Extensions (sample):</em><br>';
-                            testResult.available_extensions.slice(0, 5).forEach(ext => {
-                                html += `&nbsp;&nbsp;&nbsp;&nbsp;• ${ext.name} v${ext.version}<br>`;
+                            html += '&nbsp;&nbsp;<em>Available Extensions:</em><br>';
+                            testResult.available_extensions.forEach(ext => {
+                                const status = ext.installed ? ' (installed)' : '';
+                                html += `&nbsp;&nbsp;&nbsp;&nbsp;• ${ext.name} v${ext.version}${status}<br>`;
                             });
                         }
                     }

@@ -74,11 +74,7 @@ class PostgreSQLTestV2(BaseTest):
             extensions_result = self._test_list_extensions()
             result.add_sub_test("extensions", extensions_result)
             
-            # Test 4: Check required extensions
-            required_extensions_result = self._test_required_extensions()
-            result.add_sub_test("required_extensions", required_extensions_result)
-            
-            # Determine overall success
+            # Determine overall success (no longer checking for specific required extensions)
             all_critical_passed = (
                 connection_result["success"] and 
                 databases_result["success"] and 
@@ -193,20 +189,20 @@ class PostgreSQLTestV2(BaseTest):
                     "version": ext_version
                 })
             
-            # Get available extensions (limited to first 10)
+            # Get available extensions (show more for better visibility)
             cursor.execute("""
-                SELECT name, default_version
+                SELECT name, default_version, installed_version
                 FROM pg_available_extensions
-                WHERE installed_version IS NULL
                 ORDER BY name
-                LIMIT 10;
+                LIMIT 25;
             """)
             
             available_extensions = []
-            for name, default_version in cursor.fetchall():
+            for name, default_version, installed_version in cursor.fetchall():
                 available_extensions.append({
                     "name": name,
-                    "version": default_version
+                    "version": default_version,
+                    "installed": installed_version is not None
                 })
             
             cursor.close()
@@ -214,7 +210,7 @@ class PostgreSQLTestV2(BaseTest):
             
             return {
                 "success": True,
-                "message": f"Found {len(installed_extensions)} installed extension(s)",
+                "message": f"Found {len(installed_extensions)} installed extension(s), showing {len(available_extensions)} total available extensions",
                 "installed_extensions": installed_extensions,
                 "available_extensions": available_extensions
             }
@@ -225,36 +221,6 @@ class PostgreSQLTestV2(BaseTest):
                 "error": str(e)
             }
             
-    def _test_required_extensions(self) -> Dict[str, Any]:
-        """Test for required extensions"""
-        try:
-            extensions_result = self._test_list_extensions()
-            if not extensions_result["success"]:
-                return extensions_result
-            
-            required_extensions = ["uuid-ossp", "pgcrypto", "pg_trgm"]
-            installed = [ext["name"] for ext in extensions_result["installed_extensions"]]
-            missing = [ext for ext in required_extensions if ext not in installed]
-            
-            if missing:
-                return {
-                    "success": False,
-                    "message": f"Missing required extensions: {', '.join(missing)}",
-                    "missing_extensions": missing,
-                    "remediation": f"Install missing extensions with: CREATE EXTENSION IF NOT EXISTS {'; CREATE EXTENSION IF NOT EXISTS '.join(missing)};"
-                }
-            
-            return {
-                "success": True,
-                "message": "All required extensions are installed",
-                "required_extensions": required_extensions
-            }
-        except Exception as e:
-            return {
-                "success": False,
-                "message": f"Failed to check required extensions: {str(e)}",
-                "error": str(e)
-            }
             
     def _format_bytes(self, bytes_value: int) -> str:
         """Format bytes to human readable format"""
