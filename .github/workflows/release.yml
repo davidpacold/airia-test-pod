@@ -37,11 +37,17 @@ jobs:
           # Manual release with specified version
           VERSION="${{ github.event.inputs.version }}"
         elif [ "${{ github.event_name }}" = "push" ]; then
-          # Auto-release: increment patch version
-          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
+          # Auto-release: find next available patch version
+          LATEST_TAG=$(git tag -l "v*" | sort -V | tail -1 || echo "v1.0.0")
           LATEST_VERSION=${LATEST_TAG#v}
           IFS='.' read -r major minor patch <<< "$LATEST_VERSION"
+          
+          # Find next available version
           NEW_PATCH=$((patch + 1))
+          while git rev-parse "v$major.$minor.$NEW_PATCH" >/dev/null 2>&1; do
+            NEW_PATCH=$((NEW_PATCH + 1))
+          done
+          
           VERSION="$major.$minor.$NEW_PATCH"
           echo "Auto-incrementing from $LATEST_VERSION to $VERSION"
         else
@@ -114,17 +120,28 @@ jobs:
           VERSION="${{ github.event.inputs.version }}"
         else
           # Get auto-generated version from earlier step
-          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
+          LATEST_TAG=$(git tag -l "v*" | sort -V | tail -1 || echo "v1.0.0")
           LATEST_VERSION=${LATEST_TAG#v}
           IFS='.' read -r major minor patch <<< "$LATEST_VERSION"
+          
+          # Find next available version
           NEW_PATCH=$((patch + 1))
+          while git rev-parse "v$major.$minor.$NEW_PATCH" >/dev/null 2>&1; do
+            NEW_PATCH=$((NEW_PATCH + 1))
+          done
           VERSION="$major.$minor.$NEW_PATCH"
         fi
         
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git tag -a "v$VERSION" -m "Release v$VERSION"
-        git push origin "v$VERSION"
+        
+        # Check if tag already exists and skip if it does
+        if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+          echo "Tag v$VERSION already exists, skipping tag creation"
+        else
+          git tag -a "v$VERSION" -m "Release v$VERSION"
+          git push origin "v$VERSION"
+        fi
 
     - name: Set version output
       id: version
@@ -132,10 +149,15 @@ jobs:
         if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
           echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
         elif [ "${{ github.event_name }}" = "push" ]; then
-          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
+          LATEST_TAG=$(git tag -l "v*" | sort -V | tail -1 || echo "v1.0.0")
           LATEST_VERSION=${LATEST_TAG#v}
           IFS='.' read -r major minor patch <<< "$LATEST_VERSION"
+          
+          # Find next available version
           NEW_PATCH=$((patch + 1))
+          while git rev-parse "v$major.$minor.$NEW_PATCH" >/dev/null 2>&1; do
+            NEW_PATCH=$((NEW_PATCH + 1))
+          done
           echo "version=$major.$minor.$NEW_PATCH" >> $GITHUB_OUTPUT
         else
           VERSION=${GITHUB_REF#refs/tags/}
