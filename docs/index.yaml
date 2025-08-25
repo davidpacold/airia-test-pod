@@ -1,4 +1,27 @@
 apiVersion: v1
-entries: {}
-generated: "2025-08-25T00:00:00Z"
-serverInfo: {}
+entries:
+  airia-test-pod:
+  - apiVersion: v2
+    appVersion: 1.0.3
+    created: "2025-08-25T15:14:46.333602302Z"
+    description: A Helm chart for Airia Infrastructure Test Pod - validates customer
+      infrastructure readiness
+    digest: e36793a1a3a07d5ef9e91aade9da88b9f06e4165c79c27d552b92c6acff49015
+    home: https://github.com/airia/test-pod
+    keywords:
+    - infrastructure
+    - testing
+    - validation
+    - azure
+    - kubernetes
+    maintainers:
+    - email: support@airia.com
+      name: Airia Team
+    name: airia-test-pod
+    sources:
+    - https://github.com/airia/test-pod
+    type: application
+    urls:
+    - https://davidpacold.github.io/airia-test-pod/airia-test-pod-1.0.3.tgz
+    version: 1.0.3
+generated: "2025-08-25T15:14:46.332811561Z"
