@@ -80,9 +80,9 @@ jobs:
         sed -i "s/app = FastAPI(title=\"Airia Infrastructure Test Pod\", version=\"[^\"]*\")/app = FastAPI(title=\"Airia Infrastructure Test Pod\", version=\"$VERSION\")/" app/main.py
         sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" app/main.py
         
-        # Update template fallback versions
-        sed -i "s/textContent = 'v[^']*'/textContent = 'v$VERSION'/" templates/dashboard.html
-        sed -i "s/textContent = 'v[^']*'/textContent = 'v$VERSION'/" templates/index.html
+        # Update template fallback versions (only lines with FALLBACK_VERSION comment)
+        sed -i "/FALLBACK_VERSION:/s/textContent = 'v[^']*'/textContent = 'v$VERSION'/" templates/dashboard.html
+        sed -i "/FALLBACK_VERSION:/s/textContent = 'v[^']*'/textContent = 'v$VERSION'/" templates/index.html
         
         echo "Updated all version references to $VERSION"
         
