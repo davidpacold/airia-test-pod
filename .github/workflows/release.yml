@@ -109,9 +109,9 @@ jobs:
         # Generate index.yaml for Helm repository
         helm repo index docs --url https://davidpacold.github.io/airia-test-pod/
         
-        # Commit files to main branch for GitHub Pages
+        # Configure git with [skip ci] to prevent infinite loops
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add docs/
-        git commit -m "Update Helm repository with ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || github.ref_name }}" || exit 0
+        git commit -m "Update Helm repository with ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || github.ref_name }} [skip ci]" || exit 0
         git push origin main

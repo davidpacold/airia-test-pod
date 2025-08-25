@@ -152,5 +152,5 @@ config:
 
 # Namespace configuration
 namespace:
-  create: true
+  create: false
   name: "airia-preprod"
