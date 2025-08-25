@@ -274,7 +274,7 @@
         </main>
         
         <footer>
-            <p>Airia Infrastructure Test Pod <span id="version-display">v1.0.5</span></p>
+            <p>Airia Infrastructure Test Pod <span id="version-display">Loading...</span></p>
         </footer>
     </div>
     
@@ -289,11 +289,15 @@
         async function loadVersion() {
             try {
                 const response = await fetch('/version');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
                 const data = await response.json();
                 document.getElementById('version-display').textContent = 'v' + data.version;
             } catch (error) {
                 console.error('Error loading version:', error);
-                // Keep fallback version if API fails
+                // Fallback to current app version if API fails
+                document.getElementById('version-display').textContent = 'v1.0.26';
             }
         }
         
