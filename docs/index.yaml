@@ -2,8 +2,31 @@ apiVersion: v1
 entries:
   airia-test-pod:
   - apiVersion: v2
+    appVersion: 1.0.10
+    created: "2025-08-25T17:23:01.193029426Z"
+    description: A Helm chart for Airia Infrastructure Test Pod - validates customer
+      infrastructure readiness
+    digest: bd6d81f7bafae62675c4a0a14fe8ecbadb06eb06f352274292e0477e09744a9b
+    home: https://github.com/airia/test-pod
+    keywords:
+    - infrastructure
+    - testing
+    - validation
+    - azure
+    - kubernetes
+    maintainers:
+    - email: support@airia.com
+      name: Airia Team
+    name: airia-test-pod
+    sources:
+    - https://github.com/airia/test-pod
+    type: application
+    urls:
+    - https://davidpacold.github.io/airia-test-pod/airia-test-pod-1.0.10.tgz
+    version: 1.0.10
+  - apiVersion: v2
     appVersion: 1.0.8
-    created: "2025-08-25T17:19:04.57386343Z"
+    created: "2025-08-25T17:23:01.195540281Z"
     description: A Helm chart for Airia Infrastructure Test Pod - validates customer
       infrastructure readiness
     digest: 6992b9ac75cee33ebb0bf231c45627b66ee3d7acf1882a9ec206a51bbcb01dc1
@@ -26,7 +49,7 @@ entries:
     version: 1.0.8
   - apiVersion: v2
     appVersion: 1.0.6
-    created: "2025-08-25T17:19:04.573102207Z"
+    created: "2025-08-25T17:23:01.194924865Z"
     description: A Helm chart for Airia Infrastructure Test Pod - validates customer
       infrastructure readiness
     digest: 613c3605887d783783d89cb9f8446d8623bca8382c7369aeefddac531651f872
@@ -49,7 +72,7 @@ entries:
     version: 1.0.6
   - apiVersion: v2
     appVersion: 1.0.4
-    created: "2025-08-25T17:19:04.572383975Z"
+    created: "2025-08-25T17:23:01.194307416Z"
     description: A Helm chart for Airia Infrastructure Test Pod - validates customer
       infrastructure readiness
     digest: 1875fe71a04c42289c6a310b57d957e34c0a0facbb9182855b2e0089debf8d7b
@@ -72,7 +95,7 @@ entries:
     version: 1.0.4
   - apiVersion: v2
     appVersion: 1.0.3
-    created: "2025-08-25T17:19:04.571639293Z"
+    created: "2025-08-25T17:23:01.193693152Z"
     description: A Helm chart for Airia Infrastructure Test Pod - validates customer
       infrastructure readiness
     digest: e36793a1a3a07d5ef9e91aade9da88b9f06e4165c79c27d552b92c6acff49015
@@ -95,7 +118,7 @@ entries:
     version: 1.0.3
   - apiVersion: v2
     appVersion: 1.0.1
-    created: "2025-08-25T17:19:04.570886917Z"
+    created: "2025-08-25T17:23:01.19239786Z"
     description: A Helm chart for Airia Infrastructure Test Pod - validates customer
       infrastructure readiness
     digest: 3760e6ee9a0a72feef3e96da19382751f1f5734a0e6acc7a9114787d66170ac7
@@ -116,4 +139,4 @@ entries:
     urls:
     - https://davidpacold.github.io/airia-test-pod/airia-test-pod-1.0.1.tgz
     version: 1.0.1
-generated: "2025-08-25T17:19:04.569212036Z"
+generated: "2025-08-25T17:23:01.191589472Z"
