@@ -38,13 +38,28 @@ jobs:
           VERSION="${{ github.event.inputs.version }}"
         elif [ "${{ github.event_name }}" = "push" ]; then
           # Auto-release: find next available patch version
-          LATEST_TAG=$(git tag -l "v*" | sort -V | tail -1 || echo "v1.0.0")
+          # Fetch all tags first
+          git fetch --tags
+          
+          # Get latest tag or use default
+          LATEST_TAG=$(git tag -l "v*" | sort -V | tail -1)
+          if [ -z "$LATEST_TAG" ]; then
+            LATEST_TAG="v1.0.0"
+            echo "No tags found, starting from v1.0.0"
+          fi
+          
           LATEST_VERSION=${LATEST_TAG#v}
           IFS='.' read -r major minor patch <<< "$LATEST_VERSION"
+          
+          # Ensure variables are set
+          major=${major:-1}
+          minor=${minor:-0}
+          patch=${patch:-0}
           
           # Find next available version
           NEW_PATCH=$((patch + 1))
           while git rev-parse "v$major.$minor.$NEW_PATCH" >/dev/null 2>&1; do
+            echo "Version v$major.$minor.$NEW_PATCH already exists, trying next..."
             NEW_PATCH=$((NEW_PATCH + 1))
           done
           
