@@ -2,9 +2,9 @@
 
 A comprehensive Kubernetes application that validates infrastructure readiness before deploying production applications. This tool tests connectivity to essential Azure services and provides actionable feedback for resolving common configuration issues.
 
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/davidpacold/airia-test-pod)
-![Container Image](https://img.shields.io/badge/container-ghcr.io-blue)
-![License](https://img.shields.io/github/license/davidpacold/airia-test-pod)
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/davidpacold/airia-test-pod)](https://github.com/davidpacold/airia-test-pod/releases)
+[![Container Image](https://img.shields.io/badge/container-ghcr.io%2Fdavidpacold%2Fairia--test--pod-blue)](https://github.com/davidpacold/airia-test-pod/pkgs/container/airia-test-pod)
+[![Build Status](https://github.com/davidpacold/airia-test-pod/actions/workflows/build-and-publish.yml/badge.svg)](https://github.com/davidpacold/airia-test-pod/actions)
 
 ## 🚀 Quick Start
 
