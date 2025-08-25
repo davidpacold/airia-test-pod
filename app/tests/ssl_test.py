@@ -3,6 +3,7 @@ import os
 import ssl
 import socket
 import datetime
+import subprocess
 from urllib.parse import urlparse
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
@@ -143,6 +144,9 @@ class SSLTest(BaseTest):
             warnings = [check["message"] for check in checks.values() 
                        if not check["success"] and check.get("warning", False)]
             
+            # Add detailed certificate information to the response
+            cert_details = self._format_certificate_details(cert_info, checks)
+            
             return {
                 "success": all_checks_passed,
                 "message": "SSL certificate validation passed" if all_checks_passed 
@@ -215,24 +219,20 @@ class SSLTest(BaseTest):
                         raise AttributeError("getpeercert_chain not available")
                         
                 except (AttributeError, Exception) as e:
-                    # Fallback: try to use OpenSSL approach for chain retrieval
+                    # Fallback: Use OpenSSL command to get the complete certificate chain
                     try:
-                        # Alternative approach using a fresh connection with validation enabled
-                        chain_context = ssl.create_default_context()
-                        with socket.create_connection((hostname, port), timeout=self.timeout_seconds_connect) as chain_sock:
-                            with chain_context.wrap_socket(chain_sock, server_hostname=hostname) as chain_ssock:
-                                # This will validate and potentially give us more info about the chain
-                                server_cert_der = chain_ssock.getpeercert(binary_form=True)
-                                server_cert_pem = ssl.DER_cert_to_PEM_cert(server_cert_der)
-                                server_cert_obj = x509.load_pem_x509_certificate(server_cert_pem.encode(), default_backend())
-                                
-                                cert_chain.append({
-                                    "pem": server_cert_pem,
-                                    "subject": server_cert_obj.subject.rfc4514_string(),
-                                    "issuer": server_cert_obj.issuer.rfc4514_string(),
-                                    "is_ca": self._is_ca_certificate(server_cert_obj),
-                                    "is_self_signed": server_cert_obj.issuer == server_cert_obj.subject
-                                })
+                        openssl_certs = self._get_cert_chain_with_openssl(hostname, port)
+                        if openssl_certs:
+                            cert_chain.extend(openssl_certs)
+                        else:
+                            # Final fallback to single certificate from original retrieval
+                            cert_chain.append({
+                                "pem": cert_pem,
+                                "subject": cert.subject.rfc4514_string(),
+                                "issuer": cert.issuer.rfc4514_string(),
+                                "is_ca": self._is_ca_certificate(cert),
+                                "is_self_signed": cert.issuer == cert.subject
+                            })
                     except Exception:
                         # Final fallback to single certificate from original retrieval
                         cert_chain.append({
@@ -338,6 +338,9 @@ class SSLTest(BaseTest):
             if chain_length == 1 and not server_cert["is_self_signed"]:
                 issues.append("Certificate chain appears incomplete - no intermediate certificates found")
                 issues.append("This may cause SSL/TLS validation failures for some clients")
+            elif chain_length > 1:
+                # Complete chain found, this is good!
+                pass
             
             # Generate summary message
             status_parts = []
@@ -682,3 +685,67 @@ class SSLTest(BaseTest):
                 "warning": False,
                 "details": {}
             }
+
+    def _get_cert_chain_with_openssl(self, hostname: str, port: int) -> List[Dict[str, Any]]:
+        """Use OpenSSL command to get the complete certificate chain"""
+        try:
+            # Use OpenSSL s_client to get all certificates in the chain
+            cmd = [
+                'openssl', 's_client', '-connect', f'{hostname}:{port}',
+                '-showcerts', '-servername', hostname
+            ]
+            
+            result = subprocess.run(
+                cmd, 
+                input='', 
+                text=True, 
+                capture_output=True, 
+                timeout=self.timeout_seconds_connect
+            )
+            
+            if result.returncode != 0:
+                return []
+            
+            # Parse certificates from OpenSSL output
+            cert_chain = []
+            cert_blocks = []
+            
+            # Split output into certificate blocks
+            lines = result.stdout.split('\n')
+            current_cert = []
+            in_cert = False
+            
+            for line in lines:
+                if '-----BEGIN CERTIFICATE-----' in line:
+                    in_cert = True
+                    current_cert = [line]
+                elif '-----END CERTIFICATE-----' in line and in_cert:
+                    current_cert.append(line)
+                    cert_blocks.append('\n'.join(current_cert))
+                    current_cert = []
+                    in_cert = False
+                elif in_cert:
+                    current_cert.append(line)
+            
+            # Parse each certificate
+            for i, cert_pem in enumerate(cert_blocks):
+                try:
+                    cert_obj = x509.load_pem_x509_certificate(cert_pem.encode(), default_backend())
+                    cert_chain.append({
+                        "pem": cert_pem,
+                        "subject": cert_obj.subject.rfc4514_string(),
+                        "issuer": cert_obj.issuer.rfc4514_string(),
+                        "is_ca": self._is_ca_certificate(cert_obj),
+                        "is_self_signed": cert_obj.issuer == cert_obj.subject,
+                        "position_in_chain": i
+                    })
+                except Exception as e:
+                    # Skip malformed certificates but log the issue
+                    continue
+            
+            return cert_chain
+            
+        except subprocess.TimeoutExpired:
+            return []
+        except Exception as e:
+            return []
