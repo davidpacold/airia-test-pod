@@ -293,11 +293,11 @@
                     throw new Error(`HTTP ${response.status}`);
                 }
                 const data = await response.json();
-                document.getElementById('version-display').textContent = 'v1.0.38' + data.version;
+                document.getElementById('version-display').textContent = 'v1.0.40' + data.version;
             } catch (error) {
                 console.error('Error loading version:', error);
                 // Fallback to current app version if API fails
-                document.getElementById('version-display').textContent = 'v1.0.38';
+                document.getElementById('version-display').textContent = 'v1.0.40';
             }
         }
         
