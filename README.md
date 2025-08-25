@@ -25,8 +25,15 @@ config:
   # Add your service configurations here...
 EOF
 
-# 2. Deploy with Helm using published image
-helm install airia-test-pod oci://ghcr.io/davidpacold/airia-test-pod/helm/airia-test-pod -f my-test-values.yaml
+# 2. Deploy with Helm
+# Default: Installs in the 'airia-preprod' namespace (created automatically)
+helm install airia-test-pod ./helm/airia-test-pod -f my-test-values.yaml
+
+# Or specify a custom namespace:
+helm install airia-test-pod ./helm/airia-test-pod -f my-test-values.yaml -n my-namespace --create-namespace
+
+# Or install directly from GitHub repo:
+helm install airia-test-pod https://github.com/davidpacold/airia-test-pod/releases/download/v1.0.0/airia-test-pod-1.0.0.tgz -f my-test-values.yaml
 
 # 3. Access the dashboard
 kubectl port-forward -n airia-preprod svc/airia-test-pod 8080:80
