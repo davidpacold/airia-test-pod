@@ -798,7 +798,15 @@ class SSLTest(BaseTest):
         }
         
         for i, cert_data in enumerate(cert_info.get("cert_chain", [])):
-            cert_type = "Server (Leaf)" if i == 0 else "Intermediate CA" if not cert_data["is_self_signed"] else "Root CA"
+            # Determine certificate type based on position in chain
+            if i == 0:
+                cert_type = "Server (Leaf)"
+            elif i == len(cert_info.get("cert_chain", [])) - 1:
+                # Last certificate in chain is considered the root/trust anchor
+                cert_type = "Root CA"
+            else:
+                # Middle certificates are intermediate CAs
+                cert_type = "Intermediate CA"
             
             # Parse subject and issuer to extract readable components
             subject_parts = self._parse_distinguished_name(cert_data["subject"])
