@@ -144,9 +144,6 @@ class SSLTest(BaseTest):
             warnings = [check["message"] for check in checks.values() 
                        if not check["success"] and check.get("warning", False)]
             
-            # Add detailed certificate information to the response
-            cert_details = self._format_certificate_details(cert_info, checks)
-            
             # Add detailed troubleshooting information
             cert_chain_info = self._format_certificate_chain_info(cert_info, checks)
             

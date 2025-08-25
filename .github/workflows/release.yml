@@ -80,6 +80,10 @@ jobs:
         sed -i "s/app = FastAPI(title=\"Airia Infrastructure Test Pod\", version=\"[^\"]*\")/app = FastAPI(title=\"Airia Infrastructure Test Pod\", version=\"$VERSION\")/" app/main.py
         sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" app/main.py
         
+        # Update template fallback versions
+        sed -i "s/textContent = 'v[^']*'/textContent = 'v$VERSION'/" templates/dashboard.html
+        sed -i "s/textContent = 'v[^']*'/textContent = 'v$VERSION'/" templates/index.html
+        
         echo "Updated all version references to $VERSION"
         
         # Show what changed
@@ -87,6 +91,20 @@ jobs:
         git diff --no-index /dev/null helm/airia-test-pod/Chart.yaml | grep "^+" | grep -E "(version|appVersion)" || true
         git diff --no-index /dev/null app/config.py | grep "^+" | grep version || true
         git diff --no-index /dev/null app/main.py | grep "^+" | grep version || true
+        git diff --no-index /dev/null templates/dashboard.html | grep "^+" | grep textContent || true
+        git diff --no-index /dev/null templates/index.html | grep "^+" | grep textContent || true
+        
+        # Commit version updates back to repository
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add -A
+        if git diff --staged --quiet; then
+          echo "No version changes to commit"
+        else
+          git commit -m "Auto-update versions to $VERSION [skip ci]"
+          git push origin main
+          echo "Committed version updates to repository"
+        fi
 
     # Docker image building is now handled by build-and-publish.yml workflow
     # This prevents duplicate Docker builds on the same push
