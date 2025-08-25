@@ -1,6 +1,8 @@
 name: Release
 
 on:
+  push:
+    branches: [main]
   release:
     types: [published]
   workflow_dispatch:
@@ -30,10 +32,20 @@ jobs:
 
     - name: Update all version references
       run: |
-        # Extract version from tag or use manual input
+        # Determine version based on trigger type
         if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          # Manual release with specified version
           VERSION="${{ github.event.inputs.version }}"
+        elif [ "${{ github.event_name }}" = "push" ]; then
+          # Auto-release: increment patch version
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
+          LATEST_VERSION=${LATEST_TAG#v}
+          IFS='.' read -r major minor patch <<< "$LATEST_VERSION"
+          NEW_PATCH=$((patch + 1))
+          VERSION="$major.$minor.$NEW_PATCH"
+          echo "Auto-incrementing from $LATEST_VERSION to $VERSION"
         else
+          # Release event
           VERSION=${GITHUB_REF#refs/tags/}
           VERSION=${VERSION#v}
         fi
@@ -94,19 +106,47 @@ jobs:
       run: |
         helm package helm/airia-test-pod --destination ./helm-packages
 
-    - name: Create Git Tag (for manual dispatch)
-      if: github.event_name == 'workflow_dispatch'
+    - name: Create Git Tag (for auto and manual releases)
+      if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
       run: |
+        # Extract version from previous step
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          VERSION="${{ github.event.inputs.version }}"
+        else
+          # Get auto-generated version from earlier step
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
+          LATEST_VERSION=${LATEST_TAG#v}
+          IFS='.' read -r major minor patch <<< "$LATEST_VERSION"
+          NEW_PATCH=$((patch + 1))
+          VERSION="$major.$minor.$NEW_PATCH"
+        fi
+        
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git tag -a "v${{ github.event.inputs.version }}" -m "Release v${{ github.event.inputs.version }}"
-        git push origin "v${{ github.event.inputs.version }}"
+        git tag -a "v$VERSION" -m "Release v$VERSION"
+        git push origin "v$VERSION"
+
+    - name: Set version output
+      id: version
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+        elif [ "${{ github.event_name }}" = "push" ]; then
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
+          LATEST_VERSION=${LATEST_TAG#v}
+          IFS='.' read -r major minor patch <<< "$LATEST_VERSION"
+          NEW_PATCH=$((patch + 1))
+          echo "version=$major.$minor.$NEW_PATCH" >> $GITHUB_OUTPUT
+        else
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=${VERSION#v}" >> $GITHUB_OUTPUT
+        fi
 
     - name: Upload Helm chart to release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', github.event.inputs.version) || github.ref_name }}
-        name: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', github.event.inputs.version) || github.ref_name }}
+        tag_name: v${{ steps.version.outputs.version }}
+        name: v${{ steps.version.outputs.version }}
         files: ./helm-packages/*.tgz
         generate_release_notes: true
 
@@ -124,5 +164,5 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add docs/
-        git commit -m "Update Helm repository with ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || github.ref_name }} [skip ci]" || exit 0
+        git commit -m "Update Helm repository with v${{ steps.version.outputs.version }} [skip ci]" || exit 0
         git push origin main
