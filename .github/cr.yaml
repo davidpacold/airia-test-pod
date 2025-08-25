@@ -1,0 +1,12 @@
+owner: davidpacold
+git-repo: airia-test-pod
+charts-repo: davidpacold/airia-test-pod
+target-branch: gh-pages
+package-path: .cr-release-packages
+index-path: .cr-index
+commit-username: davidpacold
+commit-email: davidpacold@users.noreply.github.com
+push: false
+pr: false
+release-name-template: "Release {{ .Name }}-{{ .Version }}"
+make-release-latest: true

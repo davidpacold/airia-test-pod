@@ -8,20 +8,15 @@ A comprehensive Kubernetes application that validates infrastructure readiness b
 
 ## 🚀 Quick Start
 
-### Using Published Container Image
-
-The container image is automatically built and published to GitHub Container Registry on every commit.
+### Using Helm Repository (Recommended)
 
 ```bash
-# Pull the latest image directly
-docker pull ghcr.io/davidpacold/airia-test-pod:latest
+# 1. Add the Helm repository
+helm repo add airia-test-pod https://davidpacold.github.io/airia-test-pod/
+helm repo update
 
-# Or use in your values.yaml
+# 2. Create your configuration
 cat > my-test-values.yaml << EOF
-image:
-  repository: ghcr.io/davidpacold/airia-test-pod
-  tag: latest
-
 config:
   auth:
     username: "admin"
@@ -30,19 +25,19 @@ config:
   # Add your service configurations here...
 EOF
 
-# 2. Deploy with Helm
-# Default: Installs in the 'airia-preprod' namespace (created automatically)
-helm install airia-test-pod ./helm/airia-test-pod -f my-test-values.yaml
+# 3. Install (always gets the latest version)
+helm install airia-test-pod airia-test-pod/airia-test-pod -f my-test-values.yaml
 
-# Or specify a custom namespace:
-helm install airia-test-pod ./helm/airia-test-pod -f my-test-values.yaml -n my-namespace --create-namespace
-
-# Or install directly from GitHub repo:
-helm install airia-test-pod https://github.com/davidpacold/airia-test-pod/releases/download/v1.0.0/airia-test-pod-1.0.0.tgz -f my-test-values.yaml
-
-# 3. Access the dashboard
+# 4. Access the dashboard
 kubectl port-forward -n airia-preprod svc/airia-test-pod 8080:80
 # Open http://localhost:8080
+```
+
+### Alternative: Direct GitHub Release
+
+```bash
+# Install specific version from GitHub release
+helm install airia-test-pod https://github.com/davidpacold/airia-test-pod/releases/download/v1.0.1/airia-test-pod-1.0.1.tgz -f my-test-values.yaml
 ```
 
 ### Using Local Source
