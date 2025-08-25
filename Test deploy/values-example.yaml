@@ -1,0 +1,97 @@
+# Example values for airia-test-pod
+# Copy this file to values.yaml and update with your specific configuration
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/davidpacold/airia-test-pod
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+# REQUIRED: Update these domains with your own
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+  hosts:
+    - host: your-domain.com  # CHANGE THIS
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: your-tls-secret  # CHANGE THIS
+      hosts:
+        - your-domain.com  # CHANGE THIS
+
+# REQUIRED: Change default credentials
+config:
+  auth:
+    username: "admin"
+    password: "CHANGE-THIS-PASSWORD"  # REQUIRED: Set a secure password
+    secretKey: "CHANGE-THIS-SECRET-KEY"  # REQUIRED: Generate a secure key
+  
+  # OPTIONAL: PostgreSQL configuration
+  postgresql:
+    enabled: false  # Set to true if using PostgreSQL
+    host: "your-postgres-host"
+    port: "5432"
+    database: "your-database"
+    sslmode: "require"
+    username: "your-username"
+    password: "your-password"
+  
+  # OPTIONAL: Azure Blob Storage configuration
+  blobStorage:
+    enabled: false  # Set to true if using Azure Blob Storage
+    accountName: "your-storage-account"
+    accountKey: "your-account-key"
+    containerName: "your-container"
+  
+  # OPTIONAL: Azure OpenAI configuration
+  openai:
+    enabled: false  # Set to true if using Azure OpenAI
+    endpoint: "https://your-openai.openai.azure.com/"
+    apiKey: "your-api-key"
+    deploymentName: "gpt-4o-mini"
+    embeddingDeployment: ""
+  
+  # OPTIONAL: Azure Document Intelligence configuration
+  documentIntelligence:
+    enabled: false  # Set to true if using Document Intelligence
+    endpoint: "https://your-region.api.cognitive.microsoft.com"
+    apiKey: "your-api-key"
+    model: "prebuilt-document"
+  
+  # OPTIONAL: SSL certificate testing
+  ssl:
+    enabled: false  # Set to true if testing SSL certificates
+    testUrls: "https://your-api.com,https://your-site.com"
+    connectTimeout: 10
+    warningDays: 30
+  
+  # OPTIONAL: Kubernetes storage testing
+  kubernetes:
+    storageClass: "default"
+    testPvcSize: "1Gi"
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+# Resource limits
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+# Namespace configuration
+namespace:
+  create: true
+  name: "airia-preprod"  # CHANGE THIS to your preferred namespace
