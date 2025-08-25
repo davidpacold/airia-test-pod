@@ -156,6 +156,15 @@ config:
   kubernetes:
     storageClass: "default"
     testPvcSize: "1Gi"
+  
+  # Minio S3-compatible storage configuration (optional)
+  minio:
+    enabled: false
+    endpointUrl: "https://minio.example.com"
+    accessKey: ""
+    secretKey: ""
+    bucketName: "test-bucket"
+    secure: true
 
 # Namespace configuration
 namespace:

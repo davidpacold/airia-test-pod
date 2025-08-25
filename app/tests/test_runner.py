@@ -9,6 +9,7 @@ from .ssl_test import SSLTest
 from .openai_test import OpenAITest
 from .document_intelligence_test import DocumentIntelligenceTest
 from .llama_test import LlamaTest
+from .minio_test import MinioTest
 from ..models import TestStatus
 
 # Configure logging
@@ -54,6 +55,10 @@ class TestRunner:
         # Register Llama test
         llama_test = LlamaTest()
         test_suite.register_test(llama_test)
+        
+        # Register Minio test
+        minio_test = MinioTest()
+        test_suite.register_test(minio_test)
         
         self.logger.info(f"Registered {len(test_suite.tests)} tests")
         

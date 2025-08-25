@@ -42,6 +42,13 @@ data:
   ssl-warning-days: {{ .Values.config.ssl.warningDays | quote }}
   {{- end }}
   
+  {{- if .Values.config.minio.enabled }}
+  # Minio S3-compatible storage configuration
+  minio-endpoint-url: {{ .Values.config.minio.endpointUrl | quote }}
+  minio-bucket-name: {{ .Values.config.minio.bucketName | quote }}
+  minio-secure: {{ .Values.config.minio.secure | quote }}
+  {{- end }}
+  
   # Kubernetes configuration
   storage-class: {{ .Values.config.kubernetes.storageClass | quote }}
   test-pvc-size: {{ .Values.config.kubernetes.testPvcSize | quote }}

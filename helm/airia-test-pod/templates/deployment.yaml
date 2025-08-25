@@ -135,6 +135,33 @@ spec:
                   name: {{ include "airia-test-pod.fullname" . }}-config
                   key: ssl-test-urls
             {{- end }}
+            {{- if .Values.config.minio.enabled }}
+            - name: MINIO_ENDPOINT_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: minio-endpoint-url
+            - name: MINIO_BUCKET_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: minio-bucket-name
+            - name: MINIO_SECURE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: minio-secure
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-minio
+                  key: access-key
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-minio
+                  key: secret-key
+            {{- end }}
             - name: STORAGE_CLASS
               valueFrom:
                 configMapKeyRef:
