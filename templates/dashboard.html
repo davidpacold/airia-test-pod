@@ -274,7 +274,7 @@
         </main>
         
         <footer>
-            <p>Airia Infrastructure Test Pod v1.0.0</p>
+            <p>Airia Infrastructure Test Pod <span id="version-display">v1.0.5</span></p>
         </footer>
     </div>
     
@@ -282,7 +282,20 @@
         // Initialize dashboard
         window.addEventListener('load', function() {
             checkTestStatus(); // Load current test status
+            loadVersion(); // Load dynamic version
         });
+        
+        // Load version dynamically
+        async function loadVersion() {
+            try {
+                const response = await fetch('/version');
+                const data = await response.json();
+                document.getElementById('version-display').textContent = 'v' + data.version;
+            } catch (error) {
+                console.error('Error loading version:', error);
+                // Keep fallback version if API fails
+            }
+        }
         
         // Test functions
         async function runTest(testName) {
