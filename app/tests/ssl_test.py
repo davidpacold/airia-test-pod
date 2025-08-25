@@ -147,6 +147,9 @@ class SSLTest(BaseTest):
             # Add detailed certificate information to the response
             cert_details = self._format_certificate_details(cert_info, checks)
             
+            # Add detailed troubleshooting information
+            cert_chain_info = self._format_certificate_chain_info(cert_info, checks)
+            
             return {
                 "success": all_checks_passed,
                 "message": "SSL certificate validation passed" if all_checks_passed 
@@ -165,7 +168,8 @@ class SSLTest(BaseTest):
                 },
                 "checks": checks,
                 "warnings": warnings,
-                "remediation": self._get_ssl_remediation(checks) if not all_checks_passed else None
+                "certificate_chain_analysis": cert_chain_info,
+                "remediation": self._get_ssl_remediation(checks, cert_chain_info) if not all_checks_passed else None
             }
             
         except Exception as e:
@@ -190,6 +194,7 @@ class SSLTest(BaseTest):
                 
                 # Get the full certificate chain
                 cert_chain = []
+                retrieval_method = "python_ssl"
                 try:
                     # Try to get all certificates in the chain
                     # Note: getpeercert_chain() is not available in all Python SSL implementations
@@ -224,6 +229,7 @@ class SSLTest(BaseTest):
                         openssl_certs = self._get_cert_chain_with_openssl(hostname, port)
                         if openssl_certs:
                             cert_chain.extend(openssl_certs)
+                            retrieval_method = "openssl_fallback"
                         else:
                             # Final fallback to single certificate from original retrieval
                             cert_chain.append({
@@ -260,7 +266,8 @@ class SSLTest(BaseTest):
                     "days_until_expiry": (cert.not_valid_after_utc.replace(tzinfo=None) - datetime.datetime.now()).days,
                     "san_names": san_list,
                     "cert_chain": cert_chain,
-                    "chain_length": len(cert_chain)
+                    "chain_length": len(cert_chain),
+                    "retrieval_method": retrieval_method
                 }
     
     def _check_ssl_connection(self, hostname: str, port: int) -> Dict[str, Any]:
@@ -489,7 +496,7 @@ class SSLTest(BaseTest):
                 "warning": True
             }
     
-    def _get_ssl_remediation(self, checks: Dict[str, Dict[str, Any]]) -> str:
+    def _get_ssl_remediation(self, checks: Dict[str, Dict[str, Any]], chain_info: Dict[str, Any] = None) -> str:
         """Generate remediation suggestions based on failed checks"""
         suggestions = []
         
@@ -498,6 +505,19 @@ class SSLTest(BaseTest):
         
         if not checks.get("certificate_chain", {}).get("success"):
             chain_check = checks.get("certificate_chain", {})
+            
+            # Add detailed chain analysis if available
+            if chain_info:
+                certificates_found = chain_info.get("certificates_found", 0)
+                retrieval_method = chain_info.get("retrieval_method", "Unknown")
+                
+                if certificates_found == 1:
+                    suggestions.append(f"Only 1 certificate retrieved using {retrieval_method}")
+                    suggestions.append("IMPORTANT: OpenSSL shows complete chains - this may be a client retrieval issue, not a server configuration problem")
+                    suggestions.append("Verify with: openssl s_client -connect hostname:443 -showcerts")
+                else:
+                    suggestions.append(f"Retrieved {certificates_found} certificates using {retrieval_method}")
+            
             if "incomplete chain" in chain_check.get("message", "").lower():
                 suggestions.append("Install intermediate certificates on the server - clients may not be able to validate the certificate")
             else:
@@ -749,3 +769,38 @@ class SSLTest(BaseTest):
             return []
         except Exception as e:
             return []
+
+    def _format_certificate_chain_info(self, cert_info: Dict[str, Any], checks: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+        """Format detailed certificate chain information for display"""
+        retrieval_method_display = {
+            "python_ssl": "Python SSL (native)",
+            "openssl_fallback": "OpenSSL fallback",
+        }.get(cert_info.get("retrieval_method", "unknown"), "Unknown method")
+        
+        chain_info = {
+            "certificates_found": cert_info["chain_length"],
+            "retrieval_method": retrieval_method_display,
+            "certificates": []
+        }
+        
+        for i, cert_data in enumerate(cert_info.get("cert_chain", [])):
+            cert_type = "Server (Leaf)" if i == 0 else "Intermediate CA" if not cert_data["is_self_signed"] else "Root CA"
+            
+            chain_info["certificates"].append({
+                "position": i + 1,
+                "type": cert_type,
+                "subject": cert_data["subject"],
+                "issuer": cert_data["issuer"],
+                "is_ca": cert_data["is_ca"],
+                "is_self_signed": cert_data["is_self_signed"]
+            })
+        
+        # Add analysis
+        if cert_info["chain_length"] == 1:
+            chain_info["analysis"] = "Only leaf certificate retrieved - this may indicate Python SSL client limitation"
+            chain_info["recommendation"] = "Certificate chain appears incomplete from client perspective, but may be complete on server"
+        elif cert_info["chain_length"] >= 2:
+            chain_info["analysis"] = "Complete certificate chain retrieved successfully"
+            chain_info["recommendation"] = "Certificate chain is properly configured"
+        
+        return chain_info
