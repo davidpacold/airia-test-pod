@@ -93,3 +93,24 @@ jobs:
         name: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', github.event.inputs.version) || github.ref_name }}
         files: ./helm-packages/*.tgz
         generate_release_notes: true
+
+    - name: Setup GitHub Pages for Helm repository
+      if: success()
+      run: |
+        # Create gh-pages branch if it doesn't exist
+        git fetch origin gh-pages || git checkout --orphan gh-pages
+        git checkout gh-pages || echo "Already on gh-pages"
+        
+        # Copy chart package to docs directory
+        mkdir -p docs
+        cp ./helm-packages/*.tgz docs/
+        
+        # Generate or update index.yaml
+        helm repo index docs --url https://davidpacold.github.io/airia-test-pod/
+        
+        # Commit and push to gh-pages
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add docs/
+        git commit -m "Update Helm repository with ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || github.ref_name }}" || exit 0
+        git push origin gh-pages

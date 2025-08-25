@@ -6,7 +6,7 @@ package-path: .cr-release-packages
 index-path: .cr-index
 commit-username: davidpacold
 commit-email: davidpacold@users.noreply.github.com
-push: false
+push: true
 pr: false
-release-name-template: "Release {{ .Name }}-{{ .Version }}"
+release-name-template: "{{ .Name }} {{ .Version }}"
 make-release-latest: true
