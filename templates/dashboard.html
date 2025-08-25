@@ -293,7 +293,7 @@
                     throw new Error(`HTTP ${response.status}`);
                 }
                 const data = await response.json();
-                document.getElementById('version-display').textContent = 'v1.0.36' + data.version;
+                document.getElementById('version-display').textContent = 'v' + data.version;
             } catch (error) {
                 console.error('Error loading version:', error);
                 // Fallback to current app version if API fails
@@ -451,6 +451,39 @@
                             html += '&nbsp;&nbsp;<em>Available Extensions (sample):</em><br>';
                             testResult.available_extensions.slice(0, 5).forEach(ext => {
                                 html += `&nbsp;&nbsp;&nbsp;&nbsp;• ${ext.name} v${ext.version}<br>`;
+                            });
+                        }
+                    }
+                    
+                    // Show SSL certificate details
+                    if (testName.includes('SSL Check:') && testResult.certificate_chain_analysis) {
+                        const chainInfo = testResult.certificate_chain_analysis;
+                        html += `&nbsp;&nbsp;<em>Certificate Chain Analysis:</em><br>`;
+                        html += `&nbsp;&nbsp;&nbsp;&nbsp;• Method: ${chainInfo.retrieval_method}<br>`;
+                        html += `&nbsp;&nbsp;&nbsp;&nbsp;• Certificates Found: ${chainInfo.certificates_found}<br>`;
+                        
+                        if (chainInfo.certificates && chainInfo.certificates.length > 0) {
+                            html += '&nbsp;&nbsp;&nbsp;&nbsp;• Certificate Details:<br>';
+                            chainInfo.certificates.forEach(cert => {
+                                html += `&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${cert.position}. ${cert.type}<br>`;
+                                if (cert.subject_parsed && cert.subject_parsed['Common Name']) {
+                                    html += `&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Subject: ${cert.subject_parsed['Common Name']}<br>`;
+                                }
+                                if (cert.issuer_parsed) {
+                                    const issuer = cert.issuer_parsed['Common Name'] || cert.issuer_parsed['Organization'] || 'Unknown';
+                                    html += `&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Issuer: ${issuer}<br>`;
+                                }
+                            });
+                        }
+                        
+                        if (chainInfo.analysis) {
+                            html += `&nbsp;&nbsp;&nbsp;&nbsp;• Analysis: ${chainInfo.analysis}<br>`;
+                        }
+                        
+                        if (chainInfo.troubleshooting && chainInfo.troubleshooting.length > 0) {
+                            html += '&nbsp;&nbsp;&nbsp;&nbsp;• Troubleshooting:<br>';
+                            chainInfo.troubleshooting.forEach(tip => {
+                                html += `&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ ${tip}<br>`;
                             });
                         }
                     }
