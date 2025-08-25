@@ -10,8 +10,13 @@ A comprehensive Kubernetes application that validates infrastructure readiness b
 
 ### Using Published Container Image
 
+The container image is automatically built and published to GitHub Container Registry on every commit.
+
 ```bash
-# 1. Create your configuration file (my-test-values.yaml)
+# Pull the latest image directly
+docker pull ghcr.io/davidpacold/airia-test-pod:latest
+
+# Or use in your values.yaml
 cat > my-test-values.yaml << EOF
 image:
   repository: ghcr.io/davidpacold/airia-test-pod
@@ -127,7 +132,7 @@ docker run -d -p 8080:8080 \
   -e AUTH_USERNAME=admin -e AUTH_PASSWORD=changeme \
   -e POSTGRES_HOST=your-server.postgres.database.azure.com \
   -e POSTGRES_USER=your-username -e POSTGRES_PASSWORD=your-password \
-  airia/test-pod:latest
+  ghcr.io/davidpacold/airia-test-pod:latest
 ```
 
 ### Raw Kubernetes Manifests
@@ -171,7 +176,8 @@ graph TB
 - Kubernetes RBAC with minimal required permissions
 - Secure secret management via Kubernetes secrets
 - Multi-stage Docker builds with security best practices
-- TLS/HTTPS support for production deployments
+- TLS/HTTPS termination at ingress/load balancer level (pod accepts HTTP)
+- Enhanced SSL certificate chain validation for external services
 
 ## 🆘 Troubleshooting
 
