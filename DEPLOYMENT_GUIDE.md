@@ -102,6 +102,19 @@ config:
 ingress:
   enabled: true
   className: nginx
+  annotations:
+    # Default annotations (already included)
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"  # HTTP only - TLS termination handled elsewhere
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    
+    # Additional annotations you might need:
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"  # For automatic TLS certificates
+    # nginx.ingress.kubernetes.io/proxy-read-timeout: "300"  # Increase timeout for long-running tests
+    # nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    # nginx.ingress.kubernetes.io/enable-cors: "true"  # Enable CORS if needed
+    # nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    # nginx.ingress.kubernetes.io/websocket-services: "airia-test-pod"  # WebSocket support (already works by default)
+    
   hosts:
     - host: airia-test.yourdomain.com
       paths:
@@ -737,6 +750,36 @@ networkPolicy:
 ```
 
 ## Advanced Configuration
+
+### Ingress Configuration
+
+The test pod uses WebSocket connections for real-time updates. By default, SSL redirect is disabled as the pod expects HTTP traffic with TLS termination handled by external load balancers or ingress controllers.
+
+**Common Ingress Annotations:**
+
+```yaml
+ingress:
+  annotations:
+    # For cert-manager automatic TLS certificates
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    
+    # For longer running tests (default is 60s)
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    
+    # For Azure Application Gateway
+    appgw.ingress.kubernetes.io/ssl-redirect: "true"
+    appgw.ingress.kubernetes.io/backend-protocol: "http"
+    
+    # For Traefik
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    
+    # For HAProxy
+    haproxy.org/timeout-client: "300s"
+    haproxy.org/timeout-server: "300s"
+```
+
+**Note:** WebSocket support is automatic with nginx-ingress. No special annotations are needed for the real-time dashboard updates.
 
 ### Multiple Hostname Support
 
