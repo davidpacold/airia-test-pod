@@ -37,16 +37,23 @@ securityContext: {}
   # runAsUser: 1000
 
 service:
-  type: ClusterIP
+  type: ClusterIP  # Options: ClusterIP, NodePort, LoadBalancer
   port: 80
   targetPort: 8080
+  # nodePort: 30000  # Only used if type is NodePort
 
 ingress:
   enabled: true
-  className: "nginx"
+  className: "nginx"  # Options: "nginx", "azure-application-gateway", or custom
   annotations:
+    # NGINX Ingress annotations (default)
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
     nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    
+    # Azure Application Gateway annotations (uncomment for AGIC)
+    # kubernetes.io/ingress.class: azure/application-gateway
+    # appgw.ingress.kubernetes.io/ssl-redirect: "false"
+    # appgw.ingress.kubernetes.io/request-timeout: "30"
   hosts:
     - host: test.example.com
       paths:

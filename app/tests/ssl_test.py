@@ -201,7 +201,6 @@ class SSLTest(BaseTest):
                                 cert_pem_chain = ssl.DER_cert_to_PEM_cert(cert_der_bytes)
                                 cert_obj = x509.load_pem_x509_certificate(cert_pem_chain.encode(), default_backend())
                                 cert_chain.append({
-                                    "cert": cert_obj,
                                     "pem": cert_pem_chain,
                                     "subject": cert_obj.subject.rfc4514_string(),
                                     "issuer": cert_obj.issuer.rfc4514_string(),
@@ -228,7 +227,6 @@ class SSLTest(BaseTest):
                                 server_cert_obj = x509.load_pem_x509_certificate(server_cert_pem.encode(), default_backend())
                                 
                                 cert_chain.append({
-                                    "cert": server_cert_obj,
                                     "pem": server_cert_pem,
                                     "subject": server_cert_obj.subject.rfc4514_string(),
                                     "issuer": server_cert_obj.issuer.rfc4514_string(),
@@ -238,7 +236,6 @@ class SSLTest(BaseTest):
                     except Exception:
                         # Final fallback to single certificate from original retrieval
                         cert_chain.append({
-                            "cert": cert,
                             "pem": cert_pem,
                             "subject": cert.subject.rfc4514_string(),
                             "issuer": cert.issuer.rfc4514_string(),
@@ -543,11 +540,11 @@ class SSLTest(BaseTest):
         
         try:
             for i in range(len(cert_chain) - 1):
-                current_cert = cert_chain[i]["cert"]
-                next_cert = cert_chain[i + 1]["cert"]
+                current_cert_issuer = cert_chain[i]["issuer"]
+                next_cert_subject = cert_chain[i + 1]["subject"]
                 
                 # Check if current cert's issuer matches next cert's subject
-                if current_cert.issuer != next_cert.subject:
+                if current_cert_issuer != next_cert_subject:
                     issues.append(
                         f"Certificate at position {i} issuer does not match "
                         f"certificate at position {i + 1} subject"
@@ -555,7 +552,7 @@ class SSLTest(BaseTest):
                 
                 # For the last certificate, check if it's self-signed (root CA)
                 if i == len(cert_chain) - 2:  # Last pair
-                    if not next_cert.issuer == next_cert.subject:
+                    if not cert_chain[i + 1]["is_self_signed"]:
                         issues.append("Chain does not end with a self-signed root CA certificate")
             
         except Exception as e:

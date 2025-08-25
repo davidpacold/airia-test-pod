@@ -416,6 +416,28 @@
                     const icon = testResult.success ? '✅' : '❌';
                     html += `${icon} <strong>${testName}:</strong> ${testResult.message}<br>`;
                     
+                    // Show database details
+                    if (testName === 'databases' && testResult.databases) {
+                        html += '&nbsp;&nbsp;<em>Databases:</em><br>';
+                        testResult.databases.forEach(db => {
+                            html += `&nbsp;&nbsp;&nbsp;&nbsp;• ${db.name} (${db.size_human})<br>`;
+                        });
+                    }
+                    
+                    // Show extension details
+                    if (testName === 'extensions' && testResult.installed_extensions) {
+                        html += '&nbsp;&nbsp;<em>Installed Extensions:</em><br>';
+                        testResult.installed_extensions.forEach(ext => {
+                            html += `&nbsp;&nbsp;&nbsp;&nbsp;• ${ext.name} v${ext.version}<br>`;
+                        });
+                        if (testResult.available_extensions && testResult.available_extensions.length > 0) {
+                            html += '&nbsp;&nbsp;<em>Available Extensions (sample):</em><br>';
+                            testResult.available_extensions.slice(0, 5).forEach(ext => {
+                                html += `&nbsp;&nbsp;&nbsp;&nbsp;• ${ext.name} v${ext.version}<br>`;
+                            });
+                        }
+                    }
+                    
                     if (testResult.remediation) {
                         html += `&nbsp;&nbsp;<em>→ ${testResult.remediation}</em><br>`;
                     }

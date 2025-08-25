@@ -11,10 +11,16 @@ image:
 # REQUIRED: Update these domains with your own
 ingress:
   enabled: true
-  className: "nginx"
+  className: "nginx"  # Options: "nginx", "azure-application-gateway", or custom
   annotations:
+    # For NGINX Ingress Controller (default)
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
     nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    
+    # For Azure Application Gateway (uncomment if using AGIC)
+    # kubernetes.io/ingress.class: azure/application-gateway
+    # appgw.ingress.kubernetes.io/ssl-redirect: "false"
+    # appgw.ingress.kubernetes.io/request-timeout: "30"
   hosts:
     - host: your-domain.com  # CHANGE THIS
       paths:

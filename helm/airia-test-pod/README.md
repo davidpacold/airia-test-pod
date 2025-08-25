@@ -17,7 +17,9 @@ This Helm chart deploys the Airia Infrastructure Test Pod, a comprehensive solut
 
 - Kubernetes 1.18+
 - Helm 3.0+
-- Nginx Ingress Controller
+- Ingress Controller (choose one):
+  - NGINX Ingress Controller
+  - Azure Application Gateway Ingress Controller (AGIC)
 - Appropriate RBAC permissions
 
 ## Installation
@@ -75,6 +77,16 @@ config:
 
 # Configure ingress hostnames
 ingress:
+  className: "nginx"  # Use "azure-application-gateway" for Azure App Gateway
+  annotations:
+    # For NGINX Ingress Controller (default)
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    
+    # For Azure Application Gateway (uncomment if using AGIC)
+    # kubernetes.io/ingress.class: azure/application-gateway
+    # appgw.ingress.kubernetes.io/ssl-redirect: "false"
+    # appgw.ingress.kubernetes.io/request-timeout: "30"
   hosts:
     - host: test-pod.yourdomain.com
       paths:
@@ -180,8 +192,9 @@ kubectl get ingress -n airia-preprod
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `ingress.enabled` | Enable ingress | `true` |
-| `ingress.className` | Ingress class name | `nginx` |
+| `ingress.className` | Ingress class name (`nginx`, `azure-application-gateway`) | `nginx` |
 | `ingress.hosts` | List of hostnames | See values.yaml |
+| `service.type` | Service type (`ClusterIP`, `NodePort`, `LoadBalancer`) | `ClusterIP` |
 | `resources.requests.cpu` | CPU request | `100m` |
 | `resources.requests.memory` | Memory request | `256Mi` |
 | `resources.limits.cpu` | CPU limit | `500m` |
@@ -223,7 +236,7 @@ kubectl delete namespace airia-preprod
 
 1. **Tests show as "Skipped"**: This means the test configuration is not enabled or incomplete
 2. **Pod fails to start**: Check resource limits and node capacity
-3. **Ingress not working**: Verify nginx ingress controller is installed
+3. **Ingress not working**: Verify ingress controller is installed (NGINX or Azure App Gateway)
 4. **Permission errors**: Ensure RBAC is properly configured
 
 ### Debug Commands

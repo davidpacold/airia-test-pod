@@ -21,12 +21,22 @@ Before deployment, you **must** update these sections in `values.yaml`:
 ### 1. Domain Configuration
 ```yaml
 ingress:
+  className: "nginx"  # or "azure-application-gateway" for Azure App Gateway
   hosts:
     - host: your-domain.com  # Replace with your domain
   tls:
     - secretName: your-tls-secret
       hosts:
         - your-domain.com
+```
+
+**For Azure Application Gateway users:**
+```yaml
+ingress:
+  className: "azure-application-gateway"
+  annotations:
+    kubernetes.io/ingress.class: azure/application-gateway
+    appgw.ingress.kubernetes.io/ssl-redirect: "false"
 ```
 
 ### 2. Authentication (Security Critical)

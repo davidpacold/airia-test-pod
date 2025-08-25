@@ -8,6 +8,22 @@ A comprehensive Kubernetes application that validates infrastructure readiness b
 
 ## 🚀 Quick Start
 
+### Prerequisites
+- Kubernetes cluster
+- Ingress Controller (if using ingress):
+  
+  **NGINX Ingress Controller:**
+  ```bash
+  helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+  helm install ingress-nginx ingress-nginx/ingress-nginx --create-namespace --namespace ingress-nginx
+  ```
+  
+  **Azure Application Gateway Ingress Controller (AGIC):**
+  ```bash
+  # Follow Azure documentation to set up AGIC
+  # Then use: --set ingress.className="azure-application-gateway"
+  ```
+
 ### Using Helm Repository (Recommended)
 
 ```bash
@@ -104,11 +120,19 @@ config:
 
 ingress:
   enabled: true
+  className: "nginx"  # Use "azure-application-gateway" for Azure App Gateway
   hosts:
     - host: airia-test.yourdomain.com
       paths:
         - path: /
           pathType: Prefix
+
+# For Azure Application Gateway users, also add:
+# ingress:
+#   className: "azure-application-gateway"
+#   annotations:
+#     kubernetes.io/ingress.class: azure/application-gateway
+#     appgw.ingress.kubernetes.io/ssl-redirect: "false"
 ```
 
 ## 🔍 Understanding Results
