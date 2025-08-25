@@ -1,10 +1,9 @@
 name: Build and Publish Container Image
 
 on:
-  # Disabled - replaced by release.yml workflow  
-  # push:
-  #   branches: [ main ]
-  #   tags: [ 'v*' ]
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
   pull_request:
     branches: [ main ]
 
