@@ -61,11 +61,22 @@
             margin-left: 8px;
         }
         
+        .test-section {
+            margin-top: 30px;
+        }
+        
+        .test-section h2 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        
         .test-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 20px;
-            margin-top: 30px;
+            margin-bottom: 30px;
         }
         
         .test-card {
@@ -214,16 +225,11 @@
                 </button>
             </div>
             
-            <div class="test-grid" id="testGrid">
-                <div class="test-card" id="postgresqlv2-card">
-                    <h3>PostgreSQL Database</h3>
-                    <p>Tests connection, databases, and extensions</p>
-                    <span class="test-status ready" id="postgresqlv2-status">Ready to Test</span>
-                    <button class="test-button" onclick="runTest('postgresqlv2')" id="postgresqlv2-btn">Run Test</button>
-                    <div class="test-details" id="postgresqlv2-details"></div>
-                </div>
-                
-                <div class="test-card" id="blobstorage-card">
+            <!-- Storage Tests Section -->
+            <div class="test-section">
+                <h2>💾 Storage Tests</h2>
+                <div class="test-grid">
+                    <div class="test-card" id="blobstorage-card">
                     <h3>Azure Blob Storage</h3>
                     <p>Tests authentication and file operations</p>
                     <span class="test-status ready" id="blobstorage-status">Ready to Test</span>
@@ -231,7 +237,43 @@
                     <div class="test-details" id="blobstorage-details"></div>
                 </div>
                 
-                <div class="test-card" id="openai-card">
+                <div class="test-card" id="s3-card">
+                    <h3>Amazon S3 Storage</h3>
+                    <p>Tests S3 connectivity and operations</p>
+                    <span class="test-status ready" id="s3-status">Ready to Test</span>
+                    <button class="test-button" onclick="runTest('s3')" id="s3-btn">Run Test</button>
+                    <div class="test-details" id="s3-details"></div>
+                </div>
+                
+                <div class="test-card" id="minio-card">
+                    <h3>Minio Storage</h3>
+                    <p>Tests S3-compatible storage connectivity</p>
+                    <span class="test-status ready" id="minio-status">Ready to Test</span>
+                    <button class="test-button" onclick="runTest('minio')" id="minio-btn">Run Test</button>
+                    <div class="test-details" id="minio-details"></div>
+                </div>
+            </div>
+            </div>
+            
+            <!-- Database Tests Section -->
+            <div class="test-section">
+                <h2>🗄️ Database Tests</h2>
+                <div class="test-grid">
+                    <div class="test-card" id="postgresqlv2-card">
+                        <h3>PostgreSQL Database</h3>
+                        <p>Tests connection, databases, and extensions</p>
+                        <span class="test-status ready" id="postgresqlv2-status">Ready to Test</span>
+                        <button class="test-button" onclick="runTest('postgresqlv2')" id="postgresqlv2-btn">Run Test</button>
+                        <div class="test-details" id="postgresqlv2-details"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- AI & ML Tests Section -->
+            <div class="test-section">
+                <h2>🤖 AI & Machine Learning Tests</h2>
+                <div class="test-grid">
+                    <div class="test-card" id="openai-card">
                     <h3>AI Models (OpenAI/Llama)</h3>
                     <p>Tests API connectivity and models</p>
                     <span class="test-status ready" id="openai-status">Ready to Test</span>
@@ -247,7 +289,21 @@
                     <div class="test-details" id="llama-details"></div>
                 </div>
                 
-                <div class="test-card" id="pvc-card">
+                <div class="test-card" id="docintel-card">
+                    <h3>Document Intelligence</h3>
+                    <p>Tests document processing API</p>
+                    <span class="test-status ready" id="docintel-status">Ready to Test</span>
+                    <button class="test-button" onclick="runTest('docintel')" id="docintel-btn">Run Test</button>
+                    <div class="test-details" id="docintel-details"></div>
+                </div>
+            </div>
+            </div>
+            
+            <!-- Infrastructure Tests Section -->
+            <div class="test-section">
+                <h2>🏗️ Infrastructure Tests</h2>
+                <div class="test-grid">
+                    <div class="test-card" id="pvc-card">
                     <h3>Kubernetes PVC</h3>
                     <p>Tests storage class and permissions</p>
                     <span class="test-status ready" id="pvc-status">Ready to Test</span>
@@ -262,22 +318,7 @@
                     <button class="test-button" onclick="runTest('ssl')" id="ssl-btn">Run Test</button>
                     <div class="test-details" id="ssl-details"></div>
                 </div>
-                
-                <div class="test-card" id="docintel-card">
-                    <h3>Document Intelligence</h3>
-                    <p>Tests document processing API</p>
-                    <span class="test-status ready" id="docintel-status">Ready to Test</span>
-                    <button class="test-button" onclick="runTest('docintel')" id="docintel-btn">Run Test</button>
-                    <div class="test-details" id="docintel-details"></div>
-                </div>
-                
-                <div class="test-card" id="minio-card">
-                    <h3>Minio Storage</h3>
-                    <p>Tests S3-compatible storage connectivity</p>
-                    <span class="test-status ready" id="minio-status">Ready to Test</span>
-                    <button class="test-button" onclick="runTest('minio')" id="minio-btn">Run Test</button>
-                    <div class="test-details" id="minio-details"></div>
-                </div>
+            </div>
             </div>
         </main>
         

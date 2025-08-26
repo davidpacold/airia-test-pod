@@ -49,6 +49,15 @@ data:
   minio-secure: {{ .Values.config.minio.secure | quote }}
   {{- end }}
   
+  {{- if .Values.config.s3.enabled }}
+  # Amazon S3 storage configuration
+  aws-region: {{ .Values.config.s3.region | quote }}
+  s3-bucket-name: {{ .Values.config.s3.bucketName | quote }}
+  {{- if .Values.config.s3.endpointUrl }}
+  s3-endpoint-url: {{ .Values.config.s3.endpointUrl | quote }}
+  {{- end }}
+  {{- end }}
+  
   # Kubernetes configuration
   storage-class: {{ .Values.config.kubernetes.storageClass | quote }}
   test-pvc-size: {{ .Values.config.kubernetes.testPvcSize | quote }}

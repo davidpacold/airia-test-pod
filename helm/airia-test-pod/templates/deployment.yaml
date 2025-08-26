@@ -162,6 +162,42 @@ spec:
                   name: {{ include "airia-test-pod.fullname" . }}-minio
                   key: secret-key
             {{- end }}
+            {{- if .Values.config.s3.enabled }}
+            - name: AWS_REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: aws-region
+            - name: S3_BUCKET_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: s3-bucket-name
+            {{- if .Values.config.s3.endpointUrl }}
+            - name: S3_ENDPOINT_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: s3-endpoint-url
+            {{- end }}
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-s3
+                  key: access-key-id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-s3
+                  key: secret-access-key
+            {{- if .Values.config.s3.sessionToken }}
+            - name: AWS_SESSION_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-s3
+                  key: session-token
+            {{- end }}
+            {{- end }}
             - name: STORAGE_CLASS
               valueFrom:
                 configMapKeyRef:

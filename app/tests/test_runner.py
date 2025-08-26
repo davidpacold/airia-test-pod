@@ -10,6 +10,7 @@ from .openai_test import OpenAITest
 from .document_intelligence_test import DocumentIntelligenceTest
 from .llama_test import LlamaTest
 from .minio_test import MinioTest
+from .s3_test import S3Test
 from ..models import TestStatus
 
 # Configure logging
@@ -59,6 +60,10 @@ class TestRunner:
         # Register Minio test
         minio_test = MinioTest()
         test_suite.register_test(minio_test)
+        
+        # Register S3 test
+        s3_test = S3Test()
+        test_suite.register_test(s3_test)
         
         self.logger.info(f"Registered {len(test_suite.tests)} tests")
         
