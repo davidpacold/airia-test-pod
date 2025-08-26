@@ -2,8 +2,13 @@ import openai
 from openai import OpenAI
 from typing import Dict, Any, List
 import os
-import numpy as np
 from datetime import datetime
+
+try:
+    import numpy as np
+    HAS_NUMPY = True
+except ImportError:
+    HAS_NUMPY = False
 
 from .base_test import BaseTest, TestResult
 from ..models import TestStatus
@@ -406,6 +411,15 @@ class EmbeddingTest(BaseTest):
             
             embeddings = [item.embedding for item in response.data]
             
+            if not HAS_NUMPY:
+                return {
+                    "success": True,
+                    "message": "Similarity validation skipped (numpy not available)",
+                    "details": {
+                        "skipped_reason": "numpy dependency not found"
+                    }
+                }
+            
             # Calculate cosine similarities
             def cosine_similarity(a, b):
                 return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
@@ -430,14 +444,6 @@ class EmbeddingTest(BaseTest):
                 }
             }
             
-        except ImportError:
-            return {
-                "success": True,
-                "message": "Similarity validation skipped (numpy not available)",
-                "details": {
-                    "skipped_reason": "numpy dependency not found"
-                }
-            }
         except Exception as e:
             return {
                 "success": False,
