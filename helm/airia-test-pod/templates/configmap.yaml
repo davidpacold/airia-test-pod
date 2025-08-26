@@ -58,6 +58,15 @@ data:
   {{- end }}
   {{- end }}
   
+  {{- if .Values.config.embeddings.enabled }}
+  # Embedding model configuration
+  embedding-base-url: {{ .Values.config.embeddings.baseUrl | quote }}
+  embedding-model-name: {{ .Values.config.embeddings.modelName | quote }}
+  {{- if .Values.config.embeddings.customHeaders }}
+  embedding-custom-headers: {{ .Values.config.embeddings.customHeaders | quote }}
+  {{- end }}
+  {{- end }}
+  
   # Kubernetes configuration
   storage-class: {{ .Values.config.kubernetes.storageClass | quote }}
   test-pvc-size: {{ .Values.config.kubernetes.testPvcSize | quote }}

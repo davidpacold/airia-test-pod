@@ -175,6 +175,14 @@ config:
     sessionToken: ""  # Optional for temporary credentials
     bucketName: "test-bucket"
     endpointUrl: ""  # Optional custom endpoint
+  
+  # Embedding model configuration (optional)
+  embeddings:
+    enabled: false
+    baseUrl: "https://api.openai.com/v1"  # OpenAI or custom embedding endpoint
+    apiKey: ""
+    modelName: "text-embedding-ada-002"
+    customHeaders: ""  # Optional: Header1:Value1,Header2:Value2
 
 # Namespace configuration
 namespace:

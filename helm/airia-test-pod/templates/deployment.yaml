@@ -198,6 +198,30 @@ spec:
                   key: session-token
             {{- end }}
             {{- end }}
+            {{- if .Values.config.embeddings.enabled }}
+            - name: EMBEDDING_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: embedding-base-url
+            - name: EMBEDDING_MODEL_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: embedding-model-name
+            {{- if .Values.config.embeddings.customHeaders }}
+            - name: EMBEDDING_CUSTOM_HEADERS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: embedding-custom-headers
+            {{- end }}
+            - name: EMBEDDING_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-embeddings
+                  key: api-key
+            {{- end }}
             - name: STORAGE_CLASS
               valueFrom:
                 configMapKeyRef:

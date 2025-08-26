@@ -11,6 +11,7 @@ from .document_intelligence_test import DocumentIntelligenceTest
 from .llama_test import LlamaTest
 from .minio_test import MinioTest
 from .s3_test import S3Test
+from .embedding_test import EmbeddingTest
 from ..models import TestStatus
 
 # Configure logging
@@ -64,6 +65,10 @@ class TestRunner:
         # Register S3 test
         s3_test = S3Test()
         test_suite.register_test(s3_test)
+        
+        # Register Embedding test
+        embedding_test = EmbeddingTest()
+        test_suite.register_test(embedding_test)
         
         self.logger.info(f"Registered {len(test_suite.tests)} tests")
         
