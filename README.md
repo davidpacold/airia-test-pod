@@ -4,12 +4,13 @@ A comprehensive Kubernetes application that validates infrastructure readiness b
 
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/davidpacold/airia-test-pod)](https://github.com/davidpacold/airia-test-pod/releases)
 [![Container Image](https://img.shields.io/badge/container-ghcr.io%2Fdavidpacold%2Fairia--test--pod-blue)](https://github.com/davidpacold/airia-test-pod/pkgs/container/airia-test-pod)
+[![Docker Hub](https://img.shields.io/docker/v/davidpacold/airia-test-pod?label=Docker%20Hub)](https://hub.docker.com/r/davidpacold/airia-test-pod)
 [![Build Status](https://github.com/davidpacold/airia-test-pod/actions/workflows/build-and-publish.yml/badge.svg)](https://github.com/davidpacold/airia-test-pod/actions)
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Kubernetes cluster
+- Kubernetes cluster with `airia-preprod` namespace (created automatically by Helm)
 - Ingress Controller (if using ingress):
   
   **NGINX Ingress Controller:**
@@ -94,46 +95,78 @@ helm install airia-test-pod ./helm/airia-test-pod -f my-test-values.yaml
 
 ## 🔧 Configuration Example
 
-Create `my-test-values.yaml`:
+Create `my-test-values.yaml` with your configuration:
 
 ```yaml
 config:
   auth:
     username: "admin"
-    password: "ChangeThisPassword123!"
+    password: "ChangeThisPassword123!"  # REQUIRED: Change this
+    secretKey: "your-secret-jwt-key"    # REQUIRED: Generate secure key (openssl rand -hex 32)
     
+  # PostgreSQL Testing (optional)
   postgresql:
     enabled: true
     host: "your-server.postgres.database.azure.com"
+    port: "5432"
+    database: "postgres"
+    sslmode: "require"
     username: "your-username"
     password: "your-password"
     
+  # Azure Blob Storage Testing (optional)
   blobStorage:
     enabled: true
     accountName: "yourstorageaccount"
     accountKey: "your-storage-key"
+    containerName: "test-container"
     
+  # Azure OpenAI Testing (optional)
   openai:
     enabled: true
     endpoint: "https://your-openai.openai.azure.com/"
     apiKey: "your-openai-key"
+    deploymentName: "gpt-35-turbo"
+    embeddingDeployment: "text-embedding-ada-002"  # Optional
+
+  # Additional optional services (see full example for details):
+  # documentIntelligence, ssl, kubernetes, minio, s3, embeddings
 
 ingress:
   enabled: true
   className: "nginx"  # Use "azure-application-gateway" for Azure App Gateway
   hosts:
-    - host: airia-test.yourdomain.com
+    - host: airia-test.yourdomain.com  # CHANGE THIS
       paths:
         - path: /
           pathType: Prefix
+    # Add up to 5 hostnames with individual TLS certificates:
+    # - host: airia-test-secondary.yourdomain.com
+    #   paths:
+    #     - path: /
+    #       pathType: Prefix
+  
+  # TLS configuration (customer-managed certificates, SSL termination at ingress)
+  tls:
+    - secretName: airia-test-tls  # CHANGE THIS to your TLS secret
+      hosts:
+        - airia-test.yourdomain.com  # CHANGE THIS
+    # - secretName: secondary-tls
+    #   hosts:
+    #     - airia-test-secondary.yourdomain.com
 
-# For Azure Application Gateway users, also add:
+# For Azure Application Gateway users, uncomment and modify:
 # ingress:
 #   className: "azure-application-gateway"
 #   annotations:
 #     kubernetes.io/ingress.class: azure/application-gateway
 #     appgw.ingress.kubernetes.io/ssl-redirect: "false"
 ```
+
+**📚 For complete configuration options:**
+- **Quick Start**: See [`Test deploy/values-example.yaml`](Test%20deploy/values-example.yaml) for a comprehensive example with all services
+- **All Options**: See [`helm/airia-test-pod/values.yaml`](helm/airia-test-pod/values.yaml) for every available configuration
+- **Helm Guide**: See [`helm/airia-test-pod/README.md`](helm/airia-test-pod/README.md) for detailed deployment instructions
 
 ## 🔍 Understanding Results
 
@@ -143,16 +176,49 @@ ingress:
 | **Failed** | ❌ | Service has critical issues that need fixing |
 | **Skipped** | ⏭️ | Optional service not configured (normal) |
 
+### 🔧 Intelligent Error Detection & Remediation
+
+The test pod automatically detects common infrastructure issues and provides specific remediation steps:
+
+- **SSL Certificate Issues**: Missing intermediate certificates, expired certs, hostname mismatches
+- **PostgreSQL Problems**: Missing extensions (pgvector, uuid-ossp), connection issues, authentication failures
+- **Storage Class Errors**: Missing storage classes, insufficient permissions, PVC creation failures
+- **Azure Service Issues**: Incorrect endpoints, authentication problems, network connectivity
+- **LLM Model Access**: Model not found, quota exceeded, API version mismatches
+
+Each failed test includes:
+- Detailed error description
+- Root cause analysis
+- Step-by-step remediation instructions
+- Links to relevant documentation
+
 ## 🛠️ Alternative Deployments
 
 ### Docker (Development/Testing)
+
+**Available Container Registries:**
+- GitHub Container Registry: `ghcr.io/davidpacold/airia-test-pod:latest`
+- Docker Hub: `davidpacold/airia-test-pod:latest`
+- Azure Container Registry: `yourregistry.azurecr.io/airia-test-pod:latest` (self-hosted)
+
 ```bash
+# Using GitHub Container Registry (recommended)
 docker run -d -p 8080:8080 \
   -e AUTH_USERNAME=admin -e AUTH_PASSWORD=changeme \
   -e POSTGRES_HOST=your-server.postgres.database.azure.com \
   -e POSTGRES_USER=your-username -e POSTGRES_PASSWORD=your-password \
   ghcr.io/davidpacold/airia-test-pod:latest
+
+# Or using Docker Hub
+docker run -d -p 8080:8080 \
+  -e AUTH_USERNAME=admin -e AUTH_PASSWORD=changeme \
+  davidpacold/airia-test-pod:latest
 ```
+
+**Available Tags:**
+- `latest` - Most recent stable release
+- `v1.0.x` - Specific version tags
+- `main` - Latest development build
 
 ### Raw Kubernetes Manifests
 ```bash
@@ -195,7 +261,10 @@ graph TB
 - Kubernetes RBAC with minimal required permissions
 - Secure secret management via Kubernetes secrets
 - Multi-stage Docker builds with security best practices
-- TLS/HTTPS termination at ingress/load balancer level (pod accepts HTTP)
+- **SSL/TLS Configuration**: Customer-managed certificates with SSL termination at ingress level
+  - Pod accepts HTTP traffic internally (standard Kubernetes pattern)
+  - TLS certificates configured at ingress controller
+  - Support for multiple hostnames with individual certificates
 - Enhanced SSL certificate chain validation for external services
 
 ## 🆘 Troubleshooting

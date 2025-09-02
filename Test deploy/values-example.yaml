@@ -8,7 +8,94 @@ image:
   pullPolicy: IfNotPresent
   tag: "latest"
 
-# REQUIRED: Update these domains with your own
+# REQUIRED: Update authentication credentials
+config:
+  auth:
+    username: "admin"
+    password: "CHANGE-THIS-PASSWORD"  # REQUIRED: Set a secure password
+    secretKey: "CHANGE-THIS-SECRET-KEY"  # REQUIRED: Generate a secure key (use: openssl rand -hex 32)
+  
+  # Core Azure Services (configure the ones you use)
+  # ================================================
+  
+  # PostgreSQL configuration
+  postgresql:
+    enabled: false  # Set to true if using PostgreSQL
+    host: "your-server.postgres.database.azure.com"
+    port: "5432"
+    database: "postgres"
+    sslmode: "require"
+    username: "your-username"
+    password: "your-password"
+  
+  # Azure Blob Storage configuration
+  blobStorage:
+    enabled: false  # Set to true if using Azure Blob Storage
+    accountName: "your-storage-account"
+    accountKey: "your-account-key"
+    containerName: "test-container"
+  
+  # Azure OpenAI configuration
+  openai:
+    enabled: false  # Set to true if using Azure OpenAI
+    endpoint: "https://your-openai.openai.azure.com/"
+    apiKey: "your-api-key"
+    deploymentName: "gpt-35-turbo"  # or gpt-4, gpt-4o-mini, etc.
+    embeddingDeployment: "text-embedding-ada-002"  # Optional
+  
+  # Azure Document Intelligence configuration
+  documentIntelligence:
+    enabled: false  # Set to true if using Document Intelligence
+    endpoint: "https://your-doc-intel.cognitiveservices.azure.com/"
+    apiKey: "your-api-key"
+    model: "prebuilt-document"
+  
+  # Additional Testing Options
+  # ==========================
+  
+  # SSL certificate validation
+  ssl:
+    enabled: false  # Set to true if testing SSL certificates
+    testUrls: "https://api.example.com,https://app.example.com"
+    connectTimeout: 10
+    warningDays: 30
+  
+  # Kubernetes storage testing (uses cluster default storage)
+  kubernetes:
+    storageClass: "default"  # Change if using custom storage class
+    testPvcSize: "1Gi"
+  
+  # Alternative Storage Options (choose one if needed)
+  # =================================================
+  
+  # MinIO S3-compatible storage
+  minio:
+    enabled: false
+    endpointUrl: "https://minio.example.com"
+    accessKey: "your-access-key"
+    secretKey: "your-secret-key"
+    bucketName: "test-bucket"
+    secure: true
+  
+  # Amazon S3 storage
+  s3:
+    enabled: false
+    region: "us-east-1"
+    accessKeyId: "your-access-key"
+    secretAccessKey: "your-secret-key"
+    bucketName: "test-bucket"
+    # sessionToken: ""  # Optional for temporary credentials
+    # endpointUrl: ""   # Optional for S3-compatible services
+  
+  # Custom embedding models (OpenAI-compatible)
+  embeddings:
+    enabled: false
+    baseUrl: "https://api.openai.com/v1"  # or your custom endpoint
+    apiKey: "your-api-key"
+    modelName: "text-embedding-ada-002"
+    # customHeaders: "Header1:Value1,Header2:Value2"  # Optional
+
+# REQUIRED: Configure ingress for your domain
 ingress:
   enabled: true
   className: "nginx"  # Options: "nginx", "azure-application-gateway", or custom
@@ -22,73 +109,31 @@ ingress:
     # appgw.ingress.kubernetes.io/ssl-redirect: "false"
     # appgw.ingress.kubernetes.io/request-timeout: "30"
   hosts:
-    - host: your-domain.com  # CHANGE THIS
+    - host: airia-test.yourdomain.com  # CHANGE THIS
       paths:
         - path: /
           pathType: Prefix
+    # Add up to 5 hostnames with individual TLS certificates:
+    # - host: airia-test-secondary.yourdomain.com
+    #   paths:
+    #     - path: /
+    #       pathType: Prefix
   tls:
-    - secretName: your-tls-secret  # CHANGE THIS
+    - secretName: airia-test-tls  # CHANGE THIS to your TLS secret name
       hosts:
-        - your-domain.com  # CHANGE THIS
-
-# REQUIRED: Change default credentials
-config:
-  auth:
-    username: "admin"
-    password: "CHANGE-THIS-PASSWORD"  # REQUIRED: Set a secure password
-    secretKey: "CHANGE-THIS-SECRET-KEY"  # REQUIRED: Generate a secure key
-  
-  # OPTIONAL: PostgreSQL configuration
-  postgresql:
-    enabled: false  # Set to true if using PostgreSQL
-    host: "your-postgres-host"
-    port: "5432"
-    database: "your-database"
-    sslmode: "require"
-    username: "your-username"
-    password: "your-password"
-  
-  # OPTIONAL: Azure Blob Storage configuration
-  blobStorage:
-    enabled: false  # Set to true if using Azure Blob Storage
-    accountName: "your-storage-account"
-    accountKey: "your-account-key"
-    containerName: "your-container"
-  
-  # OPTIONAL: Azure OpenAI configuration
-  openai:
-    enabled: false  # Set to true if using Azure OpenAI
-    endpoint: "https://your-openai.openai.azure.com/"
-    apiKey: "your-api-key"
-    deploymentName: "gpt-4o-mini"
-    embeddingDeployment: ""
-  
-  # OPTIONAL: Azure Document Intelligence configuration
-  documentIntelligence:
-    enabled: false  # Set to true if using Document Intelligence
-    endpoint: "https://your-region.api.cognitive.microsoft.com"
-    apiKey: "your-api-key"
-    model: "prebuilt-document"
-  
-  # OPTIONAL: SSL certificate testing
-  ssl:
-    enabled: false  # Set to true if testing SSL certificates
-    testUrls: "https://your-api.com,https://your-site.com"
-    connectTimeout: 10
-    warningDays: 30
-  
-  # OPTIONAL: Kubernetes storage testing
-  kubernetes:
-    storageClass: "default"
-    testPvcSize: "1Gi"
+        - airia-test.yourdomain.com  # CHANGE THIS
+    # - secretName: secondary-tls
+    #   hosts:
+    #     - airia-test-secondary.yourdomain.com
 
 # Service configuration
 service:
   type: ClusterIP
   port: 80
   targetPort: 8080
+  # nodePort: 30080  # Only if type is NodePort
 
-# Resource limits
+# Resource limits and requests
 resources:
   limits:
     cpu: 500m
@@ -99,5 +144,67 @@ resources:
 
 # Namespace configuration
 namespace:
-  create: true
-  name: "airia-preprod"  # CHANGE THIS to your preferred namespace
+  create: true  # Set to false if namespace already exists
+  name: "airia-preprod"
+
+# Optional: Advanced Kubernetes configurations
+# ============================================
+
+# Image pull secrets (if using private registry)
+# imagePullSecrets:
+#   - name: my-registry-secret
+
+# Service account configuration
+# serviceAccount:
+#   create: true
+#   annotations: {}
+#   name: ""
+
+# Pod annotations
+# podAnnotations:
+#   prometheus.io/scrape: "true"
+#   prometheus.io/port: "8080"
+
+# Security context
+# podSecurityContext:
+#   fsGroup: 2000
+# securityContext:
+#   capabilities:
+#     drop:
+#     - ALL
+#   readOnlyRootFilesystem: true
+#   runAsNonRoot: true
+#   runAsUser: 1000
+
+# Autoscaling
+# autoscaling:
+#   enabled: true
+#   minReplicas: 1
+#   maxReplicas: 10
+#   targetCPUUtilizationPercentage: 80
+#   targetMemoryUtilizationPercentage: 80
+
+# Node selection
+# nodeSelector:
+#   kubernetes.io/os: linux
+
+# Tolerations
+# tolerations:
+#   - key: "key1"
+#     operator: "Equal"
+#     value: "value1"
+#     effect: "NoSchedule"
+
+# Affinity rules
+# affinity:
+#   podAntiAffinity:
+#     preferredDuringSchedulingIgnoredDuringExecution:
+#     - weight: 100
+#       podAffinityTerm:
+#         labelSelector:
+#           matchExpressions:
+#           - key: app.kubernetes.io/name
+#             operator: In
+#             values:
+#             - airia-test-pod
+#         topologyKey: kubernetes.io/hostname

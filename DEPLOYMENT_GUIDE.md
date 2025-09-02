@@ -98,37 +98,27 @@ config:
     enabled: true  # Set to false to skip
     testUrls: "https://your-api-domain.com,https://your-app-domain.com"
 
-# Update with your domain names
+# RECOMMENDED: Use external load balancer (Azure App Gateway, AWS ALB, CloudFlare)
+# This is the simplest approach - no certificate management needed
 ingress:
-  enabled: true
-  className: nginx
-  annotations:
-    # Default annotations (already included)
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"  # HTTP only - TLS termination handled elsewhere
-    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
-    
-    # Additional annotations you might need:
-    # cert-manager.io/cluster-issuer: "letsencrypt-prod"  # For automatic TLS certificates
-    # nginx.ingress.kubernetes.io/proxy-read-timeout: "300"  # Increase timeout for long-running tests
-    # nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
-    # nginx.ingress.kubernetes.io/enable-cors: "true"  # Enable CORS if needed
-    # nginx.ingress.kubernetes.io/cors-allow-origin: "*"
-    # nginx.ingress.kubernetes.io/websocket-services: "airia-test-pod"  # WebSocket support (already works by default)
-    
-  hosts:
-    - host: airia-test.yourdomain.com
-      paths:
-        - path: /
-          pathType: Prefix
-    - host: infra-check.yourdomain.com
-      paths:
-        - path: /
-          pathType: Prefix
-  tls:
-    - secretName: airia-test-pod-tls
-      hosts:
-        - airia-test.yourdomain.com
-        - infra-check.yourdomain.com
+  enabled: false  # External load balancer handles routing
+
+# Alternative: If using ingress controller (not recommended for SSL)
+# ingress:
+#   enabled: true
+#   className: nginx  # or "azure-application-gateway", "alb", etc.
+#   annotations:
+#     nginx.ingress.kubernetes.io/ssl-redirect: "false"  # SSL handled externally
+#     nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+#     # Optional: Increase timeout for long-running tests
+#     # nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+#     # nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+#   hosts:
+#     - host: airia-test.yourdomain.com
+#       paths:
+#         - path: /
+#           pathType: Prefix
+#   # No TLS section - handled by external load balancer
 
 # Optional: Resource limits
 resources:
@@ -169,7 +159,7 @@ flowchart TD
     
     Verify["✅ Verify Deployment<br/>kubectl get pods<br/>kubectl get ingress"]
     
-    Access["🌐 Access Dashboard<br/>https://your-domain.com"]
+    Access["🌐 Access Dashboard<br/>Open your-domain.com"]
     
     Test["🧪 Run Tests<br/>Click 'Run All Tests'"]
     
@@ -359,314 +349,227 @@ Solutions:
 
 ### Complete Values File Documentation
 
-Below is a comprehensive reference for all configuration options available in your `values.yaml` file:
+Below is a comprehensive reference for all configuration options available in your `values.yaml` file.
+
+**Note:** For the most up-to-date configuration options, always refer to [`helm/airia-test-pod/values.yaml`](helm/airia-test-pod/values.yaml).
 
 ```yaml
 # =============================================================================
-# AUTHENTICATION CONFIGURATION
+# DEPLOYMENT CONFIGURATION
+# =============================================================================
+replicaCount: 1                                         # Number of pod replicas
+
+# Container Image Settings
+image:
+  repository: ghcr.io/davidpacold/airia-test-pod       # Container image repository
+  pullPolicy: IfNotPresent                             # Pull policy: Always|IfNotPresent|Never
+  tag: "latest"                                        # Image tag
+
+imagePullSecrets: []                                   # List of image pull secrets
+nameOverride: ""                                       # Override chart name
+fullnameOverride: ""                                   # Override full release name
+
+# =============================================================================
+# AUTHENTICATION & SERVICE CONFIGURATIONS
 # =============================================================================
 config:
   auth:
-    # Web UI login credentials (REQUIRED)
-    username: "admin"                                    # Default: "admin"
-    password: "ChangeThisPassword123!"                   # MUST CHANGE - Web UI password
-    secretKey: "change-this-jwt-secret-key"             # MUST CHANGE - JWT signing key (min 32 chars)
+    # Web UI login credentials (REQUIRED - CHANGE THESE!)
+    username: "admin"                                  # Default: "admin"
+    password: "changeme"                               # MUST CHANGE - Web UI password
+    secretKey: "your-super-secret-key-change-this"     # MUST CHANGE - JWT signing key (min 32 chars)
 
-# =============================================================================  
-# SERVICE TEST CONFIGURATIONS
-# =============================================================================
-  
   # PostgreSQL Database Testing
   postgresql:
-    enabled: true                                        # Enable/disable PostgreSQL tests
-    host: "your-server.postgres.database.azure.com"     # FQDN of PostgreSQL server
-    port: 5432                                          # Default: 5432
-    database: "postgres"                                # Target database name
-    username: "your-username"                           # Database username
-    password: "your-password"                           # Database password
-    sslMode: "require"                                  # SSL mode: disable|allow|prefer|require|verify-ca|verify-full
-    connectTimeout: 30                                  # Connection timeout in seconds
+    enabled: false                                     # Enable/disable PostgreSQL tests
+    host: "your-postgres-server.postgres.database.azure.com"  # FQDN of PostgreSQL server
+    port: "5432"                                       # Default: "5432"
+    database: "postgres"                               # Target database name
+    sslmode: "require"                                 # SSL mode: disable|allow|prefer|require|verify-ca|verify-full
+    username: ""                                       # Database username
+    password: ""                                       # Database password
     
   # Azure Blob Storage Testing  
   blobStorage:
-    enabled: true                                       # Enable/disable Blob Storage tests
-    accountName: "yourstorageaccount"                   # Storage account name (without .blob.core.windows.net)
-    accountKey: "your-storage-key"                      # Primary or secondary access key
-    containerName: "test-container"                     # Container name for test operations
-    timeout: 30                                         # Operation timeout in seconds
+    enabled: false                                     # Enable/disable Blob Storage tests
+    accountName: ""                                    # Storage account name (without .blob.core.windows.net)
+    accountKey: ""                                     # Primary or secondary access key
+    containerName: "test-container"                    # Container name for test operations
     
   # Azure OpenAI Testing
   openai:
-    enabled: true                                       # Enable/disable OpenAI tests
+    enabled: false                                     # Enable/disable OpenAI tests
     endpoint: "https://your-openai.openai.azure.com/"  # OpenAI endpoint URL (must end with /)
-    apiKey: "your-openai-key"                          # OpenAI API key
+    apiKey: ""                                         # OpenAI API key
     deploymentName: "gpt-35-turbo"                     # Model deployment name in Azure OpenAI
-    apiVersion: "2024-02-15-preview"                   # API version (default: 2024-02-15-preview)
-    maxTokens: 100                                     # Max tokens for test completions
-    temperature: 0.7                                   # Sampling temperature (0.0-2.0)
-    timeout: 60                                        # Request timeout in seconds
+    embeddingDeployment: ""                            # Optional embedding model deployment
     
   # Azure Document Intelligence (Optional)
   documentIntelligence:
-    enabled: false                                      # Enable/disable Document Intelligence tests
+    enabled: false                                     # Enable/disable Document Intelligence tests
     endpoint: "https://your-doc-intel.cognitiveservices.azure.com/"  # Doc Intel endpoint
-    apiKey: "your-doc-intel-key"                       # Document Intelligence API key
-    timeout: 60                                        # Request timeout in seconds
+    apiKey: ""                                         # Document Intelligence API key
+    model: "prebuilt-document"                         # Model to use for testing
     
-  # Self-hosted Llama Models (Optional)
-  llama:
-    enabled: false                                      # Enable/disable Llama model tests
-    baseUrl: "http://localhost:8000/v1/"               # Llama server base URL (must end with /v1/)
-    modelName: "llama2-7b"                             # Model name to test
-    apiKey: "your-key-if-needed"                       # API key (optional for some deployments)
-    timeout: 60                                        # Request timeout in seconds
-    maxTokens: 100                                     # Max tokens for test completions
-    
-  # OpenAI-Compatible APIs (Optional)
-  openaiCompatible:
-    enabled: false                                      # Enable/disable OpenAI-compatible tests
-    baseUrl: "http://your-server:8000/v1/"             # API base URL (must end with /v1/)
-    modelName: "llama-2-7b-chat"                       # Model name (must contain "llama" for detection)
-    apiKey: "your-api-key"                             # API key (if required)
-    timeout: 60                                        # Request timeout in seconds
-    
-  # SSL Certificate Chain Testing (Enhanced - like openssl s_client -showcerts)
+  # SSL Certificate Chain Testing
   ssl:
-    enabled: true                                       # Enable/disable SSL certificate tests
-    testUrls: "https://api.domain.com,https://app.domain.com"  # Comma-separated URLs to test
-    timeout: 30                                        # Connection timeout in seconds
-    verifyChain: true                                  # Verify complete certificate chain presence
-    checkExpiry: true                                  # Check certificate expiration dates
+    enabled: false                                     # Enable/disable SSL certificate tests
+    testUrls: "https://api.example.com,https://app.example.com"  # Comma-separated URLs to test
+    connectTimeout: 10                                 # Connection timeout in seconds
     warningDays: 30                                    # Days before expiration to show warnings
-    # NEW: Detects missing intermediate certificates (common SSL misconfiguration)
-    # NEW: Validates certificate chain completeness like "openssl s_client -showcerts"
-    # NEW: Identifies self-signed certificates and CA certificate issues
     
   # Kubernetes Storage Testing
-  pvc:
-    enabled: true                                       # Enable/disable PVC tests (default: true)
-    storageClass: ""                                   # Storage class name (empty = default)
-    size: "1Gi"                                        # PVC size for test (default: 1Gi)
-    accessMode: "ReadWriteOnce"                        # Access mode: ReadWriteOnce|ReadOnlyMany|ReadWriteMany
-    timeout: 120                                       # PVC creation timeout in seconds
-
-# =============================================================================
-# ENHANCED SSL CERTIFICATE CHAIN VALIDATION
-# =============================================================================
-
-# The SSL test now provides comprehensive certificate chain analysis similar to:
-# "openssl s_client -connect domain.com:443 -showcerts"
-#
-# What the enhanced SSL test detects:
-# ✓ Missing intermediate certificates (common misconfiguration)
-# ✓ Self-signed certificates  
-# ✓ Certificate chain completeness
-# ✓ Certificate Authority (CA) flag validation
-# ✓ Certificate chain continuity (each cert signed by next)
-# ✓ Hostname/SAN matching
-# ✓ Certificate expiration with configurable warnings
-# ✓ Weak signature algorithms (MD5, SHA1)
-#
-# Common SSL issues detected:
-# - "Certificate chain appears incomplete - no intermediate certificates found"
-# - "This may cause SSL/TLS validation failures for some clients" 
-# - Server certificates marked as CA certificates (security issue)
-# - Chain breaks (certificate not signed by expected issuer)
-# - Self-signed certificates in production environments
-#
-# Environment variables for SSL testing:
-# SSL_TEST_URLS=https://api.domain.com,https://app.domain.com
-# SSL_CONNECT_TIMEOUT=10
-# SSL_WARNING_DAYS=30
+  kubernetes:
+    storageClass: "default"                            # Storage class name
+    testPvcSize: "1Gi"                                 # PVC size for test
+    
+  # MinIO S3-Compatible Storage (Optional)
+  minio:
+    enabled: false                                     # Enable/disable MinIO tests
+    endpointUrl: "https://minio.example.com"           # MinIO endpoint URL
+    accessKey: ""                                      # MinIO access key
+    secretKey: ""                                      # MinIO secret key
+    bucketName: "test-bucket"                          # Bucket name for testing
+    secure: true                                       # Use HTTPS
+    
+  # Amazon S3 Storage (Optional)
+  s3:
+    enabled: false                                     # Enable/disable S3 tests
+    region: "us-east-1"                                # AWS region
+    accessKeyId: ""                                    # AWS access key ID
+    secretAccessKey: ""                                # AWS secret access key
+    sessionToken: ""                                   # Optional for temporary credentials
+    bucketName: "test-bucket"                          # S3 bucket name
+    endpointUrl: ""                                    # Optional custom endpoint
+    
+  # Embedding Models (Optional)
+  embeddings:
+    enabled: false                                     # Enable/disable embedding tests
+    baseUrl: "https://api.openai.com/v1"               # OpenAI or custom endpoint
+    apiKey: ""                                         # API key
+    modelName: "text-embedding-ada-002"                # Model name
+    customHeaders: ""                                  # Optional: Header1:Value1,Header2:Value2
 
 # =============================================================================
 # KUBERNETES DEPLOYMENT CONFIGURATION
 # =============================================================================
 
-# Container Image Settings
-image:
-  repository: "airia/test-pod"                          # Container image repository
-  tag: "latest"                                        # Image tag (default: latest)
-  pullPolicy: "Always"                                # Pull policy: Always|IfNotPresent|Never
-
 # Service Account
 serviceAccount:
   create: true                                         # Create service account (default: true)
-  name: ""                                            # Service account name (empty = auto-generated)
-  annotations: {}                                     # Additional annotations
+  annotations: {}                                      # Additional annotations
+  name: ""                                             # Service account name (empty = auto-generated)
 
-# Pod Security Context  
-podSecurityContext:
-  fsGroup: 2000                                       # File system group ID
-  runAsNonRoot: true                                  # Run as non-root user
-  runAsUser: 1000                                     # User ID to run as
-  runAsGroup: 3000                                    # Group ID to run as
+# Pod Configuration
+podAnnotations: {}                                     # Additional pod annotations
+podSecurityContext: {}                                 # Pod security context (commented out by default)
+  # fsGroup: 2000
 
-# Container Security Context
-securityContext:
-  allowPrivilegeEscalation: false                     # Prevent privilege escalation
-  readOnlyRootFilesystem: true                        # Read-only root filesystem
-  runAsNonRoot: true                                  # Run as non-root
-  capabilities:
-    drop:
-      - ALL                                           # Drop all capabilities
+securityContext: {}                                    # Container security context (commented out by default)
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+# Service Configuration
+service:
+  type: ClusterIP                                      # Service type: ClusterIP|NodePort|LoadBalancer
+  port: 80                                             # Service port
+  targetPort: 8080                                     # Container port
+  # nodePort: 30000                                    # Only used if type is NodePort
+
+# Ingress Configuration
+ingress:
+  enabled: true                                        # Enable ingress (default: true)
+  className: "nginx"                                   # Ingress class name
+  annotations:                                         # Ingress annotations
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    # Azure Application Gateway annotations (uncomment for AGIC)
+    # kubernetes.io/ingress.class: azure/application-gateway
+    # appgw.ingress.kubernetes.io/ssl-redirect: "false"
+    # appgw.ingress.kubernetes.io/request-timeout: "30"
+  hosts:
+    - host: test.example.com                           # Example hostnames (up to 5 supported)
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: readiness.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: infra-test.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: validation.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: precheck.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: airia-test-pod-tls
+      hosts:
+        - test.example.com
+        - readiness.example.com
+        - infra-test.example.com
+        - validation.example.com
+        - precheck.example.com
 
 # Resource Limits and Requests
 resources:
   limits:
-    cpu: "500m"                                       # CPU limit (millicores)
-    memory: "512Mi"                                   # Memory limit
+    cpu: 500m                                          # CPU limit (millicores)
+    memory: 512Mi                                      # Memory limit
   requests:
-    cpu: "100m"                                       # CPU request (millicores)
-    memory: "256Mi"                                   # Memory request
+    cpu: 100m                                          # CPU request (millicores)
+    memory: 256Mi                                      # Memory request
 
-# Pod Disruption Budget
-podDisruptionBudget:
-  enabled: false                                      # Enable PDB (default: false)
-  minAvailable: 1                                     # Minimum available pods
-
-# Horizontal Pod Autoscaler
+# Autoscaling Configuration
 autoscaling:
-  enabled: false                                      # Enable HPA (default: false)
-  minReplicas: 1                                      # Minimum replicas
-  maxReplicas: 3                                      # Maximum replicas
-  targetCPUUtilizationPercentage: 80                 # CPU target percentage
+  enabled: false                                       # Enable HPA (default: false)
+  minReplicas: 1                                       # Minimum replicas
+  maxReplicas: 100                                     # Maximum replicas
+  targetCPUUtilizationPercentage: 80                   # CPU target percentage
+  # targetMemoryUtilizationPercentage: 80              # Memory target percentage (optional)
 
-# Node Selection
-nodeSelector: {}                                      # Node selector labels
-tolerations: []                                       # Pod tolerations
-affinity: {}                                         # Pod affinity/anti-affinity
+# Node Selection and Scheduling
+nodeSelector: {}                                       # Node selector labels
+tolerations: []                                        # Pod tolerations
+affinity: {}                                           # Pod affinity/anti-affinity
 
-# =============================================================================
-# NETWORKING CONFIGURATION
-# =============================================================================
-
-# Service Configuration
-service:
-  type: "ClusterIP"                                   # Service type: ClusterIP|NodePort|LoadBalancer
-  port: 80                                           # Service port
-  targetPort: 8080                                   # Container port
-  annotations: {}                                    # Service annotations
-
-# Ingress Configuration
-ingress:
-  enabled: true                                      # Enable ingress (default: true)
-  className: "nginx"                                 # Ingress class name
-  annotations: {}                                    # Additional ingress annotations
-  hosts:
-    - host: "airia-test.yourdomain.com"             # Primary hostname
-      paths:
-        - path: "/"                                 # Path pattern
-          pathType: "Prefix"                        # Path type: Exact|Prefix|ImplementationSpecific
-    - host: "infra-check.yourdomain.com"            # Secondary hostname (optional)
-      paths:
-        - path: "/"
-          pathType: "Prefix"
-  tls:
-    - secretName: "airia-test-pod-tls"              # TLS secret name
-      hosts:
-        - "airia-test.yourdomain.com"               # Hostnames covered by this cert
-        - "infra-check.yourdomain.com"
-
-# Network Policies (Optional)
-networkPolicy:
-  enabled: false                                     # Enable network policies
-  ingress: []                                       # Ingress rules
-  egress: []                                        # Egress rules
-
-# =============================================================================
-# MONITORING AND OBSERVABILITY  
-# =============================================================================
-
-# Health Check Configuration
-healthCheck:
-  enabled: true                                      # Enable health checks (default: true)
-  path: "/health"                                   # Health check endpoint
-  port: 8080                                        # Health check port
-  initialDelaySeconds: 30                           # Initial delay before first check
-  periodSeconds: 10                                 # Check interval
-  timeoutSeconds: 5                                 # Request timeout
-  successThreshold: 1                               # Success threshold
-  failureThreshold: 3                               # Failure threshold
-
-# Readiness Probe
-readinessProbe:
-  enabled: true                                      # Enable readiness probe (default: true)
-  path: "/ready"                                    # Readiness endpoint
-  initialDelaySeconds: 10                           # Initial delay
-  periodSeconds: 5                                  # Check interval
-
-# Prometheus Metrics (Optional)
-metrics:
-  enabled: false                                     # Enable Prometheus metrics
-  port: 9090                                        # Metrics port
-  path: "/metrics"                                  # Metrics endpoint
-
-# =============================================================================
-# PERSISTENCE AND STORAGE
-# =============================================================================
-
-# Persistent Volume for Temporary Files (Optional)
-persistence:
-  enabled: false                                     # Enable persistent storage
-  size: "1Gi"                                       # Volume size
-  storageClass: ""                                  # Storage class (empty = default)
-  accessMode: "ReadWriteOnce"                       # Access mode
-
-# Temporary Storage
-tmpStorage:
-  enabled: true                                      # Enable temporary storage (default: true)
-  size: "1Gi"                                       # Temporary storage size
-
-# =============================================================================
-# ADVANCED CONFIGURATION
-# =============================================================================
-
-# Pod Annotations and Labels
-podAnnotations: {}                                   # Additional pod annotations
-podLabels: {}                                       # Additional pod labels
-
-# Environment Variables
-extraEnvVars: []                                    # Additional environment variables
-# Example:
-# extraEnvVars:
-#   - name: "CUSTOM_VAR"
-#     value: "custom-value"
-
-# Volume Mounts
-extraVolumeMounts: []                               # Additional volume mounts
-extraVolumes: []                                    # Additional volumes
-
-# Init Containers (Optional)
-initContainers: []                                  # Init containers
-
-# Sidecar Containers (Optional)  
-sidecars: []                                        # Sidecar containers
-
-# Pod Priority
-priorityClassName: ""                               # Priority class name
-
-# Runtime Class
-runtimeClassName: ""                                # Runtime class name
-
-# DNS Configuration
-dnsPolicy: "ClusterFirst"                           # DNS policy
-dnsConfig: {}                                       # DNS configuration
-
-# =============================================================================
-# DEBUGGING AND DEVELOPMENT
-# =============================================================================
-
-# Debug Mode
-debug:
-  enabled: false                                     # Enable debug logging
-  level: "INFO"                                     # Log level: DEBUG|INFO|WARN|ERROR
-
-# Development Mode
-development:
-  enabled: false                                     # Enable development mode
-  hotReload: false                                  # Enable hot reload (if supported)
+# Namespace Configuration
+namespace:
+  create: false                                        # Create namespace (default: false)
+  name: "airia-preprod"                                # Namespace name
 ```
+
+### Enhanced SSL Certificate Chain Validation
+
+The SSL test provides comprehensive certificate chain analysis similar to:
+`openssl s_client -connect domain.com:443 -showcerts`
+
+**What it detects:**
+- ✓ Missing intermediate certificates (common misconfiguration)
+- ✓ Self-signed certificates  
+- ✓ Certificate chain completeness
+- ✓ Certificate Authority (CA) flag validation
+- ✓ Certificate chain continuity (each cert signed by next)
+- ✓ Hostname/SAN matching
+- ✓ Certificate expiration with configurable warnings
+- ✓ Weak signature algorithms (MD5, SHA1)
+
+**Common SSL issues detected:**
+- "Certificate chain appears incomplete - no intermediate certificates found"
+- "This may cause SSL/TLS validation failures for some clients" 
+- Server certificates marked as CA certificates (security issue)
+- Chain breaks (certificate not signed by expected issuer)
+- Self-signed certificates in production environments
 
 ### Configuration Examples
 
@@ -703,51 +606,8 @@ ingress:
           pathType: Prefix
 ```
 
-**Production Configuration with Security:**
-```yaml
-config:
-  auth:
-    username: "admin"
-    password: "ComplexProductionPassword123!"
-    secretKey: "production-jwt-secret-key-should-be-very-long-and-random"
-
-# Reference existing secrets instead of inline values
-postgresql:
-  enabled: true
-  host: "prod-postgres.postgres.database.azure.com"
-  existingSecret: "postgres-credentials"
-  usernameKey: "username"
-  passwordKey: "password"
-
-resources:
-  limits:
-    cpu: "1000m"
-    memory: "1Gi"
-  requests:
-    cpu: "200m"
-    memory: "512Mi"
-
-podSecurityContext:
-  runAsNonRoot: true
-  runAsUser: 1000
-  fsGroup: 2000
-
-securityContext:
-  allowPrivilegeEscalation: false
-  readOnlyRootFilesystem: true
-  runAsNonRoot: true
-  capabilities:
-    drop:
-      - ALL
-
-networkPolicy:
-  enabled: true
-  ingress:
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              name: ingress-nginx
-```
+**Complete Example with All Services:**
+See [`Test deploy/values-example.yaml`](Test%20deploy/values-example.yaml) for a comprehensive example with all available services and options.
 
 ## Advanced Configuration
 
@@ -755,31 +615,357 @@ networkPolicy:
 
 The test pod uses WebSocket connections for real-time updates. By default, SSL redirect is disabled as the pod expects HTTP traffic with TLS termination handled by external load balancers or ingress controllers.
 
-**Common Ingress Annotations:**
+#### NGINX Ingress Controller (Most Common)
 
+**Basic NGINX Configuration:**
 ```yaml
 ingress:
+  enabled: true
+  className: "nginx"
   annotations:
-    # For cert-manager automatic TLS certificates
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
-    
-    # For longer running tests (default is 60s)
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
-    
-    # For Azure Application Gateway
-    appgw.ingress.kubernetes.io/ssl-redirect: "true"
-    appgw.ingress.kubernetes.io/backend-protocol: "http"
-    
-    # For Traefik
-    traefik.ingress.kubernetes.io/router.tls: "true"
-    
-    # For HAProxy
-    haproxy.org/timeout-client: "300s"
-    haproxy.org/timeout-server: "300s"
+  hosts:
+    - host: airia-test.yourdomain.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: airia-test-tls
+      hosts:
+        - airia-test.yourdomain.com
 ```
 
-**Note:** WebSocket support is automatic with nginx-ingress. No special annotations are needed for the real-time dashboard updates.
+**NGINX with Cert-Manager (Automatic TLS):**
+```yaml
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    # Automatic TLS certificate generation
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # Optional: Force HTTPS redirect after cert is issued
+    # nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: airia-test.yourdomain.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: airia-test-tls-auto  # cert-manager will create this
+      hosts:
+        - airia-test.yourdomain.com
+```
+
+#### Azure Application Gateway Ingress Controller (AGIC)
+
+**AGIC Configuration:**
+```yaml
+ingress:
+  enabled: true
+  className: "azure-application-gateway"
+  annotations:
+    kubernetes.io/ingress.class: azure/application-gateway
+    appgw.ingress.kubernetes.io/ssl-redirect: "false"
+    appgw.ingress.kubernetes.io/backend-protocol: "http"
+    appgw.ingress.kubernetes.io/request-timeout: "300"
+    # For WebSocket support
+    appgw.ingress.kubernetes.io/connection-draining: "true"
+    appgw.ingress.kubernetes.io/connection-draining-timeout: "30"
+  hosts:
+    - host: airia-test.yourdomain.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: airia-test-appgw-tls
+      hosts:
+        - airia-test.yourdomain.com
+```
+
+**AGIC with Azure Key Vault Integration:**
+```yaml
+ingress:
+  enabled: true
+  className: "azure-application-gateway"
+  annotations:
+    kubernetes.io/ingress.class: azure/application-gateway
+    appgw.ingress.kubernetes.io/ssl-redirect: "false"
+    appgw.ingress.kubernetes.io/backend-protocol: "http"
+    # Reference certificate from Azure Key Vault
+    appgw.ingress.kubernetes.io/appgw-ssl-certificate: "airia-test-cert"
+  hosts:
+    - host: airia-test.yourdomain.com
+      paths:
+        - path: /
+          pathType: Prefix
+  # No tls section needed when using Key Vault certificates
+```
+
+#### AWS Application Load Balancer (ALB) Ingress
+
+**AWS ALB Configuration:**
+```yaml
+ingress:
+  enabled: true
+  className: "alb"  # or "aws-load-balancer"
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+    # SSL configuration
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+    # Certificate from AWS Certificate Manager
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-west-2:123456789012:certificate/12345678-1234-1234-1234-123456789012
+    # Health check configuration
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
+  hosts:
+    - host: airia-test.yourdomain.com
+      paths:
+        - path: /
+          pathType: Prefix
+  # No tls section needed when using ACM certificates
+```
+
+**AWS ALB with Multiple Certificates:**
+```yaml
+ingress:
+  enabled: true
+  className: "alb"
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+    # Multiple certificates for different domains
+    alb.ingress.kubernetes.io/certificate-arn: |
+      arn:aws:acm:us-west-2:123456789012:certificate/cert1-uuid,
+      arn:aws:acm:us-west-2:123456789012:certificate/cert2-uuid
+  hosts:
+    - host: airia-test.company.com
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: infra-check.company.com
+      paths:
+        - path: /
+          pathType: Prefix
+```
+
+#### MetalLB Load Balancer (On-Premises/Bare Metal)
+
+**MetalLB with NGINX Ingress:**
+```yaml
+# Service configuration for MetalLB
+service:
+  type: LoadBalancer  # This will get an external IP from MetalLB
+  port: 80
+  targetPort: 8080
+  annotations:
+    metallb.universe.tf/loadBalancerIPs: "192.168.1.100"  # Optional: specify IP
+    # metallb.universe.tf/address-pool: production  # Optional: specify IP pool
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    # Optional: cert-manager integration
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: airia-test.company.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: airia-test-metallb-tls
+      hosts:
+        - airia-test.company.local
+```
+
+**MetalLB with Direct LoadBalancer Service (No Ingress):**
+```yaml
+# Direct LoadBalancer service for simple setups
+service:
+  type: LoadBalancer
+  port: 443  # HTTPS port
+  targetPort: 8080
+  annotations:
+    metallb.universe.tf/loadBalancerIPs: "192.168.1.100"
+    # For SSL termination at MetalLB (requires additional setup)
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:iam::123456789012:server-certificate/test-cert"
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "http"
+
+# Disable ingress when using direct LoadBalancer
+ingress:
+  enabled: false
+
+# You would access the app directly via the LoadBalancer IP
+# https://192.168.1.100 or https://airia-test.company.local (with DNS)
+```
+
+**MetalLB Configuration File Example:**
+```yaml
+# Example MetalLB ConfigMap (for reference)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: metallb-system
+  name: config
+data:
+  config: |
+    address-pools:
+    - name: production
+      protocol: layer2
+      addresses:
+      - 192.168.1.100-192.168.1.110
+    - name: development  
+      protocol: layer2
+      addresses:
+      - 192.168.1.200-192.168.1.210
+```
+
+#### Other Ingress Controllers
+
+**Traefik Configuration:**
+```yaml
+ingress:
+  enabled: true
+  className: "traefik"
+  annotations:
+    kubernetes.io/ingress.class: traefik
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.middlewares: default-redirect-https@kubernetescrd
+    # Timeout configuration
+    traefik.ingress.kubernetes.io/router.timeout: "300s"
+  hosts:
+    - host: airia-test.yourdomain.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: airia-test-traefik-tls
+      hosts:
+        - airia-test.yourdomain.com
+```
+
+**HAProxy Configuration:**
+```yaml
+ingress:
+  enabled: true
+  className: "haproxy"
+  annotations:
+    kubernetes.io/ingress.class: haproxy
+    haproxy.org/ssl-redirect: "true"
+    haproxy.org/timeout-client: "300s"
+    haproxy.org/timeout-server: "300s"
+    # WebSocket support
+    haproxy.org/server-ssl: "false"
+    haproxy.org/path-rewrite: "/"
+  hosts:
+    - host: airia-test.yourdomain.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: airia-test-haproxy-tls
+      hosts:
+        - airia-test.yourdomain.com
+```
+
+#### SSL Termination: External vs Internal
+
+**RECOMMENDED: External SSL Termination (Outside Kubernetes)**
+
+Having SSL handled by external infrastructure (Azure Application Gateway, AWS ALB, CloudFlare, etc.) is generally **better and simpler**:
+
+**Benefits:**
+- ✅ **Simpler Configuration**: No certificate management in Kubernetes
+- ✅ **Better Performance**: SSL offloading at the edge
+- ✅ **Centralized Management**: All certificates managed in one place
+- ✅ **Auto-Renewal**: Cloud providers handle certificate lifecycle
+- ✅ **Less Complexity**: No secrets, cert-manager, or ingress TLS config
+- ✅ **Security**: Certificates stay in cloud key vaults/certificate stores
+
+**Example: Azure Application Gateway with External SSL**
+```yaml
+# Simplified configuration - no TLS management needed
+service:
+  type: ClusterIP  # Internal traffic only
+  port: 80
+  targetPort: 8080
+
+ingress:
+  enabled: false  # Not needed when using external load balancer
+
+# Alternative: Simple ingress without TLS (if still using ingress controller internally)
+ingress:
+  enabled: true
+  className: "azure-application-gateway"
+  annotations:
+    kubernetes.io/ingress.class: azure/application-gateway
+    appgw.ingress.kubernetes.io/ssl-redirect: "false"  # SSL handled externally
+    appgw.ingress.kubernetes.io/backend-protocol: "http"
+  hosts:
+    - host: airia-test.yourdomain.com
+      paths:
+        - path: /
+          pathType: Prefix
+  # No tls section - handled by Azure Application Gateway
+```
+
+**Example: AWS ALB with ACM Certificates**
+```yaml
+# Even simpler with AWS - just use ALB directly
+service:
+  type: NodePort  # Or ClusterIP if using target type 'ip'
+  port: 80
+  targetPort: 8080
+
+ingress:
+  enabled: false  # ALB handles everything externally
+
+# Access directly via ALB DNS name or custom domain
+# SSL certificates managed in AWS Certificate Manager
+# Auto-renewal handled by AWS
+```
+
+**Example: CloudFlare + Any Load Balancer**
+```yaml
+# Simplest setup - CloudFlare handles SSL, any backend
+service:
+  type: LoadBalancer  # Or NodePort, or even port-forward for testing
+  port: 80
+  targetPort: 8080
+
+ingress:
+  enabled: false
+
+# CloudFlare handles:
+# - SSL termination
+# - Certificate auto-renewal
+# - DDoS protection
+# - Caching
+# Just point CloudFlare to your cluster IP/domain
+```
+
+**Important Notes:**
+- **WebSocket Support**: WebSocket connections for real-time updates work automatically with most ingress controllers
+- **Timeout Settings**: Increase timeouts for long-running tests (some tests can take 60+ seconds)
+- **SSL Termination**: The pod expects HTTP traffic - TLS termination should happen externally
+- **Recommended Approach**: Use cloud-native certificate and load balancer services when available
 
 ### Multiple Hostname Support
 

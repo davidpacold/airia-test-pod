@@ -80,7 +80,7 @@ ingress:
       hosts:
         - test.example.com
         - readiness.example.com
-        - infra-test-example.com
+        - infra-test.example.com
         - validation.example.com
         - precheck.example.com
 
