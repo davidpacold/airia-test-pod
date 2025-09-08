@@ -41,6 +41,13 @@
   - [ ] Test read/write operations
   - [ ] Cleanup test PVC
   - [ ] Handle permissions errors
+- [ ] Implement Cassandra connectivity test
+  - [ ] Connection validation with authentication
+  - [ ] List keyspaces functionality
+  - [ ] Cluster health verification
+  - [ ] Basic query execution test
+  - [ ] Replication settings check
+  - [ ] Error handling
 
 ## Phase 3: Error Detection & Remediation
 - [ ] Implement SSL certificate chain validator
@@ -48,6 +55,7 @@
 - [ ] Build LLM model accessibility validator
 - [ ] Implement Kubernetes storage validator
 - [ ] Create PVC permission checker
+- [ ] Create Cassandra cluster health validator
 - [ ] Create remediation suggestion engine
 - [ ] Implement detailed error logging
 

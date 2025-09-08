@@ -41,6 +41,13 @@ Tests connectivity and basic operations for:
   - Test completion endpoint
   - Test embedding endpoint
   
+- **Apache Cassandra Database**
+  - Test connectivity and authentication
+  - List keyspaces
+  - Verify cluster health
+  - Test basic query execution
+  - Check replication settings
+  
 - **Kubernetes Persistent Volume Claim (PVC)**
   - Test PVC creation
   - Verify storage class availability
@@ -61,6 +68,7 @@ Specific checks for common issues:
 - LLM model accessibility checks
 - Kubernetes storage class availability
 - PVC creation permissions
+- Cassandra cluster connectivity and health
 - Provide remediation suggestions for detected issues
 
 ## Technical Requirements

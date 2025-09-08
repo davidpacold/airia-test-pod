@@ -14,6 +14,17 @@ data:
   postgres-sslmode: {{ .Values.config.postgresql.sslmode | quote }}
   {{- end }}
   
+  {{- if .Values.config.cassandra.enabled }}
+  # Apache Cassandra configuration
+  cassandra-hosts: {{ .Values.config.cassandra.hosts | quote }}
+  cassandra-port: {{ .Values.config.cassandra.port | quote }}
+  {{- if .Values.config.cassandra.keyspace }}
+  cassandra-keyspace: {{ .Values.config.cassandra.keyspace | quote }}
+  {{- end }}
+  cassandra-datacenter: {{ .Values.config.cassandra.datacenter | quote }}
+  cassandra-use-ssl: {{ .Values.config.cassandra.useSsl | quote }}
+  {{- end }}
+  
   {{- if .Values.config.blobStorage.enabled }}
   # Azure Blob Storage configuration
   blob-account-name: {{ .Values.config.blobStorage.accountName | quote }}

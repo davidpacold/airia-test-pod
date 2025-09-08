@@ -14,7 +14,7 @@ Successfully implemented a comprehensive Kubernetes application for testing infr
 - **Docker Containerization**: Multi-stage builds with security best practices
 
 ### Test Suite ✅
-Implemented 6 comprehensive infrastructure tests:
+Implemented 7 comprehensive infrastructure tests:
 
 1. **PostgreSQL Database Test** (`postgresqlv2`)
    - Connection validation
@@ -45,6 +45,13 @@ Implemented 6 comprehensive infrastructure tests:
    - Storage class detection
    - PVC lifecycle testing (create/delete)
    - RBAC permission validation
+
+7. **Apache Cassandra Test** (`cassandra`)
+   - Connection validation with authentication
+   - Keyspace enumeration
+   - Cluster health verification
+   - Basic query execution
+   - Replication settings check
 
 ### Deployment Options ✅
 

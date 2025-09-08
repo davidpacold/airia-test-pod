@@ -123,6 +123,17 @@ config:
     username: ""
     password: ""
   
+  # Apache Cassandra configuration (optional)
+  cassandra:
+    enabled: false
+    hosts: ""  # Comma-separated list: host1,host2,host3
+    port: "9042"
+    username: ""
+    password: ""
+    keyspace: ""  # Optional: specific keyspace to test
+    datacenter: "datacenter1"  # Optional: leave empty for single-DC or if unknown
+    useSsl: false
+  
   # Azure Blob Storage configuration (optional)
   blobStorage:
     enabled: false

@@ -1,1 +1,65 @@
+# Test deployment files
 Test deploy/dpvalues.yaml
+
+# Helm custom values files (user-specific)
+*-values.yaml
+values-*.yaml
+!helm/*/values.yaml  # Don't ignore the chart's default values.yaml
+secrets.yaml
+*.secret.yaml
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+*.log
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+*.pid
+
+# Cassandra specific (if running local testing)
+cassandra_data/
+.cassandra/
+
+# Test outputs
+test_results/
+coverage/
+htmlcov/
+.coverage
+*.cover
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/

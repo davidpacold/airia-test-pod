@@ -31,6 +31,15 @@ class Settings(BaseSettings):
     blob_container_name: str = os.getenv("BLOB_CONTAINER_NAME", "test-container")
     blob_endpoint_suffix: str = os.getenv("BLOB_ENDPOINT_SUFFIX", "core.windows.net")
     
+    # Cassandra settings
+    cassandra_hosts: str = os.getenv("CASSANDRA_HOSTS", "")  # Comma-separated list of hosts
+    cassandra_port: int = int(os.getenv("CASSANDRA_PORT", "9042"))
+    cassandra_username: str = os.getenv("CASSANDRA_USERNAME", "")
+    cassandra_password: str = os.getenv("CASSANDRA_PASSWORD", "")
+    cassandra_keyspace: str = os.getenv("CASSANDRA_KEYSPACE", "")
+    cassandra_datacenter: str = os.getenv("CASSANDRA_DATACENTER", "datacenter1")
+    cassandra_use_ssl: bool = os.getenv("CASSANDRA_USE_SSL", "false").lower() == "true"
+    
     class Config:
         env_file = ".env"
 

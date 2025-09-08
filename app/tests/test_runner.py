@@ -12,6 +12,7 @@ from .llama_test import LlamaTest
 from .minio_test import MinioTest
 from .s3_test import S3Test
 from .embedding_test import EmbeddingTest
+from .cassandra_test import CassandraTest
 from ..models import TestStatus
 
 # Configure logging
@@ -69,6 +70,10 @@ class TestRunner:
         # Register Embedding test
         embedding_test = EmbeddingTest()
         test_suite.register_test(embedding_test)
+        
+        # Register Cassandra test
+        cassandra_test = CassandraTest()
+        test_suite.register_test(cassandra_test)
         
         self.logger.info(f"Registered {len(test_suite.tests)} tests")
         

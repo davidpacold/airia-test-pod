@@ -309,7 +309,36 @@
 
 ---
 
-## Iteration 14: Helm Chart Development (Day 27-28)
+## Iteration 14: Cassandra Database Test (Day 27-28)
+**Goal**: Add Cassandra connectivity and health test
+
+### Tasks:
+1. Add cassandra-driver dependency
+2. Create Cassandra test module
+3. Implement connection test with authentication
+4. List keyspaces functionality
+5. Verify cluster health and status
+6. Test basic query execution
+7. Check replication settings
+8. Add test endpoint to API
+9. Display results on dashboard
+
+### Verification:
+- Set Cassandra connection via env vars
+- API endpoint `/api/test/cassandra` returns test results
+- Dashboard shows Cassandra test status
+- Handles authentication failures gracefully
+- Shows cluster health information
+- Lists keyspaces when successful
+
+### Deliverables:
+- `app/tests/cassandra_test.py`
+- Updated `requirements.txt`
+- Environment variable documentation for Cassandra
+
+---
+
+## Iteration 15: Helm Chart Development (Day 29-30)
 **Goal**: Create production-ready Helm chart
 
 ### Tasks:
@@ -335,7 +364,7 @@
 
 ---
 
-## Iteration 15: Container Registry & CI/CD (Day 29-30)
+## Iteration 16: Container Registry & CI/CD (Day 31-32)
 **Goal**: Set up automated build and publish pipeline
 
 ### Tasks:

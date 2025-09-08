@@ -82,6 +82,47 @@ spec:
                   name: {{ include "airia-test-pod.fullname" . }}-postgres
                   key: password
             {{- end }}
+            {{- if .Values.config.cassandra.enabled }}
+            - name: CASSANDRA_HOSTS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: cassandra-hosts
+            - name: CASSANDRA_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: cassandra-port
+            {{- if .Values.config.cassandra.keyspace }}
+            - name: CASSANDRA_KEYSPACE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: cassandra-keyspace
+            {{- end }}
+            - name: CASSANDRA_DATACENTER
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: cassandra-datacenter
+            - name: CASSANDRA_USE_SSL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: cassandra-use-ssl
+            {{- if .Values.config.cassandra.username }}
+            - name: CASSANDRA_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-cassandra
+                  key: username
+            - name: CASSANDRA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-cassandra
+                  key: password
+            {{- end }}
+            {{- end }}
             {{- if .Values.config.blobStorage.enabled }}
             - name: BLOB_ACCOUNT_NAME
               valueFrom:
