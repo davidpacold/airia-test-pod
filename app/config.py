@@ -5,7 +5,7 @@ import os
 class Settings(BaseSettings):
     # Application settings
     app_name: str = "Airia Infrastructure Test Pod"
-    version: str = "1.0.58"
+    version: str = "1.0.60"
     
     # Authentication settings
     auth_username: str = os.getenv("AUTH_USERNAME", "admin")
