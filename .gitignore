@@ -63,3 +63,5 @@ build/
 *.temp
 tmp/
 temp/
+new_cookies.txt
+cookies.txt

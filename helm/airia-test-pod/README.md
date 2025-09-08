@@ -4,14 +4,21 @@ This Helm chart deploys the Airia Infrastructure Test Pod, a comprehensive solut
 
 ## Features
 
+**🎯 7 Comprehensive Infrastructure Tests:**
+
 - **PostgreSQL Database Testing**: Validates connection, databases, and extensions
-- **Azure Blob Storage Testing**: Tests authentication and file operations
+- **Apache Cassandra Testing**: Cluster health, keyspace enumeration, query execution
+- **Azure Blob Storage Testing**: Tests authentication and file operations  
 - **Azure OpenAI Testing**: Validates API connectivity and model access
 - **Azure Document Intelligence Testing**: Tests document processing capabilities
 - **SSL Certificate Validation**: Checks certificate chains and expiration
 - **Kubernetes PVC Testing**: Validates storage class and permissions
+
+**Plus Additional Features:**
 - **Real-time Dashboard**: WebSocket-powered live updates
 - **Multi-hostname Ingress**: Support for 5 configurable hostnames
+- **Intelligent Error Detection**: Specific remediation suggestions
+- **Secure Secrets Management**: Kubernetes-native credential handling
 
 ## Prerequisites
 

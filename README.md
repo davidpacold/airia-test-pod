@@ -72,21 +72,32 @@ helm install airia-test-pod ./helm/airia-test-pod -f my-test-values.yaml
 
 ## 📋 What Does It Test?
 
-### Core Services ✅
-- **Azure PostgreSQL** - Connection validation, database listing, extension verification  
-- **Azure Blob Storage** - Authentication, upload/download operations, container access
-- **Azure OpenAI** - API connectivity, completion endpoints, embedding endpoints
-- **Kubernetes Storage** - Storage class availability, PVC creation permissions
+**🎯 7 Comprehensive Infrastructure Tests Available:**
 
-### Optional Services ⚙️
-- **Azure Document Intelligence** - Document processing API
-- **Self-hosted OpenAI-compatible models** - Local LLM deployments  
-- **Self-hosted Llama models** - Ollama or similar
-- **Enhanced SSL Certificate Validation** - Full certificate chain analysis (like `openssl s_client -showcerts`)
+### Database Services 🗄️
+- **Azure PostgreSQL** - Connection validation, database listing, extension verification  
+- **Apache Cassandra** - Cluster health, keyspace enumeration, query execution, replication checks
+
+### Storage Services 💾
+- **Azure Blob Storage** - Authentication, upload/download operations, container access
+- **Amazon S3 / MinIO** - S3-compatible storage testing with credentials validation
+
+### AI/ML Services 🤖
+- **Azure OpenAI** - API connectivity, completion endpoints, embedding endpoints
+- **Azure Document Intelligence** - Document processing API validation
+- **Custom Embedding Models** - OpenAI-compatible embedding endpoints
+
+### Infrastructure Services 🏗️
+- **Kubernetes Storage (PVC)** - Storage class availability, PVC creation permissions
+- **SSL Certificate Validation** - Full certificate chain analysis
   - Detects missing intermediate certificates
   - Validates certificate chain completeness  
   - Checks certificate expiration and hostname matching
   - Identifies SSL misconfigurations that cause client failures
+
+### Optional Services ⚙️
+- **Self-hosted OpenAI-compatible models** - Local LLM deployments  
+- **Self-hosted Llama models** - Ollama or similar
 
 ## 📖 Documentation
 
@@ -130,7 +141,7 @@ config:
     embeddingDeployment: "text-embedding-ada-002"  # Optional
 
   # Additional optional services (see full example for details):
-  # documentIntelligence, ssl, kubernetes, minio, s3, embeddings
+  # cassandra, documentIntelligence, ssl, kubernetes, minio, s3, embeddings
 
 ingress:
   enabled: true
@@ -163,10 +174,17 @@ ingress:
 #     appgw.ingress.kubernetes.io/ssl-redirect: "false"
 ```
 
-**📚 For complete configuration options:**
-- **Quick Start**: See [`Test deploy/values-example.yaml`](Test%20deploy/values-example.yaml) for a comprehensive example with all services
-- **All Options**: See [`helm/airia-test-pod/values.yaml`](helm/airia-test-pod/values.yaml) for every available configuration
-- **Helm Guide**: See [`helm/airia-test-pod/README.md`](helm/airia-test-pod/README.md) for detailed deployment instructions
+## 📚 Complete Configuration Reference
+
+**For all 7 infrastructure tests with examples:**
+
+### 🎯 **[📄 Complete Example: `Test deploy/values-example.yaml`](Test%20deploy/values-example.yaml)**
+**→ This file contains examples for ALL 7 tests including the new Cassandra test!**
+
+### Additional References:
+- **All Configuration Options**: [`helm/airia-test-pod/values.yaml`](helm/airia-test-pod/values.yaml) - Every available setting with defaults
+- **Deployment Guide**: [`DEPLOYMENT_GUIDE.md`](DEPLOYMENT_GUIDE.md) - Step-by-step setup instructions
+- **Helm Guide**: [`helm/airia-test-pod/README.md`](helm/airia-test-pod/README.md) - Helm-specific details
 
 ## 🔍 Understanding Results
 

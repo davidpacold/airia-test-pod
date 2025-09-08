@@ -50,6 +50,17 @@ config:
     apiKey: "your-api-key"
     model: "prebuilt-document"
   
+  # Apache Cassandra configuration (NEW!)
+  cassandra:
+    enabled: false  # Set to true if using Apache Cassandra
+    hosts: "cassandra-node1.example.com,cassandra-node2.example.com"  # Comma-separated list
+    port: "9042"
+    username: "your-cassandra-username"  # Optional: leave empty for no auth
+    password: "your-cassandra-password"  # Optional: leave empty for no auth
+    keyspace: "your_keyspace"  # Optional: specific keyspace to test
+    datacenter: "datacenter1"  # Optional: leave empty for single-DC or if unknown
+    useSsl: false  # Set to true if using SSL/TLS
+  
   # Additional Testing Options
   # ==========================
   
