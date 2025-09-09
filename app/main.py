@@ -140,7 +140,7 @@ async def login(request: Request, username: str = Form(...), password: str = For
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
 
-    access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+    access_token_expires = timedelta(minutes=get_settings().access_token_expire_minutes)
     access_token = create_access_token(
         data={"sub": username}, expires_delta=access_token_expires
     )
@@ -150,8 +150,8 @@ async def login(request: Request, username: str = Form(...), password: str = For
         key="access_token",
         value=f"Bearer {access_token}",
         httponly=True,
-        max_age=settings.access_token_expire_minutes * 60,
-        expires=settings.access_token_expire_minutes * 60,
+        max_age=get_settings().access_token_expire_minutes * 60,
+        expires=get_settings().access_token_expire_minutes * 60,
     )
     return response
 
@@ -196,7 +196,7 @@ async def token(form_data: OAuth2PasswordRequestForm = Depends()):
             remediation="Please check your username and password and try again",
         )
     settings = get_settings()
-    access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+    access_token_expires = timedelta(minutes=get_settings().access_token_expire_minutes)
     access_token = create_access_token(
         data={"sub": form_data.username}, expires_delta=access_token_expires
     )
