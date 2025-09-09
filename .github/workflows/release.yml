@@ -8,8 +8,8 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (e.g., 1.0.2)'
-        required: true
+        description: 'Release version (e.g., 1.0.2). Leave empty to auto-increment patch version.'
+        required: false
         type: string
 
 env:
@@ -33,10 +33,10 @@ jobs:
     - name: Update all version references
       run: |
         # Determine version based on trigger type
-        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.version }}" ]; then
           # Manual release with specified version
           VERSION="${{ github.event.inputs.version }}"
-        elif [ "${{ github.event_name }}" = "push" ]; then
+        else
           # Auto-release: find next available patch version
           # Fetch all tags first
           git fetch --tags
@@ -133,9 +133,9 @@ jobs:
     - name: Set version output
       id: version
       run: |
-        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.version }}" ]; then
           echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-        elif [ "${{ github.event_name }}" = "push" ]; then
+        else
           LATEST_TAG=$(git tag -l "v*" | sort -V | tail -1 || echo "v1.0.0")
           LATEST_VERSION=${LATEST_TAG#v}
           IFS='.' read -r major minor patch <<< "$LATEST_VERSION"
