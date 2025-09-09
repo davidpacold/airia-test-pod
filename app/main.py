@@ -25,7 +25,6 @@ from .utils.sanitization import (InputSanitizer, sanitize_ai_prompt,
                                  sanitize_login_credentials,
                                  sanitize_user_input, validate_file_upload)
 
-settings = get_settings()
 app = FastAPI(title="Airia Infrastructure Test Pod", version="1.0.101")
 
 # Setup standardized error handling
@@ -196,6 +195,7 @@ async def token(form_data: OAuth2PasswordRequestForm = Depends()):
             field_name="credentials",
             remediation="Please check your username and password and try again",
         )
+    settings = get_settings()
     access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
     access_token = create_access_token(
         data={"sub": form_data.username}, expires_delta=access_token_expires
