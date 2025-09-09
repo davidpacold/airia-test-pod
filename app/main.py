@@ -25,7 +25,7 @@ from .utils.sanitization import (
 from fastapi import HTTPException
 
 settings = get_settings()
-app = FastAPI(title="Airia Infrastructure Test Pod", version="1.0.98")
+app = FastAPI(title="Airia Infrastructure Test Pod", version="1.0.99")
 
 # Security headers middleware
 @app.middleware("http")
