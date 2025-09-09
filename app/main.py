@@ -22,10 +22,22 @@ from .utils.sanitization import (
     InputSanitizer, 
     validate_file_upload
 )
+from .exceptions import (
+    setup_error_handlers,
+    TestPodException,
+    ConfigurationError,
+    ServiceUnavailableError,
+    ValidationError,
+    TestExecutionError,
+    ErrorCode
+)
 from fastapi import HTTPException
 
 settings = get_settings()
 app = FastAPI(title="Airia Infrastructure Test Pod", version="1.0.98")
+
+# Setup standardized error handling
+setup_error_handlers(app)
 
 # Security headers middleware
 @app.middleware("http")
@@ -84,12 +96,13 @@ async def login(request: Request, username: str = Form(...), password: str = For
     # Sanitize login credentials
     try:
         sanitized_username, sanitized_password = sanitize_login_credentials(username, password)
-    except HTTPException:
-        return templates.TemplateResponse("login.html", {
-            "request": request,
-            "title": settings.app_name,
-            "error": "Invalid username or password format"
-        }, status_code=status.HTTP_400_BAD_REQUEST)
+    except HTTPException as e:
+        raise ValidationError(
+            message="Invalid username or password format",
+            error_code=ErrorCode.CREDENTIALS_INVALID,
+            field_name="credentials",
+            remediation="Ensure username and password contain only valid characters"
+        )
     
     if not authenticate_user(sanitized_username, sanitized_password):
         return templates.TemplateResponse("login.html", {
@@ -136,14 +149,20 @@ async def token(form_data: OAuth2PasswordRequestForm = Depends()):
         sanitized_username, sanitized_password = sanitize_login_credentials(
             form_data.username, form_data.password
         )
-    except HTTPException as e:
-        raise HTTPException(status_code=400, detail=e.detail)
+    except HTTPException:
+        raise ValidationError(
+            message="Invalid username or password format",
+            error_code=ErrorCode.CREDENTIALS_INVALID,
+            field_name="credentials",
+            remediation="Ensure username and password contain only valid characters"
+        )
     
     if not authenticate_user(sanitized_username, sanitized_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
+        raise ValidationError(
+            message="Incorrect username or password",
+            error_code=ErrorCode.CREDENTIALS_INVALID,
+            field_name="credentials",
+            remediation="Please check your username and password and try again"
         )
     access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
     access_token = create_access_token(
@@ -171,7 +190,12 @@ async def run_single_test(test_id: str, current_user: str = Depends(require_auth
     """Run a specific test"""
     result = test_runner.run_test(test_id)
     if not result:
-        raise HTTPException(status_code=404, detail=f"Test '{test_id}' not found")
+        raise TestExecutionError(
+            message=f"Test '{test_id}' not found",
+            error_code=ErrorCode.RESOURCE_NOT_FOUND,
+            test_id=test_id,
+            remediation=f"Please check that the test ID '{test_id}' is valid. Available tests can be found at /api/tests"
+        )
     return result
 
 @app.get("/api/tests/{test_id}/logs")
@@ -218,7 +242,12 @@ async def test_openai_custom(
         openai_test = OpenAITest()
         
         if not openai_test.is_configured():
-            raise HTTPException(status_code=400, detail="OpenAI test not configured")
+            raise ConfigurationError(
+                message="OpenAI test not configured",
+                error_code=ErrorCode.CONFIG_REQUIRED,
+                service_name="OpenAI",
+                remediation="Please configure OpenAI API key and endpoint in your environment variables"
+            )
         
         # Read file content if provided
         file_content = None
@@ -227,7 +256,13 @@ async def test_openai_custom(
             # Check file size (limit to 25MB)
             content = await file.read()
             if len(content) > 25 * 1024 * 1024:  # 25MB limit
-                raise HTTPException(status_code=400, detail="File too large (max 25MB)")
+                raise ValidationError(
+                    message="File too large (max 25MB)",
+                    error_code=ErrorCode.FILE_INVALID,
+                    field_name="file",
+                    provided_value=f"{len(content)} bytes",
+                    remediation="Please upload a file smaller than 25MB"
+                )
             
             # Get file extension to determine processing method
             file_extension = file.filename.lower().split('.')[-1] if '.' in file.filename else ''
@@ -268,10 +303,18 @@ async def test_openai_custom(
         
         return JSONResponse(content=result)
         
-    except HTTPException:
+    except (TestPodException, HTTPException):
+        # Let our custom exceptions and HTTP exceptions pass through
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Custom test failed: {str(e)}")
+        raise TestExecutionError(
+            message=f"OpenAI custom test failed: {str(e)}",
+            error_code=ErrorCode.TEST_FAILED,
+            test_id="openai_custom",
+            service_name="OpenAI",
+            details={"original_error": str(e), "error_type": type(e).__name__},
+            remediation="Please check your OpenAI configuration and try again. If the problem persists, check the service status."
+        )
 
 @app.post("/api/tests/llama/custom")
 async def test_llama_custom(
