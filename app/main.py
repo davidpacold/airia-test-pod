@@ -20,6 +20,19 @@ from fastapi import HTTPException
 settings = get_settings()
 app = FastAPI(title="Airia Infrastructure Test Pod", version="1.0.74")
 
+# Security headers middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    
+    # Basic security headers
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    
+    return response
+
 # Real-time updates will be implemented in a future version
 # For now, the application works perfectly with manual refresh
 
