@@ -62,7 +62,7 @@ jobs:
           -v
     
     - name: Upload test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: test-results-python${{ matrix.python-version }}
@@ -150,7 +150,7 @@ jobs:
           --junit-xml=integration-test-results.xml
     
     - name: Upload integration test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: integration-test-results
@@ -206,7 +206,7 @@ jobs:
       continue-on-error: true  # Type checking errors shouldn't fail the build initially
     
     - name: Upload linting results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: code-quality-results
@@ -261,7 +261,7 @@ jobs:
       continue-on-error: true
     
     - name: Upload security scan results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: security-test-results
@@ -282,7 +282,7 @@ jobs:
     
     steps:
     - name: Download all test artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         path: test-artifacts
     
@@ -384,7 +384,7 @@ jobs:
         echo "Performance testing completed (results are informational)"
     
     - name: Upload performance results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: performance-test-results

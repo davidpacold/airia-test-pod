@@ -71,7 +71,7 @@ jobs:
       continue-on-error: true
       
     - name: Upload security scan results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: security-scan-results
@@ -147,7 +147,7 @@ jobs:
           /workspace >> security-summary.txt || true
           
     - name: Upload security summary
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: security-summary
@@ -168,7 +168,7 @@ jobs:
       uses: actions/checkout@v4
       
     - name: Download security scan results
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: security-scan-results
         path: security-results/
@@ -243,7 +243,7 @@ jobs:
         echo "4. Re-run security scans after fixes" >> weekly-security-report.md
         
     - name: Upload weekly report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: weekly-security-report
         path: weekly-security-report.md
