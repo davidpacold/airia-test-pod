@@ -18,7 +18,7 @@ from .tests.test_runner import test_runner
 from fastapi import HTTPException
 
 settings = get_settings()
-app = FastAPI(title="Airia Infrastructure Test Pod", version="1.0.95")
+app = FastAPI(title="Airia Infrastructure Test Pod", version="1.0.96")
 
 # Security headers middleware
 @app.middleware("http")
