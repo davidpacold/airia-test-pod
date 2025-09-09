@@ -35,7 +35,7 @@ from .exceptions import (
 from fastapi import HTTPException
 
 settings = get_settings()
-app = FastAPI(title="Airia Infrastructure Test Pod", version="1.0.100")
+app = FastAPI(title="Airia Infrastructure Test Pod", version="1.0.101")
 
 # Setup standardized error handling
 setup_error_handlers(app)
