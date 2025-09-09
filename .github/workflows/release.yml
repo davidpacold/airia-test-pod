@@ -90,10 +90,9 @@ jobs:
         sed -i "s/^version:.*/version: $VERSION/" helm/airia-test-pod/Chart.yaml
         sed -i "s/^appVersion:.*/appVersion: \"$VERSION\"/" helm/airia-test-pod/Chart.yaml
         
-        # Update application version references
+        # Update application version references with more specific patterns
         sed -i "s/version: str = \"[^\"]*\"/version: str = \"$VERSION\"/" app/config.py
-        sed -i "s/app = FastAPI(title=\"Airia Infrastructure Test Pod\", version=\"[^\"]*\")/app = FastAPI(title=\"Airia Infrastructure Test Pod\", version=\"$VERSION\")/" app/main.py
-        sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" app/main.py
+        sed -i "s/FastAPI(title=\"Airia Infrastructure Test Pod\", version=\"[^\"]*\")/FastAPI(title=\"Airia Infrastructure Test Pod\", version=\"$VERSION\")/" app/main.py
         
         # Update template fallback versions (only lines with FALLBACK_VERSION comment)
         sed -i "/FALLBACK_VERSION:/s/textContent = 'v[^']*'/textContent = 'v$VERSION'/" templates/dashboard.html
