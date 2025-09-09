@@ -241,16 +241,12 @@ class CassandraTest(BaseTest):
         try:
             result = {"success": False, "message": "", "keyspaces": []}
 
-            # Query system keyspaces
-            rows = session.execute(
-                """
-                SELECT keyspace_name 
-                FROM system_schema.keyspaces 
-                WHERE keyspace_name NOT IN ('system', 'system_schema', 'system_auth', 'system_distributed', 'system_traces')
-            """
-            )
-
-            keyspaces = [row.keyspace_name for row in rows]
+            # Query all keyspaces (Azure Cosmos DB doesn't support NOT IN syntax)
+            rows = session.execute("SELECT keyspace_name FROM system_schema.keyspaces")
+            
+            # Filter out system keyspaces manually
+            system_keyspaces = {'system', 'system_schema', 'system_auth', 'system_distributed', 'system_traces'}
+            keyspaces = [row.keyspace_name for row in rows if row.keyspace_name not in system_keyspaces]
             result["keyspaces"] = keyspaces
             result["details"] = {"user_keyspace_count": len(keyspaces)}
 
@@ -315,18 +311,15 @@ class CassandraTest(BaseTest):
         try:
             result = {"success": True, "message": "", "details": {}}
 
-            # Get replication settings for user keyspaces
-            rows = session.execute(
-                """
-                SELECT keyspace_name, replication 
-                FROM system_schema.keyspaces 
-                WHERE keyspace_name NOT IN ('system', 'system_schema', 'system_auth', 'system_distributed', 'system_traces')
-            """
-            )
-
+            # Get replication settings for all keyspaces (Azure Cosmos DB doesn't support NOT IN syntax)
+            rows = session.execute("SELECT keyspace_name, replication FROM system_schema.keyspaces")
+            
+            # Filter out system keyspaces manually
+            system_keyspaces = {'system', 'system_schema', 'system_auth', 'system_distributed', 'system_traces'}
             replication_info = {}
             for row in rows:
-                replication_info[row.keyspace_name] = row.replication
+                if row.keyspace_name not in system_keyspaces:
+                    replication_info[row.keyspace_name] = row.replication
 
             result["replication_settings"] = replication_info
             result["message"] = (
