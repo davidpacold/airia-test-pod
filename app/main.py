@@ -15,6 +15,13 @@ from .auth import (
 from .config import get_settings
 from .models import TestResult, TestStatus
 from .tests.test_runner import test_runner
+from .utils.sanitization import (
+    sanitize_login_credentials, 
+    sanitize_ai_prompt, 
+    sanitize_user_input, 
+    InputSanitizer, 
+    validate_file_upload
+)
 from fastapi import HTTPException
 
 settings = get_settings()
@@ -74,7 +81,17 @@ async def login_page(request: Request, current_user: Optional[str] = Depends(get
 
 @app.post("/login")
 async def login(request: Request, username: str = Form(...), password: str = Form(...)):
-    if not authenticate_user(username, password):
+    # Sanitize login credentials
+    try:
+        sanitized_username, sanitized_password = sanitize_login_credentials(username, password)
+    except HTTPException:
+        return templates.TemplateResponse("login.html", {
+            "request": request,
+            "title": settings.app_name,
+            "error": "Invalid username or password format"
+        }, status_code=status.HTTP_400_BAD_REQUEST)
+    
+    if not authenticate_user(sanitized_username, sanitized_password):
         return templates.TemplateResponse("login.html", {
             "request": request,
             "title": settings.app_name,
@@ -114,7 +131,15 @@ async def logout(request: Request):
 
 @app.post("/token")
 async def token(form_data: OAuth2PasswordRequestForm = Depends()):
-    if not authenticate_user(form_data.username, form_data.password):
+    # Sanitize credentials from OAuth form
+    try:
+        sanitized_username, sanitized_password = sanitize_login_credentials(
+            form_data.username, form_data.password
+        )
+    except HTTPException as e:
+        raise HTTPException(status_code=400, detail=e.detail)
+    
+    if not authenticate_user(sanitized_username, sanitized_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
@@ -177,6 +202,17 @@ async def test_openai_custom(
 ):
     """Test OpenAI with custom prompt and optional file"""
     try:
+        # Sanitize inputs
+        sanitized_prompt = sanitize_ai_prompt(prompt)
+        sanitized_system_message = None
+        if system_message:
+            sanitized_system_message = sanitize_user_input(system_message)
+        
+        # Validate file if provided
+        file_info = None
+        if file:
+            file_info = await validate_file_upload(file, max_size_mb=5)
+        
         # Get OpenAI test instance
         from .tests.openai_test import OpenAITest
         openai_test = OpenAITest()
@@ -222,12 +258,12 @@ async def test_openai_custom(
             else:
                 raise HTTPException(status_code=400, detail="Unsupported file type. Supported: txt, md, json, csv, log, pdf, jpg, jpeg, png")
         
-        # Run custom test
+        # Run custom test with sanitized inputs
         result = openai_test.test_with_custom_input(
-            custom_prompt=prompt,
+            custom_prompt=sanitized_prompt,
             custom_file_content=file_content,
             file_type=file_type,
-            system_message=system_message
+            system_message=sanitized_system_message
         )
         
         return JSONResponse(content=result)
@@ -246,6 +282,16 @@ async def test_llama_custom(
 ):
     """Test Llama with custom prompt and optional file"""
     try:
+        # Sanitize inputs
+        sanitized_prompt = sanitize_ai_prompt(prompt)
+        sanitized_system_message = None
+        if system_message:
+            sanitized_system_message = sanitize_user_input(system_message)
+        
+        # Validate file if provided
+        file_info = None
+        if file:
+            file_info = await validate_file_upload(file, max_size_mb=5)
         # Get Llama test instance
         from .tests.llama_test import LlamaTest
         llama_test = LlamaTest()
@@ -291,13 +337,13 @@ async def test_llama_custom(
             else:
                 raise HTTPException(status_code=400, detail="Unsupported file type. Supported: txt, md, json, csv, log, pdf, jpg, jpeg, png")
         
-        # Run custom test
+        # Run custom test with sanitized inputs
         if hasattr(llama_test, 'test_with_custom_input'):
             result = llama_test.test_with_custom_input(
-                custom_prompt=prompt,
+                custom_prompt=sanitized_prompt,
                 custom_file_content=file_content,
                 file_type=file_type,
-                system_message=system_message
+                system_message=sanitized_system_message
             )
         else:
             raise HTTPException(status_code=501, detail="Custom input not yet implemented for Llama test")
@@ -317,6 +363,13 @@ async def test_docintel_custom(
 ):
     """Test Document Intelligence with custom file upload"""
     try:
+        # Sanitize inputs
+        sanitized_prompt = None
+        if prompt:
+            sanitized_prompt = sanitize_ai_prompt(prompt)
+        
+        # Validate file
+        file_info = await validate_file_upload(file, max_size_mb=25)
         # Get Document Intelligence test instance
         from .tests.document_intelligence_test import DocumentIntelligenceTest
         docintel_test = DocumentIntelligenceTest()
@@ -336,11 +389,11 @@ async def test_docintel_custom(
         if file_extension not in ['pdf', 'jpg', 'jpeg', 'png', 'bmp', 'tiff', 'tif', 'docx', 'xlsx', 'pptx']:
             raise HTTPException(status_code=400, detail="Unsupported file type for Document Intelligence. Supported: PDF, images (jpg, png, bmp, tiff), Office documents (docx, xlsx, pptx)")
         
-        # Run custom test
+        # Run custom test with sanitized inputs
         result = docintel_test.test_with_custom_file(
             file_content=content,
             file_type=file_extension,
-            custom_prompt=prompt
+            custom_prompt=sanitized_prompt
         )
         
         return JSONResponse(content=result)
@@ -359,6 +412,14 @@ async def test_embeddings_custom(
 ):
     """Test embedding generation with custom text input and optional file"""
     try:
+        # Sanitize inputs
+        sanitized_text = sanitize_user_input(text)
+        sanitized_batch_texts = InputSanitizer.sanitize_batch_texts(batch_texts)
+        
+        # Validate file if provided
+        file_info = None
+        if file:
+            file_info = await validate_file_upload(file, max_size_mb=25)
         # Get Embedding test instance
         from .tests.embedding_test import EmbeddingTest
         embedding_test = EmbeddingTest()
@@ -404,15 +465,12 @@ async def test_embeddings_custom(
             else:
                 raise HTTPException(status_code=400, detail="Unsupported file type for embeddings. Supported: txt, md, json, csv, log, pdf")
         
-        # Process batch texts if provided
-        batch_text_list = None
-        if batch_texts:
-            # Split by comma and clean up
-            batch_text_list = [t.strip() for t in batch_texts.split(',') if t.strip()]
+        # Use sanitized batch texts
+        batch_text_list = sanitized_batch_texts if sanitized_batch_texts else None
         
-        # Run custom test
+        # Run custom test with sanitized inputs
         result = embedding_test.test_with_custom_input(
-            custom_text=text,
+            custom_text=sanitized_text,
             custom_file_content=file_content,
             file_type=file_type,
             batch_texts=batch_text_list
