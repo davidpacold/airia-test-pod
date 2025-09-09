@@ -5,15 +5,16 @@ Tests complete end-to-end API workflows including authentication,
 authorization, and service integration.
 """
 
-import pytest
 import asyncio
 import json
 import time
-from unittest.mock import patch, Mock
+from unittest.mock import Mock, patch
+
+import pytest
 from fastapi.testclient import TestClient
 
-from app.main import app
 from app.config import get_settings
+from app.main import app
 
 
 @pytest.mark.integration

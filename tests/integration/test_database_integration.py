@@ -5,16 +5,17 @@ Tests actual database connections, queries, and data operations
 using real or containerized database instances.
 """
 
-import pytest
 import asyncio
 import os
-from unittest.mock import patch, Mock, AsyncMock
-from typing import Dict, Any
+from typing import Any, Dict
+from unittest.mock import AsyncMock, Mock, patch
 
+import pytest
+
+from app.config import get_settings
+from app.tests.cassandra_test import CassandraTest
 # Import the actual database test modules
 from app.tests.postgres_test_v2 import PostgreSQLTestV2
-from app.tests.cassandra_test import CassandraTest
-from app.config import get_settings
 
 
 @pytest.mark.integration
@@ -275,6 +276,7 @@ class TestDatabasePerformance:
     def test_database_connection_performance(self):
         """Test database connection establishment performance."""
         import time
+
         from app.tests.postgres_test_v2 import PostgreSQLTestV2
 
         postgres_test = PostgreSQLTestV2()
@@ -299,6 +301,7 @@ class TestDatabasePerformance:
     def test_database_concurrent_connections(self):
         """Test handling of multiple concurrent database connection attempts."""
         import concurrent.futures
+
         from app.tests.postgres_test_v2 import PostgreSQLTestV2
 
         def run_single_test():

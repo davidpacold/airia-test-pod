@@ -1,8 +1,10 @@
+from typing import Any, Dict, List
+
 import psycopg2
 from psycopg2 import sql
-from typing import Dict, List, Any
-from .base_test import BaseTest, TestResult
+
 from ..config import get_settings
+from .base_test import BaseTest, TestResult
 
 
 class PostgreSQLTestV2(BaseTest):

@@ -5,9 +5,9 @@ This module contains service classes that encapsulate business logic
 and coordinate between repositories and external systems.
 """
 
-from .base_service import BaseService
-from .test_service import TestService
-from .config_service import ConfigService
 from .auth_service import AuthService
+from .base_service import BaseService
+from .config_service import ConfigService
+from .test_service import TestService
 
 __all__ = ["BaseService", "TestService", "ConfigService", "AuthService"]

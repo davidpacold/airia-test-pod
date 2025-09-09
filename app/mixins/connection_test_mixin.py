@@ -5,12 +5,12 @@ This mixin provides common functionality for testing connections to various
 services with retry logic, timeout handling, and consistent error reporting.
 """
 
-import time
 import asyncio
-from typing import Callable, Any, Dict, Optional, Union
+import time
 from contextlib import asynccontextmanager
+from typing import Any, Callable, Dict, Optional, Union
 
-from ..exceptions import ServiceUnavailableError, TestExecutionError, ErrorCode
+from ..exceptions import ErrorCode, ServiceUnavailableError, TestExecutionError
 
 
 class ConnectionTestMixin:

@@ -6,11 +6,12 @@ duplication across endpoints and ensure consistent file handling.
 """
 
 import base64
-from typing import Optional, Dict, Any, List, Tuple
-from fastapi import UploadFile
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
 
-from ..exceptions import ValidationError, ErrorCode
+from fastapi import UploadFile
+
+from ..exceptions import ErrorCode, ValidationError
 
 
 @dataclass

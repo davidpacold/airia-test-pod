@@ -1,11 +1,13 @@
-from cassandra.cluster import Cluster
-from cassandra.auth import PlainTextAuthProvider
-from cassandra.policies import DCAwareRoundRobinPolicy
 import ssl
-from typing import Dict, List, Any
-from .base_test import BaseTest, TestResult
-from ..config import get_settings
 import time
+from typing import Any, Dict, List
+
+from cassandra.auth import PlainTextAuthProvider
+from cassandra.cluster import Cluster
+from cassandra.policies import DCAwareRoundRobinPolicy
+
+from ..config import get_settings
+from .base_test import BaseTest, TestResult
 
 
 class CassandraTest(BaseTest):

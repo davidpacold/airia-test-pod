@@ -1,10 +1,11 @@
+import logging
+import time
+import traceback
 from abc import ABC, abstractmethod
-from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
 from enum import Enum
-import logging
-import traceback
-import time
+from typing import Any, Dict, List, Optional
+
 from ..models import TestStatus
 
 

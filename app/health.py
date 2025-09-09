@@ -6,12 +6,13 @@ including dependencies, services, and system resources.
 """
 
 import asyncio
-import psutil
+import logging
 import time
 from datetime import datetime, timedelta, timezone
-from typing import Dict, Any, List, Optional, Callable
 from enum import Enum
-import logging
+from typing import Any, Callable, Dict, List, Optional
+
+import psutil
 
 from .config import get_settings
 from .exceptions import ServiceUnavailableError

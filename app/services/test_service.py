@@ -3,13 +3,13 @@ Test service for managing infrastructure test execution and coordination.
 """
 
 import asyncio
-from typing import Dict, List, Any, Optional
 from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
 
-from .base_service import BaseService
-from ..tests.base_test import TestSuite, TestResult, BaseTest
+from ..exceptions import ErrorCode, TestExecutionError, ValidationError
 from ..repositories.test_repository import TestRepository
-from ..exceptions import TestExecutionError, ValidationError, ErrorCode
+from ..tests.base_test import BaseTest, TestResult, TestSuite
+from .base_service import BaseService
 
 
 class TestService(BaseService):
@@ -34,17 +34,17 @@ class TestService(BaseService):
     async def _register_all_tests(self) -> None:
         """Register all available test implementations."""
         # Import and register all test classes
-        from ..tests.postgres_test_v2 import PostgresTest
-        from ..tests.cassandra_test import CassandraTest
         from ..tests.blob_storage_test import BlobStorageTest
-        from ..tests.s3_test import S3Test
+        from ..tests.cassandra_test import CassandraTest
+        from ..tests.document_intelligence_test import DocumentIntelligenceTest
+        from ..tests.embedding_test import EmbeddingTest
+        from ..tests.llama_test import LlamaTest
         from ..tests.minio_test import MinioTest
         from ..tests.openai_test import OpenAITest
-        from ..tests.llama_test import LlamaTest
-        from ..tests.embedding_test import EmbeddingTest
-        from ..tests.document_intelligence_test import DocumentIntelligenceTest
-        from ..tests.ssl_test import SSLTest
+        from ..tests.postgres_test_v2 import PostgresTest
         from ..tests.pvc_test import PVCTest
+        from ..tests.s3_test import S3Test
+        from ..tests.ssl_test import SSLTest
 
         test_classes = [
             PostgresTest,

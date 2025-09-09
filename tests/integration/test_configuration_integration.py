@@ -5,11 +5,12 @@ Tests configuration loading, environment variable handling,
 and application startup scenarios.
 """
 
-import pytest
 import os
 import tempfile
-from unittest.mock import patch, Mock
 from pathlib import Path
+from unittest.mock import Mock, patch
+
+import pytest
 
 from app.config import Settings, get_settings
 from app.main import app

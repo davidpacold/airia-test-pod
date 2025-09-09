@@ -5,9 +5,10 @@ Tests the main.py FastAPI application endpoints including
 health checks, version endpoints, authentication flows, and API routes.
 """
 
-import pytest
 import json
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app

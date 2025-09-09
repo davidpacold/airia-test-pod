@@ -6,8 +6,8 @@ error information including details, remediation suggestions, and
 structured error codes.
 """
 
-from typing import Dict, Any, Optional
 from enum import Enum
+from typing import Any, Dict, Optional
 
 
 class ErrorCode(Enum):

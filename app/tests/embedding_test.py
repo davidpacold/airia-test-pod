@@ -1,8 +1,9 @@
-import openai
-from openai import OpenAI
-from typing import Dict, Any, List
 import os
 from datetime import datetime, timezone
+from typing import Any, Dict, List
+
+import openai
+from openai import OpenAI
 
 try:
     import numpy as np
@@ -11,8 +12,8 @@ try:
 except ImportError:
     HAS_NUMPY = False
 
-from .base_test import BaseTest, TestResult
 from ..models import TestStatus
+from .base_test import BaseTest, TestResult
 
 
 class EmbeddingTest(BaseTest):

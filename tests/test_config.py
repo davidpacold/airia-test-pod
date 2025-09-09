@@ -5,9 +5,10 @@ Tests the config.py module including settings validation,
 environment variable handling, and configuration defaults.
 """
 
-import pytest
 import os
-from unittest.mock import patch, Mock
+from unittest.mock import Mock, patch
+
+import pytest
 
 from app.config import Settings, get_settings
 

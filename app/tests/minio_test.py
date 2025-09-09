@@ -1,13 +1,15 @@
-import boto3
-from botocore.exceptions import ClientError, NoCredentialsError, EndpointConnectionError
-from botocore.config import Config
-from typing import Dict, Any
 import os
 import uuid
 from datetime import datetime, timezone
+from typing import Any, Dict
 
-from .base_test import BaseTest, TestResult
+import boto3
+from botocore.config import Config
+from botocore.exceptions import (ClientError, EndpointConnectionError,
+                                 NoCredentialsError)
+
 from ..models import TestStatus
+from .base_test import BaseTest, TestResult
 
 
 class MinioTest(BaseTest):

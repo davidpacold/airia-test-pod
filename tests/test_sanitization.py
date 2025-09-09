@@ -5,18 +5,15 @@ Tests the sanitization.py module including XSS prevention,
 input validation, file upload security, and data sanitization.
 """
 
-import pytest
 import io
-from unittest.mock import Mock, patch, AsyncMock
-from fastapi import UploadFile, HTTPException
+from unittest.mock import AsyncMock, Mock, patch
 
-from app.utils.sanitization import (
-    InputSanitizer,
-    sanitize_user_input,
-    sanitize_ai_prompt,
-    sanitize_login_credentials,
-    validate_file_upload,
-)
+import pytest
+from fastapi import HTTPException, UploadFile
+
+from app.utils.sanitization import (InputSanitizer, sanitize_ai_prompt,
+                                    sanitize_login_credentials,
+                                    sanitize_user_input, validate_file_upload)
 
 
 class TestInputSanitizer:

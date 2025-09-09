@@ -6,10 +6,11 @@ preventing common security vulnerabilities like XSS, injection attacks, and
 malicious file uploads.
 """
 
-import re
 import html
-from typing import Optional, List, Dict, Any
-from fastapi import UploadFile, HTTPException
+import re
+from typing import Any, Dict, List, Optional
+
+from fastapi import HTTPException, UploadFile
 
 # Try to import python-magic, fallback to basic validation
 try:

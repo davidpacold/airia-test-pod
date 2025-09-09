@@ -4,10 +4,10 @@ Base service class with common functionality for all services.
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
 from datetime import datetime, timezone
+from typing import Any, Dict, Optional
 
-from ..exceptions import ServiceUnavailableError, ErrorCode
+from ..exceptions import ErrorCode, ServiceUnavailableError
 
 
 class BaseService(ABC):

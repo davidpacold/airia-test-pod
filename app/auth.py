@@ -1,10 +1,12 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+
+from fastapi import Depends, HTTPException, Request, status
+from fastapi.responses import RedirectResponse
+from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from fastapi import Depends, HTTPException, status, Request
-from fastapi.security import OAuth2PasswordBearer
-from fastapi.responses import RedirectResponse
+
 from .config import get_settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

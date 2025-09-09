@@ -4,14 +4,15 @@ Authentication service for managing user authentication and authorization.
 
 import hashlib
 import secrets
-from datetime import datetime, timezone, timedelta
-from typing import Dict, Any, Optional
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, Optional
+
 import jwt
 
-from .base_service import BaseService
+from ..exceptions import ErrorCode, ServiceUnavailableError, ValidationError
 from ..repositories.auth_repository import AuthRepository
-from ..exceptions import ValidationError, ServiceUnavailableError, ErrorCode
 from ..utils.sanitization import InputSanitizer
+from .base_service import BaseService
 
 
 class AuthService(BaseService):

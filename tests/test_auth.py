@@ -5,21 +5,16 @@ Tests the auth.py module including JWT token creation, validation,
 password hashing, and authentication flows.
 """
 
-import pytest
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import Mock, patch
-from jose import jwt, JWTError
+
+import pytest
 from fastapi import HTTPException, Request
 from fastapi.responses import RedirectResponse
+from jose import JWTError, jwt
 
-from app.auth import (
-    verify_password,
-    get_password_hash,
-    authenticate_user,
-    create_access_token,
-    get_current_user,
-    require_auth,
-)
+from app.auth import (authenticate_user, create_access_token, get_current_user,
+                      get_password_hash, require_auth, verify_password)
 from app.config import Settings
 
 

@@ -2,11 +2,14 @@ import io
 import os
 import uuid
 from datetime import datetime, timezone
-from typing import Dict, List, Any
-from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient
-from azure.core.exceptions import AzureError, ResourceExistsError, ResourceNotFoundError
-from .base_test import BaseTest, TestResult
+from typing import Any, Dict, List
+
+from azure.core.exceptions import (AzureError, ResourceExistsError,
+                                   ResourceNotFoundError)
+from azure.storage.blob import BlobClient, BlobServiceClient, ContainerClient
+
 from ..config import get_settings
+from .base_test import BaseTest, TestResult
 
 
 class BlobStorageTest(BaseTest):

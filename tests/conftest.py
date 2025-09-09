@@ -5,20 +5,21 @@ This file contains shared test fixtures, configuration, and utilities
 used across all unit tests.
 """
 
-import pytest
 import asyncio
-import tempfile
-import os
-from unittest.mock import Mock, AsyncMock
-from fastapi.testclient import TestClient
-from fastapi import UploadFile
 import io
+import os
+import tempfile
+from datetime import timedelta, timezone
+from unittest.mock import AsyncMock, Mock
 
+import pytest
+from fastapi import UploadFile
+from fastapi.testclient import TestClient
+
+from app.auth import create_access_token
+from app.config import Settings, get_settings
 # Import application components
 from app.main import app
-from app.config import Settings, get_settings
-from app.auth import create_access_token
-from datetime import timedelta, timezone
 
 
 @pytest.fixture(scope="session")

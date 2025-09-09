@@ -1,13 +1,14 @@
-from typing import Dict, Any, List, Optional
-import os
-import time
 import base64
 import io
+import os
+import time
+from typing import Any, Dict, List, Optional
+
 from azure.ai.formrecognizer import DocumentAnalysisClient
 from azure.core.credentials import AzureKeyCredential
 
-from .base_test import BaseTest, TestResult
 from ..models import TestStatus
+from .base_test import BaseTest, TestResult
 
 
 class DocumentIntelligenceTest(BaseTest):

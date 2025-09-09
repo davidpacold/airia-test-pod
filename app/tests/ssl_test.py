@@ -1,15 +1,16 @@
-from typing import Dict, Any, List, Optional
-import os
-import ssl
-import socket
 import datetime
+import os
+import socket
+import ssl
 import subprocess
+from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
+
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 
-from .base_test import BaseTest, TestResult
 from ..models import TestStatus
+from .base_test import BaseTest, TestResult
 
 
 class SSLTest(BaseTest):

@@ -3,11 +3,12 @@ File processing utilities for custom AI testing
 Handles PDF text extraction and image processing
 """
 
-from typing import Optional
-import io
 import base64
-from PyPDF2 import PdfReader
+import io
+from typing import Optional
+
 from PIL import Image
+from PyPDF2 import PdfReader
 
 
 def process_pdf(pdf_content: bytes) -> str:
