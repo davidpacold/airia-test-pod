@@ -105,17 +105,25 @@ jobs:
           echo "Committed version updates to repository"
         fi
 
-        # Create and push the git tag - this will trigger the Docker build workflow
+        # Create and push the git tag
         if git rev-parse "v$VERSION" >/dev/null 2>&1; then
           echo "Tag v$VERSION already exists, skipping tag creation"
         else
           git tag -a "v$VERSION" -m "Release v$VERSION"
           git push origin "v$VERSION"
-          echo "Created and pushed tag v$VERSION - this will trigger Docker image build"
+          echo "Created and pushed tag v$VERSION"
         fi
         
         # Push the version updates to main
         git push origin main
+        
+        # Trigger Docker build explicitly for the new tag
+        echo "Triggering Docker build for tag v$VERSION"
+        curl -X POST \
+          -H "Accept: application/vnd.github.v3+json" \
+          -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          "https://api.github.com/repos/${{ github.repository }}/actions/workflows/build-and-publish.yml/dispatches" \
+          -d "{\"ref\":\"v$VERSION\"}"
 
     - name: Install Helm
       uses: azure/setup-helm@v4
