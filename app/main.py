@@ -110,7 +110,7 @@ async def login_page(
     if current_user:
         return RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
     return templates.TemplateResponse(
-        "login.html", {"request": request, "title": settings.app_name}
+        "login.html", {"request": request, "title": get_settings().app_name}
     )
 
 
@@ -134,7 +134,7 @@ async def login(request: Request, username: str = Form(...), password: str = For
             "login.html",
             {
                 "request": request,
-                "title": settings.app_name,
+                "title": get_settings().app_name,
                 "error": "Invalid username or password",
             },
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -162,7 +162,7 @@ async def dashboard(request: Request, current_user: str = Depends(require_auth))
         return current_user
     return templates.TemplateResponse(
         "dashboard.html",
-        {"request": request, "title": settings.app_name, "username": current_user},
+        {"request": request, "title": get_settings().app_name, "username": current_user},
     )
 
 
@@ -499,7 +499,7 @@ async def run_postgres_test(current_user: str = Depends(require_auth)):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=settings.port)
+    uvicorn.run(app, host="0.0.0.0", port=get_settings().port)
 
 # Export the app for production deployment
 application = app
