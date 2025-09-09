@@ -323,7 +323,6 @@ class TestConfigurationConsistency:
 class TestDotEnvFileLoading:
     """Test .env file loading functionality."""
 
-    @patch("app.config.Settings.Config.env_file", ".env.test")
     def test_env_file_configuration(self):
         """Test that env_file configuration is set correctly."""
         # This tests that the Config class has the correct env_file setting

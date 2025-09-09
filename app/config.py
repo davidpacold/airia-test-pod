@@ -10,8 +10,8 @@ class Settings(BaseSettings):
     version: str = "1.0.101"
 
     # Authentication settings
-    auth_username: str = os.getenv("AUTH_USERNAME", "admin")
-    auth_password: str = os.getenv("AUTH_PASSWORD", "changeme")
+    auth_username: str = os.getenv("AUTH_USERNAME", "admin") or "admin"
+    auth_password: str = os.getenv("AUTH_PASSWORD", "changeme") or "changeme"
     secret_key: str = os.getenv(
         "SECRET_KEY", "your-secret-key-here-change-in-production"
     )
@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     cassandra_password: str = os.getenv("CASSANDRA_PASSWORD", "")
     cassandra_keyspace: str = os.getenv("CASSANDRA_KEYSPACE", "")
     cassandra_datacenter: str = os.getenv("CASSANDRA_DATACENTER", "datacenter1")
-    cassandra_use_ssl: bool = os.getenv("CASSANDRA_USE_SSL", "false").lower() == "true"
+    cassandra_use_ssl: bool = os.getenv("CASSANDRA_USE_SSL", "false").lower() in ("true", "1", "yes", "on")
 
     class Config:
         env_file = ".env"
