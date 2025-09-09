@@ -41,20 +41,26 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Set ref for metadata extraction
-      id: set_ref
+    - name: Determine git ref for metadata
+      id: determine_ref
       run: |
-        if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.ref }}" ]; then
-          echo "METADATA_REF=${{ github.event.inputs.ref }}" >> $GITHUB_ENV
-          echo "Using manual ref: ${{ github.event.inputs.ref }}"
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [[ "${{ github.event.inputs.ref }}" == v* ]]; then
+          # For workflow_dispatch with version tags, format as refs/tags/vX.Y.Z  
+          GITHUB_REF="refs/tags/${{ github.event.inputs.ref }}"
+          echo "GITHUB_REF=${GITHUB_REF}" >> $GITHUB_ENV
+          echo "Using version tag ref: ${GITHUB_REF}"
         else
-          echo "METADATA_REF=${{ github.ref }}" >> $GITHUB_ENV
-          echo "Using GitHub ref: ${{ github.ref }}"
+          # Use the original GitHub ref
+          echo "GITHUB_REF=${{ github.ref }}" >> $GITHUB_ENV
+          echo "Using original ref: ${{ github.ref }}"
         fi
 
     - name: Extract metadata
       id: meta
       uses: docker/metadata-action@v5
+      env:
+        # Override GITHUB_REF to make metadata-action see the tag
+        GITHUB_REF: ${{ env.GITHUB_REF }}
       with:
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         tags: |
@@ -65,18 +71,6 @@ jobs:
           type=semver,pattern={{major}}
           type=sha
           type=raw,value=latest,enable={{is_default_branch}}
-        # Override GitHub context for workflow_dispatch with manual ref
-        context: |
-          ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref && format('{{
-            "eventName": "push",
-            "sha": "{0}",
-            "ref": "refs/tags/{1}",
-            "workflow": "{2}",
-            "action": "{3}",
-            "actor": "{4}",
-            "runNumber": {5},
-            "runId": {6}
-          }}', github.sha, github.event.inputs.ref, github.workflow, github.action, github.actor, github.run_number, github.run_id) || '' }}
 
     - name: Build and push Docker image
       uses: docker/build-push-action@v5

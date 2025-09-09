@@ -123,7 +123,7 @@ jobs:
           -H "Accept: application/vnd.github.v3+json" \
           -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
           "https://api.github.com/repos/${{ github.repository }}/actions/workflows/build-and-publish.yml/dispatches" \
-          -d "{\"ref\":\"v$VERSION\"}"
+          -d "{\"ref\":\"main\",\"inputs\":{\"ref\":\"v$VERSION\"}}"
 
     - name: Install Helm
       uses: azure/setup-helm@v4
