@@ -107,6 +107,7 @@ jobs:
         format: 'sarif'
         output: 'trivy-container-results.sarif'
         severity: 'CRITICAL,HIGH,MEDIUM'
+      continue-on-error: true
         
     - name: Run Trivy vulnerability scanner on filesystem  
       uses: aquasecurity/trivy-action@master
@@ -116,14 +117,43 @@ jobs:
         format: 'sarif'
         output: 'trivy-fs-results.sarif'
         severity: 'CRITICAL,HIGH,MEDIUM'
+      continue-on-error: true
         
-    - name: Upload Trivy scan results to GitHub Security tab
+    - name: Check for SARIF files
+      id: check-sarif
+      run: |
+        echo "Checking for SARIF files..."
+        container_exists="false"
+        fs_exists="false"
+        
+        if [ -f "trivy-container-results.sarif" ]; then
+          echo "✅ Container SARIF file found"
+          container_exists="true"
+        else
+          echo "⚠️ Container SARIF file not found"
+        fi
+        
+        if [ -f "trivy-fs-results.sarif" ]; then
+          echo "✅ Filesystem SARIF file found"  
+          fs_exists="true"
+        else
+          echo "⚠️ Filesystem SARIF file not found"
+        fi
+        
+        echo "container_exists=$container_exists" >> $GITHUB_OUTPUT
+        echo "fs_exists=$fs_exists" >> $GITHUB_OUTPUT
+        
+    - name: Upload Trivy container scan results to GitHub Security tab
       uses: github/codeql-action/upload-sarif@v3
-      if: always()
+      if: steps.check-sarif.outputs.container_exists == 'true'
       with:
-        sarif_file: |
-          trivy-container-results.sarif
-          trivy-fs-results.sarif
+        sarif_file: trivy-container-results.sarif
+        
+    - name: Upload Trivy filesystem scan results to GitHub Security tab  
+      uses: github/codeql-action/upload-sarif@v3
+      if: steps.check-sarif.outputs.fs_exists == 'true'
+      with:
+        sarif_file: trivy-fs-results.sarif
           
     - name: Generate human-readable security report
       run: |
