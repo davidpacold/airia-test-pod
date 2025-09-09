@@ -47,6 +47,8 @@ spec:
           env:
             - name: PORT
               value: {{ .Values.service.targetPort | quote }}
+            - name: APP_VERSION
+              value: {{ .Chart.AppVersion | quote }}
             - name: AUTH_USERNAME
               valueFrom:
                 secretKeyRef:
