@@ -27,6 +27,9 @@ jobs:
     permissions:
       contents: write
       packages: write
+    outputs:
+      trigger_docker_build: ${{ steps.update_versions.outputs.trigger_docker_build }}
+      docker_version: ${{ steps.update_versions.outputs.docker_version }}
 
     steps:
     - name: Checkout repository
@@ -79,6 +82,7 @@ jobs:
         echo "Calculated version: $VERSION"
 
     - name: Update all version references
+      id: update_versions
       run: |
         VERSION="${{ steps.calc_version.outputs.version }}"
         
@@ -155,7 +159,9 @@ jobs:
           git tag -a "v$VERSION" -m "Release v$VERSION"
           if git push origin "v$VERSION"; then
             echo "Successfully created and pushed tag v$VERSION"
-            echo "The tag push will automatically trigger the Docker build workflow"
+            # Set output to indicate we need to build Docker image for this version
+            echo "trigger_docker_build=true" >> $GITHUB_OUTPUT
+            echo "docker_version=$VERSION" >> $GITHUB_OUTPUT
           else
             echo "Error: Failed to push tag v$VERSION"
             exit 1
@@ -202,3 +208,67 @@ jobs:
         git add docs/
         git commit -m "Update Helm repository with v${{ steps.version.outputs.version }} [skip ci]" || exit 0
         git push origin main
+
+  # Build and publish Docker image for the version tag
+  build-version-docker:
+    needs: build-and-push-release
+    runs-on: ubuntu-latest
+    if: needs.build-and-push-release.outputs.trigger_docker_build == 'true'
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+    - name: Checkout repository at version tag
+      uses: actions/checkout@v4
+      with:
+        ref: v${{ needs.build-and-push-release.outputs.docker_version }}
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata for version tag
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=tag
+          type=semver,pattern={{version}},value=v${{ needs.build-and-push-release.outputs.docker_version }}
+          type=semver,pattern={{major}}.{{minor}},value=v${{ needs.build-and-push-release.outputs.docker_version }}
+          type=semver,pattern={{major}},value=v${{ needs.build-and-push-release.outputs.docker_version }}
+
+    - name: Build and push Docker image for version
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Generate version deployment instructions
+      run: |
+        echo "## 🎯 Version ${{ needs.build-and-push-release.outputs.docker_version }} Released!" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Docker image with semantic version tags published:" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo '```bash' >> $GITHUB_STEP_SUMMARY
+        echo "# Pull the version-tagged image" >> $GITHUB_STEP_SUMMARY
+        echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push-release.outputs.docker_version }}" >> $GITHUB_STEP_SUMMARY
+        echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${{ needs.build-and-push-release.outputs.docker_version }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "# Use in production:" >> $GITHUB_STEP_SUMMARY
+        echo "image:" >> $GITHUB_STEP_SUMMARY
+        echo "  repository: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" >> $GITHUB_STEP_SUMMARY
+        echo "  tag: ${{ needs.build-and-push-release.outputs.docker_version }}" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
