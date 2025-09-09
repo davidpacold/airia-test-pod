@@ -629,7 +629,7 @@ jobs:
                 "type": "section",
                 "text": {
                   "type": "mrkdwn",
-                  "text": "*Commit:* \`${{ github.sha }}\`\n*Message:* \`${{ github.event.head_commit.message }}\`"
+                  "text": "*Commit:* \`${{ github.sha }}\`\n*Message:* Deployment update"
                 }
               },
               {
