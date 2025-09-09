@@ -278,6 +278,15 @@ jobs:
         git commit -m "Update Helm repository with v${{ steps.version.outputs.version }} [skip ci]" || exit 0
         git push origin main
 
+    - name: Trigger GitHub Pages deployment
+      if: success()
+      run: |
+        echo "🚀 Triggering GitHub Pages deployment..."
+        gh workflow run "📦 Deploy Helm Repository to Pages" --ref main
+        echo "✅ GitHub Pages deployment triggered successfully"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   # Build and publish Docker image for the version tag
   build-version-docker:
     needs: build-and-push-release
@@ -729,7 +738,7 @@ jobs:
           echo "📧 Sending Microsoft Teams notification..."
           echo "Webhook URL would be configured via secrets: TEAMS_WEBHOOK_URL"
           echo "Payload:"
-          cat teams-payload.json | jq .
+          cat teams-payload.json | jq . || echo "⚠️ JSON parsing failed, but payload exists"
           
           # In a real environment, this would send to Teams:
           # curl -X POST -H 'Content-type: application/json' \
