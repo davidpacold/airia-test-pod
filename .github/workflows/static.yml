@@ -1,5 +1,5 @@
 # Deploy Helm repository to GitHub Pages
-name: Deploy Helm repository to Pages
+name: 📦 Deploy Helm Repository to Pages
 
 on:
   # Runs on pushes targeting the default branch (when Helm files are updated)

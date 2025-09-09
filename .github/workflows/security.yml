@@ -1,4 +1,4 @@
-name: Security Scanning
+name: 🔒 Security Scanning
 
 on:
   # Trigger on all pushes to main branch
@@ -118,7 +118,7 @@ jobs:
         severity: 'CRITICAL,HIGH,MEDIUM'
         
     - name: Upload Trivy scan results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v2
+      uses: github/codeql-action/upload-sarif@v3
       if: always()
       with:
         sarif_file: |

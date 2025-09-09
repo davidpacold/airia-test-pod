@@ -10,9 +10,4 @@ from .test_service import TestService
 from .config_service import ConfigService
 from .auth_service import AuthService
 
-__all__ = [
-    "BaseService",
-    "TestService", 
-    "ConfigService",
-    "AuthService"
-]
+__all__ = ["BaseService", "TestService", "ConfigService", "AuthService"]

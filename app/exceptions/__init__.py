@@ -7,12 +7,12 @@ utilities for consistent error management across the application.
 
 from .base import (
     TestPodException,
-    ConfigurationError, 
+    ConfigurationError,
     ServiceUnavailableError,
     ValidationError,
     TestExecutionError,
     InfrastructureError,
-    ErrorCode
+    ErrorCode,
 )
 
 from .handlers import setup_error_handlers
@@ -20,10 +20,10 @@ from .handlers import setup_error_handlers
 __all__ = [
     "TestPodException",
     "ConfigurationError",
-    "ServiceUnavailableError", 
+    "ServiceUnavailableError",
     "ValidationError",
     "TestExecutionError",
     "InfrastructureError",
     "ErrorCode",
-    "setup_error_handlers"
+    "setup_error_handlers",
 ]

@@ -18,7 +18,7 @@ import io
 from app.main import app
 from app.config import Settings, get_settings
 from app.auth import create_access_token
-from datetime import timedelta
+from datetime import timedelta, timezone
 
 
 @pytest.fixture(scope="session")
@@ -46,16 +46,17 @@ def test_settings():
         postgres_database="test_db",
         postgres_user="test_user",
         postgres_password="test_pass",
-        postgres_sslmode="disable"
+        postgres_sslmode="disable",
     )
 
 
 @pytest.fixture
 def override_settings(test_settings):
     """Override the settings dependency for testing."""
+
     def _get_test_settings():
         return test_settings
-    
+
     app.dependency_overrides[get_settings] = _get_test_settings
     yield test_settings
     # Clean up
@@ -74,26 +75,27 @@ def authenticated_client(client, test_settings):
     """Create a test client with authentication token."""
     # Create access token
     access_token = create_access_token(
-        data={"sub": test_settings.auth_username},
-        expires_delta=timedelta(minutes=30)
+        data={"sub": test_settings.auth_username}, expires_delta=timedelta(minutes=30)
     )
-    
+
     # Set the token in the client's cookies
     client.cookies.set("access_token", f"Bearer {access_token}")
-    
+
     yield client
 
 
 @pytest.fixture
 def mock_file_upload():
     """Create a mock file upload for testing."""
-    def _create_mock_file(filename="test.txt", content="test content", content_type="text/plain"):
+
+    def _create_mock_file(
+        filename="test.txt", content="test content", content_type="text/plain"
+    ):
         file_content = content.encode() if isinstance(content, str) else content
         return UploadFile(
-            filename=filename,
-            file=io.BytesIO(file_content),
-            content_type=content_type
+            filename=filename, file=io.BytesIO(file_content), content_type=content_type
         )
+
     return _create_mock_file
 
 
@@ -177,15 +179,12 @@ def sample_credentials():
 @pytest.fixture
 def mock_jwt_payload():
     """Mock JWT payload for testing."""
-    return {
-        "sub": "testuser",
-        "exp": 1234567890,
-        "iat": 1234567800
-    }
+    return {"sub": "testuser", "exp": 1234567890, "iat": 1234567800}
 
 
 # Test markers for organizing tests
 pytest_plugins = []
+
 
 # Custom assertions and utilities
 class TestHelpers:
@@ -194,19 +193,25 @@ class TestHelpers:
         """Assert that text doesn't contain XSS patterns."""
         xss_patterns = ["<script", "javascript:", "vbscript:", "on\\w+\\s*="]
         for pattern in xss_patterns:
-            assert pattern.lower() not in text.lower(), f"XSS pattern '{pattern}' found in: {text}"
-    
+            assert (
+                pattern.lower() not in text.lower()
+            ), f"XSS pattern '{pattern}' found in: {text}"
+
     @staticmethod
     def assert_safe_filename(filename: str):
         """Assert that filename is safe for filesystem."""
         dangerous_chars = ["<", ">", ":", '"', "|", "?", "*", "/", "\\", "\x00"]
         for char in dangerous_chars:
-            assert char not in filename, f"Dangerous character '{char}' found in filename: {filename}"
-    
+            assert (
+                char not in filename
+            ), f"Dangerous character '{char}' found in filename: {filename}"
+
     @staticmethod
     def assert_length_limit(text: str, max_length: int):
         """Assert that text doesn't exceed length limit."""
-        assert len(text) <= max_length, f"Text length {len(text)} exceeds limit {max_length}"
+        assert (
+            len(text) <= max_length
+        ), f"Text length {len(text)} exceeds limit {max_length}"
 
 
 @pytest.fixture

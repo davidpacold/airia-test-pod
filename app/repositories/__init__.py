@@ -10,9 +10,4 @@ from .test_repository import TestRepository
 from .config_repository import ConfigRepository
 from .auth_repository import AuthRepository
 
-__all__ = [
-    "BaseRepository",
-    "TestRepository",
-    "ConfigRepository", 
-    "AuthRepository"
-]
+__all__ = ["BaseRepository", "TestRepository", "ConfigRepository", "AuthRepository"]
