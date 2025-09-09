@@ -1,221 +1,316 @@
-# Example values for airia-test-pod
-# Copy this file to values.yaml and update with your specific configuration
+# ================================================================
+# Airia Infrastructure Test Pod - Complete Configuration Example
+# ================================================================
+# This file contains ALL available configuration options with detailed
+# comments and examples. Copy this file to create your own values.yaml
+# and enable only the services you need to test.
+#
+# Quick Start:
+# 1. Copy this file: cp values-example.yaml my-values.yaml
+# 2. Update auth credentials (required)
+# 3. Enable and configure your services
+# 4. Install: helm install airia-test-pod airia-test-pod/airia-test-pod -f my-values.yaml
+#
+# Table of Contents:
+# - Authentication (REQUIRED)
+# - Section 1: Database Services (PostgreSQL, Cassandra)
+# - Section 2: Storage Services (Azure Blob, S3, MinIO)
+# - Section 3: AI & ML Services (OpenAI, OpenAI-Compatible, Llama, Document Intelligence, Embeddings)
+# - Section 4: Infrastructure Testing (SSL, Kubernetes PVC)
+# - Ingress Configuration (for external access)
+# - Service & Resource Configuration
+# - Advanced Kubernetes Options (optional)
+# - Environment Variables (advanced/legacy configuration)
+# ================================================================
 
+# Basic Pod Configuration
 replicaCount: 1
 
 image:
   repository: ghcr.io/davidpacold/airia-test-pod
   pullPolicy: IfNotPresent
-  tag: "latest"
+  tag: "latest"  # Use specific version for production (e.g., "v1.0.64")
 
-# REQUIRED: Update authentication credentials
+# ================================================================
+# REQUIRED: Authentication Configuration
+# ================================================================
+# These credentials are used to access the test pod dashboard
 config:
   auth:
     username: "admin"
     password: "CHANGE-THIS-PASSWORD"  # REQUIRED: Set a secure password
-    secretKey: "CHANGE-THIS-SECRET-KEY"  # REQUIRED: Generate a secure key (use: openssl rand -hex 32)
+    secretKey: "CHANGE-THIS-SECRET-KEY"  # REQUIRED: Generate with: openssl rand -hex 32
   
-  # Core Azure Services (configure the ones you use)
-  # ================================================
+  # ================================================================
+  # SECTION 1: Database Services
+  # ================================================================
   
-  # PostgreSQL configuration
+  # PostgreSQL Database (Azure Database for PostgreSQL or any PostgreSQL instance)
   postgresql:
-    enabled: false  # Set to true if using PostgreSQL
-    host: "your-server.postgres.database.azure.com"
-    port: "5432"
-    database: "postgres"
-    sslmode: "require"
-    username: "your-username"
-    password: "your-password"
-  
-  # Azure Blob Storage configuration
-  blobStorage:
-    enabled: false  # Set to true if using Azure Blob Storage
-    accountName: "your-storage-account"
-    accountKey: "your-account-key"
-    containerName: "test-container"
-  
-  # Azure OpenAI configuration
-  openai:
-    enabled: false  # Set to true if using Azure OpenAI
-    endpoint: "https://your-openai.openai.azure.com/"
-    apiKey: "your-api-key"
-    deploymentName: "gpt-35-turbo"  # or gpt-4, gpt-4o-mini, etc.
-    embeddingDeployment: "text-embedding-ada-002"  # Optional
-    customPrompt: "Test custom functionality"      # Optional: Custom prompt for testing
-    customSystemMessage: "You are a helpful assistant"  # Optional: System message for custom tests
-  
-  # Azure Document Intelligence configuration
-  documentIntelligence:
-    enabled: false  # Set to true if using Document Intelligence
-    endpoint: "https://your-doc-intel.cognitiveservices.azure.com/"
-    apiKey: "your-api-key"
-    model: "prebuilt-document"
-  
-  # OpenAI-compatible API (for self-hosted models, Local AI, etc.)
-  # This configuration enables both OpenAI and Llama tests via OpenAI-compatible endpoints
-  # Set OPENAI_BASE_URL, OPENAI_API_KEY, OPENAI_MODEL_NAME environment variables
-  # Use LLAMA_BASE_URL, LLAMA_API_KEY, LLAMA_MODEL_NAME for dedicated Llama endpoints
-  # Custom testing available via dashboard UI for both model types
-  
-  # Apache Cassandra configuration (NEW!)
-  cassandra:
-    enabled: false  # Set to true if using Apache Cassandra
-    hosts: "cassandra-node1.example.com,cassandra-node2.example.com"  # Comma-separated list
-    port: "9042"
-    username: "your-cassandra-username"  # Optional: leave empty for no auth
-    password: "your-cassandra-password"  # Optional: leave empty for no auth
-    keyspace: "your_keyspace"  # Optional: specific keyspace to test
-    datacenter: "datacenter1"  # Optional: leave empty for single-DC or if unknown
-    useSsl: false  # Set to true if using SSL/TLS
-  
-  # Additional Testing Options
-  # ==========================
-  
-  # SSL certificate validation
-  ssl:
-    enabled: false  # Set to true if testing SSL certificates
-    testUrls: "https://api.example.com,https://app.example.com"
-    connectTimeout: 10
-    warningDays: 30
-  
-  # Kubernetes storage testing (uses cluster default storage)
-  kubernetes:
-    storageClass: "default"  # Change if using custom storage class
-    testPvcSize: "1Gi"
-  
-  # Alternative Storage Options (choose one if needed)
-  # =================================================
-  
-  # MinIO S3-compatible storage
-  minio:
-    enabled: false
-    endpointUrl: "https://minio.example.com"
-    accessKey: "your-access-key"
-    secretKey: "your-secret-key"
-    bucketName: "test-bucket"
-    secure: true
-  
-  # Amazon S3 storage
-  s3:
-    enabled: false
-    region: "us-east-1"
-    accessKeyId: "your-access-key"
-    secretAccessKey: "your-secret-key"
-    bucketName: "test-bucket"
-    # sessionToken: ""  # Optional for temporary credentials
-    # endpointUrl: ""   # Optional for S3-compatible services
-  
-  # Custom embedding models (OpenAI-compatible)
-  embeddings:
-    enabled: false
-    baseUrl: "https://api.openai.com/v1"  # or your custom endpoint
-    apiKey: "your-api-key"
-    modelName: "text-embedding-ada-002"
-    # customHeaders: "Header1:Value1,Header2:Value2"  # Optional
+    enabled: false  # Set to true to test PostgreSQL connectivity
+    host: "your-server.postgres.database.azure.com"  # Your PostgreSQL server hostname
+    port: "5432"  # Default PostgreSQL port
+    database: "postgres"  # Database name to connect to
+    sslmode: "require"  # SSL mode: disable, require, verify-ca, verify-full
+    username: "your-username"  # Database username
+    password: "your-password"  # Database password
+    # Note: Test will verify connection, list databases, and check for required extensions
 
-# REQUIRED: Configure ingress for your domain
+  # Apache Cassandra NoSQL Database
+  cassandra:
+    enabled: false  # Set to true to test Apache Cassandra
+    hosts: "cassandra-node1.example.com,cassandra-node2.example.com"  # Comma-separated list of nodes
+    port: "9042"  # Default Cassandra CQL port
+    username: ""  # Optional: leave empty if no authentication
+    password: ""  # Optional: leave empty if no authentication
+    keyspace: ""  # Optional: specific keyspace to test (leave empty to test all)
+    datacenter: ""  # Optional: datacenter name for multi-DC clusters (leave empty for single DC)
+    useSsl: false  # Set to true if Cassandra requires SSL/TLS connections
+    # Note: Test will check cluster health, list keyspaces, and verify connectivity
+  
+  # ================================================================
+  # SECTION 2: Storage Services
+  # ================================================================
+  
+  # Azure Blob Storage
+  blobStorage:
+    enabled: false  # Set to true to test Azure Blob Storage
+    accountName: "your-storage-account"  # Storage account name (not the full URL)
+    accountKey: "your-account-key"  # Storage account access key
+    containerName: "test-container"  # Container to test (will be created if doesn't exist)
+    # Note: Test will verify authentication, create container, upload/download test files
+
+  # MinIO (S3-compatible object storage)
+  minio:
+    enabled: false  # Set to true to test MinIO
+    endpointUrl: "https://minio.example.com"  # MinIO server URL
+    accessKey: "your-access-key"  # MinIO access key
+    secretKey: "your-secret-key"  # MinIO secret key
+    bucketName: "test-bucket"  # Bucket to test
+    secure: true  # Use HTTPS (true) or HTTP (false)
+    # Note: Compatible with any S3-compatible storage (e.g., Ceph, Wasabi)
+
+  # Amazon S3 Storage
+  s3:
+    enabled: false  # Set to true to test Amazon S3
+    region: "us-east-1"  # AWS region
+    accessKeyId: "your-access-key"  # AWS access key ID
+    secretAccessKey: "your-secret-key"  # AWS secret access key
+    bucketName: "test-bucket"  # S3 bucket to test
+    # sessionToken: ""  # Optional: for temporary AWS credentials
+    # endpointUrl: ""   # Optional: custom endpoint for S3-compatible services
+    # Note: Also works with S3-compatible services like DigitalOcean Spaces
+  
+  # ================================================================
+  # SECTION 3: AI & Machine Learning Services
+  # ================================================================
+  
+  # Azure OpenAI / OpenAI API
+  openai:
+    enabled: false  # Set to true to test Azure OpenAI or OpenAI API
+    endpoint: "https://your-openai.openai.azure.com/"  # Azure OpenAI endpoint or https://api.openai.com/v1
+    apiKey: "your-api-key"  # API key for authentication
+    deploymentName: "gpt-35-turbo"  # Model deployment name (gpt-35-turbo, gpt-4, etc.)
+    embeddingDeployment: "text-embedding-ada-002"  # Optional: Embedding model deployment
+    customPrompt: "Test the infrastructure readiness"  # Optional: Custom test prompt
+    customSystemMessage: "You are a helpful assistant"  # Optional: System message for tests
+    # Note: Test will verify API access, model availability, and optionally test embeddings
+    # Supports custom file uploads (PDF, images) via dashboard UI
+
+  # OpenAI-Compatible API Models (LocalAI, FastChat, Ollama, etc.)
+  openaiCompatible:
+    enabled: false  # Set to true to test OpenAI-compatible endpoints
+    baseUrl: "http://localhost:8080/v1"  # API endpoint (e.g., LocalAI, Ollama with /v1)
+    apiKey: "not-needed-for-local"  # API key if required (many local models don't need this)
+    modelName: "ggml-gpt4all-j"  # Model name available on your endpoint
+    maxTokens: 500  # Maximum tokens for responses
+    temperature: 0.1  # Temperature for generation (0.0 to 1.0)
+    # Note: This enables both OpenAI and Llama tests depending on model name
+    # If modelName contains "llama", both test types will be available
+    # Dashboard supports custom prompts and file uploads for compatible models
+
+  # Self-Hosted Llama Models (dedicated Llama endpoints)
+  llama:
+    enabled: false  # Set to true to test dedicated Llama endpoints
+    baseUrl: "http://localhost:11434/v1"  # Llama API endpoint (e.g., Ollama)
+    apiKey: ""  # API key if required (leave empty if not needed)
+    modelName: "llama2"  # Llama model name (llama2, mistral, codellama, etc.)
+    maxTokens: 500  # Maximum tokens for responses
+    temperature: 0.1  # Temperature for generation (0.0 to 1.0)
+    # Note: Dashboard supports custom prompts and file uploads for Llama models
+
+  # Azure Document Intelligence (Form Recognizer)
+  documentIntelligence:
+    enabled: false  # Set to true to test Document Intelligence
+    endpoint: "https://your-doc-intel.cognitiveservices.azure.com/"  # Cognitive Services endpoint
+    apiKey: "your-api-key"  # Cognitive Services API key
+    model: "prebuilt-document"  # Model to use (prebuilt-document, prebuilt-invoice, etc.)
+    # Note: Test will analyze sample documents and verify API access
+    # Supports custom document uploads via dashboard UI
+
+  # Custom Embedding Models (OpenAI-compatible endpoints)
+  embeddings:
+    enabled: false  # Set to true to test embedding endpoints
+    baseUrl: "https://api.openai.com/v1"  # API base URL (or your custom endpoint)
+    apiKey: "your-api-key"  # API key for authentication
+    modelName: "text-embedding-ada-002"  # Embedding model name
+    # customHeaders: "Header1:Value1,Header2:Value2"  # Optional: Custom HTTP headers
+    # Note: Test will generate embeddings and calculate similarity scores
+    # Supports batch processing and custom text/file inputs via dashboard
+  
+  # ================================================================
+  # SECTION 4: Infrastructure & Security Testing
+  # ================================================================
+  
+  # SSL/TLS Certificate Validation
+  ssl:
+    enabled: false  # Set to true to test SSL certificates
+    testUrls: "https://api.example.com,https://app.example.com"  # Comma-separated URLs to test
+    connectTimeout: 10  # Connection timeout in seconds
+    warningDays: 30  # Warn if certificate expires within this many days
+    # Note: Test will validate certificate chains, expiration, and hostname matching
+    # Detects common issues like missing intermediate certificates
+  
+  # Kubernetes Storage Testing (PVC - Persistent Volume Claims)
+  kubernetes:
+    storageClass: ""  # Leave empty to use cluster default, or specify custom class
+    testPvcSize: "1Gi"  # Size of test PVC to create
+    # Note: Test will verify storage class availability and PVC creation permissions
+    # Requires RBAC permissions (automatically configured by Helm)
+
+# ================================================================
+# Ingress Configuration (Required for Production)
+# ================================================================
+# Configure how external traffic reaches the test pod
 ingress:
-  enabled: true
-  className: "nginx"  # Options: "nginx", "azure-application-gateway", or custom
+  enabled: true  # Set to false for port-forward only access
+  className: "nginx"  # Options: "nginx", "azure-application-gateway", or your custom class
+  
+  # Annotations for ingress behavior
   annotations:
-    # For NGINX Ingress Controller (default)
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    # NGINX Ingress Controller annotations (most common)
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"  # Don't force HTTPS redirect
+    nginx.ingress.kubernetes.io/proxy-body-size: "30m"  # Allow large file uploads (25MB + overhead)
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"  # 5 minute timeout for long AI operations
     
-    # For Azure Application Gateway (uncomment if using AGIC)
+    # Azure Application Gateway annotations (uncomment if using AGIC)
     # kubernetes.io/ingress.class: azure/application-gateway
     # appgw.ingress.kubernetes.io/ssl-redirect: "false"
-    # appgw.ingress.kubernetes.io/request-timeout: "30"
+    # appgw.ingress.kubernetes.io/request-timeout: "300"
+    # appgw.ingress.kubernetes.io/backend-protocol: "http"
+  
+  # Host configuration (REQUIRED: Update with your domain)
   hosts:
-    - host: airia-test.yourdomain.com  # CHANGE THIS
+    - host: airia-test.yourdomain.com  # CHANGE THIS to your domain
       paths:
         - path: /
           pathType: Prefix
-    # Add up to 5 hostnames with individual TLS certificates:
+    
+    # Additional hosts (optional - for multi-domain setups)
     # - host: airia-test-secondary.yourdomain.com
     #   paths:
     #     - path: /
     #       pathType: Prefix
+  
+  # TLS/SSL configuration (REQUIRED for HTTPS)
   tls:
-    - secretName: airia-test-tls  # CHANGE THIS to your TLS secret name
+    - secretName: airia-test-tls  # CHANGE THIS: Name of K8s secret containing TLS certificate
       hosts:
-        - airia-test.yourdomain.com  # CHANGE THIS
+        - airia-test.yourdomain.com  # CHANGE THIS: Must match host above
+    
+    # Additional TLS configurations (for multi-domain setups)
     # - secretName: secondary-tls
     #   hosts:
     #     - airia-test-secondary.yourdomain.com
 
-# Service configuration
+# ================================================================
+# Service Configuration
+# ================================================================
 service:
-  type: ClusterIP
-  port: 80
-  targetPort: 8080
-  # nodePort: 30080  # Only if type is NodePort
+  type: ClusterIP  # Options: ClusterIP (default), NodePort, LoadBalancer
+  port: 80  # Service port
+  targetPort: 8080  # Container port
+  # nodePort: 30080  # Only used if type is NodePort
 
-# Resource limits and requests
+# ================================================================
+# Resource Management
+# ================================================================
+# Define CPU and memory limits for the pod
 resources:
   limits:
-    cpu: 500m
-    memory: 512Mi
+    cpu: 500m  # Maximum CPU (0.5 cores)
+    memory: 512Mi  # Maximum memory
   requests:
-    cpu: 100m
-    memory: 256Mi
+    cpu: 100m  # Guaranteed CPU (0.1 cores)
+    memory: 256Mi  # Guaranteed memory
 
-# Namespace configuration
+# ================================================================
+# Namespace Configuration
+# ================================================================
 namespace:
   create: true  # Set to false if namespace already exists
-  name: "airia-preprod"
+  name: "airia-preprod"  # Namespace name for deployment
 
-# Optional: Advanced Kubernetes configurations
-# ============================================
+# ================================================================
+# Advanced Kubernetes Configuration (Optional)
+# ================================================================
+# These settings are typically not needed for basic deployments
 
-# Image pull secrets (if using private registry)
+# Private Registry Configuration
 # imagePullSecrets:
-#   - name: my-registry-secret
+#   - name: my-registry-secret  # K8s secret for private registry authentication
 
-# Service account configuration
+# Service Account
 # serviceAccount:
-#   create: true
-#   annotations: {}
-#   name: ""
+#   create: true  # Create a dedicated service account
+#   annotations: {}  # Annotations for the service account
+#   name: ""  # Leave empty to auto-generate
 
-# Pod annotations
+# Pod Annotations (useful for monitoring/observability)
 # podAnnotations:
-#   prometheus.io/scrape: "true"
-#   prometheus.io/port: "8080"
+#   prometheus.io/scrape: "true"  # Enable Prometheus metrics scraping
+#   prometheus.io/port: "8080"  # Metrics port
+#   prometheus.io/path: "/metrics"  # Metrics endpoint
 
-# Security context
+# Security Context (pod-level security settings)
 # podSecurityContext:
-#   fsGroup: 2000
+#   fsGroup: 2000  # Group ID for volume ownership
+#   runAsNonRoot: true  # Enforce non-root user
+#   runAsUser: 1000  # User ID to run as
+
+# Container Security Context
 # securityContext:
+#   allowPrivilegeEscalation: false
 #   capabilities:
 #     drop:
-#     - ALL
-#   readOnlyRootFilesystem: true
+#     - ALL  # Drop all capabilities
+#   readOnlyRootFilesystem: false  # Note: false required for file uploads
 #   runAsNonRoot: true
 #   runAsUser: 1000
 
-# Autoscaling
+# Horizontal Pod Autoscaling
 # autoscaling:
-#   enabled: true
-#   minReplicas: 1
-#   maxReplicas: 10
-#   targetCPUUtilizationPercentage: 80
-#   targetMemoryUtilizationPercentage: 80
+#   enabled: false  # Enable HPA
+#   minReplicas: 1  # Minimum pod count
+#   maxReplicas: 3  # Maximum pod count
+#   targetCPUUtilizationPercentage: 80  # Scale up at 80% CPU
+#   targetMemoryUtilizationPercentage: 80  # Scale up at 80% memory
 
-# Node selection
+# Node Selection (schedule pods on specific nodes)
 # nodeSelector:
-#   kubernetes.io/os: linux
+#   kubernetes.io/os: linux  # Linux nodes only
+#   node-role: worker  # Custom node label example
 
-# Tolerations
+# Tolerations (allow pods on tainted nodes)
 # tolerations:
-#   - key: "key1"
+#   - key: "dedicated"
 #     operator: "Equal"
-#     value: "value1"
+#     value: "test-pods"
 #     effect: "NoSchedule"
 
-# Affinity rules
+# Pod Affinity/Anti-affinity Rules
 # affinity:
+#   # Prefer to spread pods across nodes
 #   podAntiAffinity:
 #     preferredDuringSchedulingIgnoredDuringExecution:
 #     - weight: 100
@@ -227,3 +322,32 @@ namespace:
 #             values:
 #             - airia-test-pod
 #         topologyKey: kubernetes.io/hostname
+
+# ================================================================
+# Environment Variables (Advanced)
+# ================================================================
+# Additional environment variables can be set directly
+# Note: Use the dedicated configuration blocks above (openaiCompatible, llama) 
+# instead of environment variables when possible for better organization
+
+# Example for custom environment variables:
+# extraEnvVars:
+#   - name: CUSTOM_API_TIMEOUT
+#     value: "300"
+#   - name: LOG_LEVEL
+#     value: "DEBUG"
+#   - name: CUSTOM_FEATURE_FLAG
+#     value: "true"
+
+# Legacy environment variable support (deprecated - use config blocks above):
+# These environment variables are still supported but the config blocks are preferred
+# - LLAMA_BASE_URL, LLAMA_API_KEY, LLAMA_MODEL_NAME (use llama config block instead)
+# - OPENAI_BASE_URL, OPENAI_API_KEY, OPENAI_MODEL_NAME (use openaiCompatible config block instead)
+
+# ================================================================
+# End of Configuration
+# ================================================================
+# For more configuration options, see:
+# - helm/airia-test-pod/values.yaml (all default values)
+# - DEPLOYMENT_GUIDE.md (production setup guide)
+# - README.md (quick start guide)
