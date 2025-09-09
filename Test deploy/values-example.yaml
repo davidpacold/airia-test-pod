@@ -108,15 +108,23 @@ config:
   # Azure OpenAI / OpenAI API
   openai:
     enabled: false  # Set to true to test Azure OpenAI or OpenAI API
+    
+    # Connection Settings
     endpoint: "https://your-openai.openai.azure.com/"  # Azure OpenAI endpoint or https://api.openai.com/v1
     apiKey: "your-api-key"  # API key for authentication
+    timeout: 30  # Request timeout in seconds (default: 30)
+    
+    # Model Configuration
     deploymentName: "gpt-35-turbo"  # Model deployment name (gpt-35-turbo, gpt-4, etc.)
     embeddingDeployment: "text-embedding-ada-002"  # Optional: Embedding model deployment
+    
+    # Test Configuration
     testCompletion: true  # Test text completion/chat capabilities (default: true)
     testEmbedding: true  # Test embedding generation (default: true, skipped if embeddingDeployment not set)
+    
+    # Custom Testing (Optional)
     customPrompt: "Test the infrastructure readiness"  # Optional: Custom test prompt
     customSystemMessage: "You are a helpful assistant"  # Optional: System message for tests
-    timeout: 30  # Request timeout in seconds (default: 30)
     # Note: Test will verify API access, model availability, and optionally test embeddings
     # Supports custom file uploads (PDF, images) via dashboard UI
 
