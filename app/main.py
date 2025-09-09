@@ -18,7 +18,7 @@ from .tests.test_runner import test_runner
 from fastapi import HTTPException
 
 settings = get_settings()
-app = FastAPI(title="Airia Infrastructure Test Pod", version="1.0.72")
+app = FastAPI(title="Airia Infrastructure Test Pod", version="1.0.74")
 
 # Real-time updates will be implemented in a future version
 # For now, the application works perfectly with manual refresh
