@@ -111,18 +111,33 @@ jobs:
           echo "Committed version updates to repository"
         fi
 
-        # Push the version updates to main first
-        git push origin main
-        echo "Pushed version updates to main branch"
+        # Pull latest changes to avoid conflicts, then push version updates to main
+        if git pull --rebase origin main; then
+          echo "Successfully pulled latest changes"
+        else
+          echo "Error: Failed to pull latest changes. Please check for conflicts."
+          exit 1
+        fi
+        
+        if git push origin main; then
+          echo "Successfully pushed version updates to main branch"
+        else
+          echo "Error: Failed to push version updates to main branch"
+          exit 1
+        fi
         
         # Then create and push the git tag
         if git rev-parse "v$VERSION" >/dev/null 2>&1; then
           echo "Tag v$VERSION already exists, skipping tag creation"
         else
           git tag -a "v$VERSION" -m "Release v$VERSION"
-          git push origin "v$VERSION"
-          echo "Created and pushed tag v$VERSION"
-          echo "The tag push will automatically trigger the Docker build workflow"
+          if git push origin "v$VERSION"; then
+            echo "Successfully created and pushed tag v$VERSION"
+            echo "The tag push will automatically trigger the Docker build workflow"
+          else
+            echo "Error: Failed to push tag v$VERSION"
+            exit 1
+          fi
         fi
 
     - name: Install Helm
