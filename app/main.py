@@ -59,15 +59,31 @@ async def add_security_headers(request: Request, call_next):
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-# Health check endpoint
+# Health check endpoints
 
 @app.get("/health")
 async def health_check():
-    return {
-        "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat(),
-        "version": get_settings().version
-    }
+    """Comprehensive health check endpoint for monitoring and load balancers."""
+    from .health import health_checker
+    return await health_checker.run_all_checks()
+
+@app.get("/health/live")
+async def liveness_check():
+    """Liveness probe for Kubernetes - checks if application is running."""
+    from .health import health_checker
+    result = await health_checker.get_liveness_status()
+    
+    status_code = 200 if result["alive"] else 503
+    return JSONResponse(content=result, status_code=status_code)
+
+@app.get("/health/ready")
+async def readiness_check():
+    """Readiness probe for Kubernetes - checks if application can serve traffic."""
+    from .health import health_checker
+    result = await health_checker.get_readiness_status()
+    
+    status_code = 200 if result["ready"] else 503
+    return JSONResponse(content=result, status_code=status_code)
 
 @app.get("/version")
 async def get_version():

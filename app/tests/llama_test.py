@@ -122,12 +122,12 @@ class LlamaTest(BaseTest):
                 all_passed = False
             
             if all_passed:
-                result.mark_passed("All Llama model tests passed successfully")
+                result.complete(True, "All Llama model tests passed successfully")
             else:
-                result.mark_failed("One or more Llama model tests failed")
+                result.complete(False, "One or more Llama model tests failed")
                 
         except Exception as e:
-            result.mark_failed(f"Llama model test failed: {str(e)}")
+            result.fail(f"Llama model test failed: {str(e)}")
             result.add_log("ERROR", f"Exception: {str(e)}")
             
         result.end()

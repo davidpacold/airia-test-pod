@@ -11,6 +11,11 @@
 # 3. Enable and configure your services
 # 4. Install: helm install airia-test-pod airia-test-pod/airia-test-pod -f my-values.yaml
 #
+# HELM TEMPLATE MAPPING:
+# All config values are nested under 'config:' so Helm templates should use:
+# .Values.config.serviceName.fieldName → ENVIRONMENT_VARIABLE
+# Example: .Values.config.llama.baseUrl → LLAMA_BASE_URL
+#
 # Table of Contents:
 # - Authentication (REQUIRED)
 # - Section 1: Database Services (PostgreSQL, Cassandra)
@@ -48,24 +53,24 @@ config:
   # PostgreSQL Database (Azure Database for PostgreSQL or any PostgreSQL instance)
   postgresql:
     enabled: false  # Set to true to test PostgreSQL connectivity
-    host: "your-server.postgres.database.azure.com"  # Your PostgreSQL server hostname
-    port: "5432"  # Default PostgreSQL port
-    database: "postgres"  # Database name to connect to
-    sslmode: "require"  # SSL mode: disable, require, verify-ca, verify-full
-    username: "your-username"  # Database username
-    password: "your-password"  # Database password
+    host: "your-server.postgres.database.azure.com"  # PostgreSQL hostname (Helm: .Values.config.postgresql.host → POSTGRES_HOST)
+    port: "5432"  # PostgreSQL port (Helm: .Values.config.postgresql.port → POSTGRES_PORT)
+    database: "postgres"  # Database name to connect to (Helm: .Values.config.postgresql.database → POSTGRES_DATABASE)
+    sslmode: "require"  # SSL mode (Helm: .Values.config.postgresql.sslmode → POSTGRES_SSLMODE)
+    username: "your-username"  # Database username (Helm: .Values.config.postgresql.username → POSTGRES_USER)
+    password: "your-password"  # Database password (Helm: .Values.config.postgresql.password → POSTGRES_PASSWORD)
     # Note: Test will verify connection, list databases, and check for required extensions
 
   # Apache Cassandra NoSQL Database
   cassandra:
     enabled: false  # Set to true to test Apache Cassandra
-    hosts: "cassandra-node1.example.com,cassandra-node2.example.com"  # Comma-separated list of nodes
-    port: "9042"  # Default Cassandra CQL port
-    username: ""  # Optional: leave empty if no authentication
-    password: ""  # Optional: leave empty if no authentication
-    keyspace: ""  # Optional: specific keyspace to test (leave empty to test all)
-    datacenter: ""  # Optional: datacenter name for multi-DC clusters (leave empty for single DC)
-    useSsl: false  # Set to true if Cassandra requires SSL/TLS connections
+    hosts: "cassandra-node1.example.com,cassandra-node2.example.com"  # Comma-separated nodes (maps to CASSANDRA_HOSTS)
+    port: "9042"  # Default Cassandra CQL port (maps to CASSANDRA_PORT)
+    username: ""  # Optional username (maps to CASSANDRA_USERNAME)
+    password: ""  # Optional password (maps to CASSANDRA_PASSWORD)
+    keyspace: ""  # Optional keyspace to test (maps to CASSANDRA_KEYSPACE)
+    datacenter: "datacenter1"  # Datacenter name (maps to CASSANDRA_DATACENTER)
+    useSsl: false  # Set to true if SSL required (maps to CASSANDRA_USE_SSL)
     # Note: Test will check cluster health, list keyspaces, and verify connectivity
   
   # ================================================================
@@ -75,27 +80,28 @@ config:
   # Azure Blob Storage
   blobStorage:
     enabled: false  # Set to true to test Azure Blob Storage
-    accountName: "your-storage-account"  # Storage account name (not the full URL)
-    accountKey: "your-account-key"  # Storage account access key
-    containerName: "test-container"  # Container to test (will be created if doesn't exist)
+    accountName: "your-storage-account"  # Storage account name (maps to BLOB_ACCOUNT_NAME)
+    accountKey: "your-account-key"  # Storage account access key (maps to BLOB_ACCOUNT_KEY)
+    containerName: "test-container"  # Container to test (maps to BLOB_CONTAINER_NAME)
+    endpointSuffix: "core.windows.net"  # Optional: Azure endpoint suffix (maps to BLOB_ENDPOINT_SUFFIX)
     # Note: Test will verify authentication, create container, upload/download test files
 
   # MinIO (S3-compatible object storage)
   minio:
     enabled: false  # Set to true to test MinIO
-    endpointUrl: "https://minio.example.com"  # MinIO server URL
-    accessKey: "your-access-key"  # MinIO access key
-    secretKey: "your-secret-key"  # MinIO secret key
-    bucketName: "test-bucket"  # Bucket to test
-    secure: true  # Use HTTPS (true) or HTTP (false)
+    endpointUrl: "https://minio.example.com"  # MinIO server URL (maps to MINIO_ENDPOINT_URL)
+    accessKey: "your-access-key"  # MinIO access key (maps to MINIO_ACCESS_KEY)
+    secretKey: "your-secret-key"  # MinIO secret key (maps to MINIO_SECRET_KEY)
+    bucketName: "test-bucket"  # Bucket to test (maps to MINIO_BUCKET_NAME)
+    secure: true  # Use HTTPS (maps to MINIO_SECURE)
     # Note: Compatible with any S3-compatible storage (e.g., Ceph, Wasabi)
 
   # Amazon S3 Storage
   s3:
     enabled: false  # Set to true to test Amazon S3
     region: "us-east-1"  # AWS region
-    accessKeyId: "your-access-key"  # AWS access key ID
-    secretAccessKey: "your-secret-key"  # AWS secret access key
+    accessKeyId: "your-access-key"  # AWS access key ID (maps to AWS_ACCESS_KEY_ID)
+    secretAccessKey: "your-secret-key"  # AWS secret access key (maps to AWS_SECRET_ACCESS_KEY)
     bucketName: "test-bucket"  # S3 bucket to test
     # sessionToken: ""  # Optional: for temporary AWS credentials
     # endpointUrl: ""   # Optional: custom endpoint for S3-compatible services
@@ -109,22 +115,27 @@ config:
   openai:
     enabled: false  # Set to true to test Azure OpenAI or OpenAI API
     
-    # Connection Settings
-    endpoint: "https://your-openai.openai.azure.com/"  # Azure OpenAI endpoint or https://api.openai.com/v1
-    apiKey: "your-api-key"  # API key for authentication
-    timeout: 30  # Request timeout in seconds (default: 30)
+    # Azure OpenAI Settings (for Azure OpenAI Service)
+    endpoint: "https://your-openai.openai.azure.com/"  # Azure OpenAI endpoint (maps to AZURE_OPENAI_ENDPOINT)
+    apiKey: "your-azure-api-key"  # Azure OpenAI API key (maps to AZURE_OPENAI_API_KEY)
+    deploymentName: "gpt-35-turbo"  # Azure model deployment name (maps to AZURE_OPENAI_DEPLOYMENT_NAME)
+    embeddingDeployment: "text-embedding-ada-002"  # Azure embedding deployment (maps to AZURE_OPENAI_EMBEDDING_DEPLOYMENT)
+    apiVersion: "2024-02-01"  # Azure API version (maps to AZURE_OPENAI_API_VERSION)
     
-    # Model Configuration
-    deploymentName: "gpt-35-turbo"  # Model deployment name (gpt-35-turbo, gpt-4, etc.)
-    embeddingDeployment: "text-embedding-ada-002"  # Optional: Embedding model deployment
+    # Generic OpenAI Settings (for OpenAI API or self-hosted)
+    openaiBaseUrl: "https://api.openai.com/v1"  # OpenAI base URL (maps to OPENAI_BASE_URL)
+    openaiApiKey: "your-openai-api-key"  # OpenAI API key (maps to OPENAI_API_KEY)
+    openaiModelName: "gpt-3.5-turbo"  # OpenAI model name (maps to OPENAI_MODEL_NAME)
+    openaiEmbeddingModel: "text-embedding-ada-002"  # OpenAI embedding model (maps to OPENAI_EMBEDDING_MODEL)
     
     # Test Configuration
-    testCompletion: true  # Test text completion/chat capabilities (default: true)
-    testEmbedding: true  # Test embedding generation (default: true, skipped if embeddingDeployment not set)
+    timeout: 30  # Request timeout in seconds (maps to OPENAI_TIMEOUT)
+    testCompletion: true  # Test text completion/chat capabilities (maps to TEST_COMPLETION)
+    testEmbedding: true  # Test embedding generation (maps to TEST_EMBEDDING)
     
     # Custom Testing (Optional)
-    customPrompt: "Test the infrastructure readiness"  # Optional: Custom test prompt
-    customSystemMessage: "You are a helpful assistant"  # Optional: System message for tests
+    customPrompt: "Test the infrastructure readiness"  # Custom test prompt (maps to OPENAI_CUSTOM_PROMPT)
+    customSystemMessage: "You are a helpful assistant"  # System message (maps to OPENAI_CUSTOM_SYSTEM_MESSAGE)
     # Note: Test will verify API access, model availability, and optionally test embeddings
     # Supports custom file uploads (PDF, images) via dashboard UI
 
@@ -143,31 +154,31 @@ config:
   # Self-Hosted Llama Models (dedicated Llama endpoints)
   llama:
     enabled: false  # Set to true to test dedicated Llama endpoints
-    baseUrl: "http://localhost:11434/v1"  # Llama API endpoint (e.g., Ollama)
-    apiKey: ""  # API key if required (leave empty if not needed)
-    modelName: "llama2"  # Llama model name (llama2, mistral, codellama, etc.)
-    maxTokens: 500  # Maximum tokens for responses
-    temperature: 0.1  # Temperature for generation (0.0 to 1.0)
-    timeout: 60  # Request timeout in seconds (default: 60)
+    baseUrl: "http://localhost:11434/v1"  # Llama API endpoint (Helm: .Values.config.llama.baseUrl → LLAMA_BASE_URL)
+    apiKey: ""  # API key if required (Helm: .Values.config.llama.apiKey → LLAMA_API_KEY)
+    modelName: "llama2"  # Llama model name (Helm: .Values.config.llama.modelName → LLAMA_MODEL_NAME)
+    maxTokens: 500  # Maximum tokens for responses (Helm: .Values.config.llama.maxTokens → LLAMA_MAX_TOKENS)
+    temperature: 0.1  # Temperature for generation (Helm: .Values.config.llama.temperature → LLAMA_TEMPERATURE)
+    timeout: 60  # Request timeout in seconds (Helm: .Values.config.llama.timeout → LLAMA_TIMEOUT)
     # Note: Dashboard supports custom prompts and file uploads for Llama models
 
   # Azure Document Intelligence (Form Recognizer)
   documentIntelligence:
     enabled: false  # Set to true to test Document Intelligence
-    endpoint: "https://your-doc-intel.cognitiveservices.azure.com/"  # Cognitive Services endpoint
-    apiKey: "your-api-key"  # Cognitive Services API key
-    model: "prebuilt-document"  # Model to use (prebuilt-document, prebuilt-invoice, etc.)
-    timeout: 60  # Request timeout in seconds (default: 60)
+    endpoint: "https://your-doc-intel.cognitiveservices.azure.com/"  # Cognitive Services endpoint (maps to AZURE_DOC_INTEL_ENDPOINT)
+    apiKey: "your-api-key"  # Cognitive Services API key (maps to AZURE_DOC_INTEL_API_KEY)
+    model: "prebuilt-document"  # Model to use (maps to AZURE_DOC_INTEL_MODEL)
+    timeout: 60  # Request timeout in seconds (maps to DOC_INTEL_TIMEOUT)
     # Note: Test will analyze sample documents and verify API access
     # Supports custom document uploads via dashboard UI
 
   # Custom Embedding Models (OpenAI-compatible endpoints)
   embeddings:
     enabled: false  # Set to true to test embedding endpoints
-    baseUrl: "https://api.openai.com/v1"  # API base URL (or your custom endpoint)
-    apiKey: "your-api-key"  # API key for authentication
-    modelName: "text-embedding-ada-002"  # Embedding model name
-    # customHeaders: "Header1:Value1,Header2:Value2"  # Optional: Custom HTTP headers
+    apiKey: "your-api-key"  # API key for authentication (maps to EMBEDDING_API_KEY)
+    baseUrl: "https://api.openai.com/v1"  # API base URL (maps to EMBEDDING_BASE_URL)
+    modelName: "text-embedding-ada-002"  # Embedding model name (maps to EMBEDDING_MODEL_NAME)
+    # customHeaders: "Header1:Value1,Header2:Value2"  # Optional: Custom HTTP headers (maps to EMBEDDING_CUSTOM_HEADERS)
     # Note: Test will generate embeddings and calculate similarity scores
     # Supports batch processing and custom text/file inputs via dashboard
   
@@ -178,16 +189,16 @@ config:
   # SSL/TLS Certificate Validation
   ssl:
     enabled: false  # Set to true to test SSL certificates
-    testUrls: "https://api.example.com,https://app.example.com"  # Comma-separated URLs to test
-    connectTimeout: 10  # Connection timeout in seconds (default: 10)
-    warningDays: 30  # Warn if certificate expires within this many days (default: 30)
+    testUrls: "https://api.example.com,https://app.example.com"  # Comma-separated URLs to test (maps to SSL_TEST_URLS)
+    connectTimeout: 10  # Connection timeout in seconds (maps to SSL_CONNECT_TIMEOUT)
+    warningDays: 30  # Warn if certificate expires within this many days (maps to SSL_WARNING_DAYS)
     # Note: Test will validate certificate chains, expiration, and hostname matching
     # Detects common issues like missing intermediate certificates
   
   # Kubernetes Storage Testing (PVC - Persistent Volume Claims)
   kubernetes:
-    storageClass: ""  # Leave empty to use cluster default, or specify custom class
-    testPvcSize: "1Gi"  # Size of test PVC to create (default: 1Gi)
+    storageClass: ""  # Leave empty to use cluster default (maps to STORAGE_CLASS)
+    testPvcSize: "1Gi"  # Size of test PVC to create (maps to TEST_PVC_SIZE)
     # Note: Test will verify storage class availability and PVC creation permissions
     # Requires RBAC permissions (automatically configured by Helm)
 

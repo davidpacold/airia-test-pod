@@ -19,3 +19,4 @@ cassandra-driver==3.29.0
 pypdf2==3.0.1
 pillow==10.1.0
 python-magic==0.4.27
+psutil==5.9.6

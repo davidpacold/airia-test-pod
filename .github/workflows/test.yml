@@ -1,0 +1,392 @@
+name: Unit Tests & Code Quality
+
+# Trigger on pushes and pull requests
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  # Allow manual triggering
+  workflow_dispatch:
+
+# Cancel in-progress runs for the same workflow and branch
+concurrency:
+  group: test-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  # =============================================================================
+  # UNIT TESTS WITH COVERAGE
+  # =============================================================================
+  unit-tests:
+    name: Unit Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.9', '3.10', '3.11']
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt -r requirements-dev.txt
+    
+    - name: Run unit tests with coverage
+      run: |
+        echo "🧪 RUNNING UNIT TESTS WITH COVERAGE"
+        echo "=================================="
+        
+        # Run unit tests only (exclude integration tests)
+        pytest tests/ \
+          --ignore=tests/integration \
+          --cov=app \
+          --cov-report=html:htmlcov \
+          --cov-report=xml:coverage.xml \
+          --cov-report=term-missing \
+          --cov-fail-under=80 \
+          --junit-xml=test-results.xml \
+          --tb=short \
+          -v
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results-python${{ matrix.python-version }}
+        path: |
+          test-results.xml
+          coverage.xml
+          htmlcov/
+        retention-days: 7
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      if: matrix.python-version == '3.11'
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+  # =============================================================================
+  # INTEGRATION TESTS
+  # =============================================================================
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_PASSWORD: integration_test_password
+          POSTGRES_USER: integration_test_user
+          POSTGRES_DB: integration_test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt -r requirements-dev.txt
+    
+    - name: Wait for PostgreSQL
+      run: |
+        echo "🔗 WAITING FOR POSTGRESQL TO BE READY"
+        echo "====================================="
+        until pg_isready -h localhost -p 5432 -U integration_test_user; do
+          echo "Waiting for PostgreSQL..."
+          sleep 2
+        done
+        echo "✅ PostgreSQL is ready"
+    
+    - name: Run integration tests
+      env:
+        INTEGRATION_TESTS_ENABLED: "1"
+        POSTGRES_HOST: localhost
+        POSTGRES_PORT: 5432
+        POSTGRES_DATABASE: integration_test_db
+        POSTGRES_USER: integration_test_user
+        POSTGRES_PASSWORD: integration_test_password
+        POSTGRES_SSLMODE: disable
+        AUTH_USERNAME: integration_test_user
+        AUTH_PASSWORD: integration_test_password
+        SECRET_KEY: integration-test-secret-key-for-ci-only
+      run: |
+        echo "🔧 RUNNING INTEGRATION TESTS"
+        echo "============================"
+        
+        # Run integration tests only
+        pytest tests/integration/ \
+          --tb=short \
+          -v \
+          --junit-xml=integration-test-results.xml
+    
+    - name: Upload integration test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: integration-test-results
+        path: |
+          integration-test-results.xml
+        retention-days: 7
+
+  # =============================================================================
+  # CODE QUALITY CHECKS
+  # =============================================================================
+  code-quality:
+    name: Code Quality & Linting
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+    
+    - name: Install development dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements-dev.txt
+    
+    - name: Run Black code formatter check
+      run: |
+        echo "🔍 CHECKING CODE FORMATTING WITH BLACK"
+        echo "====================================="
+        black --check --diff app/ tests/
+    
+    - name: Run isort import sorting check
+      run: |
+        echo "🔍 CHECKING IMPORT SORTING WITH ISORT"
+        echo "==================================="
+        isort --check-only --diff app/ tests/
+    
+    - name: Run flake8 linting
+      run: |
+        echo "🔍 RUNNING FLAKE8 LINTING"
+        echo "========================"
+        flake8 app/ tests/ --statistics
+    
+    - name: Run mypy type checking
+      run: |
+        echo "🔍 RUNNING MYPY TYPE CHECKING"
+        echo "============================"
+        mypy app/ --ignore-missing-imports --show-error-codes
+      continue-on-error: true  # Type checking errors shouldn't fail the build initially
+    
+    - name: Upload linting results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: code-quality-results
+        path: |
+          .mypy_cache/
+        retention-days: 3
+
+  # =============================================================================
+  # SECURITY TESTING
+  # =============================================================================
+  security-tests:
+    name: Security Testing
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+    
+    - name: Install security tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install safety bandit pip-audit
+    
+    - name: Run safety check for known vulnerabilities
+      run: |
+        echo "🔒 RUNNING SAFETY CHECK"
+        echo "======================"
+        safety check --json --output safety-report.json || true
+        safety check --short-report
+      continue-on-error: true
+    
+    - name: Run bandit security linter
+      run: |
+        echo "🔒 RUNNING BANDIT SECURITY ANALYSIS"
+        echo "================================="
+        bandit -r app/ -f json -o bandit-report.json || true
+        bandit -r app/ --severity-level medium
+      continue-on-error: true
+    
+    - name: Run pip-audit for dependency vulnerabilities
+      run: |
+        echo "🔒 RUNNING PIP-AUDIT"
+        echo "=================="
+        pip-audit --format=json --output=pip-audit-report.json || true
+        pip-audit --desc
+      continue-on-error: true
+    
+    - name: Upload security scan results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-test-results
+        path: |
+          safety-report.json
+          bandit-report.json
+          pip-audit-report.json
+        retention-days: 30
+
+  # =============================================================================
+  # TEST MATRIX SUMMARY
+  # =============================================================================
+  test-summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, code-quality, security-tests]
+    if: always()
+    
+    steps:
+    - name: Download all test artifacts
+      uses: actions/download-artifact@v3
+      with:
+        path: test-artifacts
+    
+    - name: Generate test summary
+      run: |
+        echo "📊 TEST EXECUTION SUMMARY" >> $GITHUB_STEP_SUMMARY
+        echo "========================" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Unit Tests Status
+        if [ "${{ needs.unit-tests.result }}" == "success" ]; then
+          echo "✅ **Unit Tests**: PASSED" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **Unit Tests**: FAILED" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # Integration Tests Status
+        if [ "${{ needs.integration-tests.result }}" == "success" ]; then
+          echo "✅ **Integration Tests**: PASSED" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **Integration Tests**: FAILED" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # Code Quality Status
+        if [ "${{ needs.code-quality.result }}" == "success" ]; then
+          echo "✅ **Code Quality**: PASSED" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **Code Quality**: FAILED" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # Security Tests Status
+        if [ "${{ needs.security-tests.result }}" == "success" ]; then
+          echo "✅ **Security Tests**: PASSED" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "⚠️ **Security Tests**: COMPLETED (review required)" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## 📈 Coverage & Metrics" >> $GITHUB_STEP_SUMMARY
+        echo "- Test coverage reports available in artifacts" >> $GITHUB_STEP_SUMMARY
+        echo "- Security scan results require manual review" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        echo "## 🔍 Next Steps" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ needs.unit-tests.result }}" != "success" ]; then
+          echo "- Fix failing unit tests before merging" >> $GITHUB_STEP_SUMMARY
+        fi
+        if [ "${{ needs.integration-tests.result }}" != "success" ]; then
+          echo "- Fix failing integration tests and service configurations" >> $GITHUB_STEP_SUMMARY
+        fi
+        if [ "${{ needs.code-quality.result }}" != "success" ]; then
+          echo "- Address code quality issues (formatting, linting, type errors)" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "- Review security scan results for any critical findings" >> $GITHUB_STEP_SUMMARY
+        echo "- Ensure test coverage meets requirements (≥80%)" >> $GITHUB_STEP_SUMMARY
+    
+    - name: Set overall status
+      run: |
+        # Determine overall test status
+        if [ "${{ needs.unit-tests.result }}" == "success" ] && [ "${{ needs.integration-tests.result }}" == "success" ] && [ "${{ needs.code-quality.result }}" == "success" ]; then
+          echo "✅ All critical tests passed"
+          exit 0
+        else
+          echo "❌ Some critical tests failed"
+          exit 1
+        fi
+
+  # =============================================================================
+  # PERFORMANCE TESTS (Optional)
+  # =============================================================================
+  performance-tests:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt -r requirements-dev.txt
+    
+    - name: Run performance tests
+      run: |
+        echo "⚡ RUNNING PERFORMANCE TESTS"
+        echo "=========================="
+        
+        # Run tests marked as performance tests
+        pytest tests/ -m "not slow" --tb=short -v || true
+        
+        echo "Performance testing completed (results are informational)"
+    
+    - name: Upload performance results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: performance-test-results
+        path: test-results.xml
+        retention-days: 7

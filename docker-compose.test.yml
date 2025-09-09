@@ -1,0 +1,133 @@
+version: '3.8'
+
+# Docker Compose configuration for integration testing
+# Use: docker-compose -f docker-compose.test.yml up -d
+# Then run: INTEGRATION_TESTS_ENABLED=1 python -m pytest tests/integration/
+
+services:
+  postgres:
+    image: postgres:13-alpine
+    environment:
+      POSTGRES_DB: integration_test_db
+      POSTGRES_USER: integration_test_user
+      POSTGRES_PASSWORD: integration_test_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U integration_test_user -d integration_test_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test_network
+
+  cassandra:
+    image: cassandra:3.11
+    environment:
+      CASSANDRA_CLUSTER_NAME: TestCluster
+      CASSANDRA_DC: datacenter1
+      CASSANDRA_RACK: rack1
+      CASSANDRA_ENDPOINT_SNITCH: GossipingPropertyFileSnitch
+    ports:
+      - "9042:9042"
+    volumes:
+      - cassandra_test_data:/var/lib/cassandra
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh -e 'describe cluster' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+    networks:
+      - test_network
+    # Cassandra needs more resources
+    mem_limit: 2g
+
+  redis:
+    image: redis:6-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - test_network
+
+  # MinIO for S3-compatible storage testing
+  minio:
+    image: minio/minio:latest
+    environment:
+      MINIO_ROOT_USER: integration_test_user
+      MINIO_ROOT_PASSWORD: integration_test_password
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_test_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - test_network
+
+  # Application under test (optional - for end-to-end testing)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      # Database configuration
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DATABASE: integration_test_db
+      POSTGRES_USER: integration_test_user
+      POSTGRES_PASSWORD: integration_test_password
+      POSTGRES_SSLMODE: disable
+      
+      # Cassandra configuration
+      CASSANDRA_HOSTS: cassandra
+      CASSANDRA_PORT: 9042
+      CASSANDRA_DATACENTER: datacenter1
+      CASSANDRA_USE_SSL: "false"
+      
+      # Application configuration
+      AUTH_USERNAME: integration_test_user
+      AUTH_PASSWORD: integration_test_password
+      SECRET_KEY: integration-test-secret-key-for-local-testing
+      PORT: 8080
+      
+      # Storage configuration (MinIO)
+      # These would be used if we had S3/MinIO tests
+      AWS_ACCESS_KEY_ID: integration_test_user
+      AWS_SECRET_ACCESS_KEY: integration_test_password
+      AWS_ENDPOINT_URL: http://minio:9000
+      
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - test_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  postgres_test_data:
+  cassandra_test_data:
+  minio_test_data:
+
+networks:
+  test_network:
+    driver: bridge

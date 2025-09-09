@@ -1,0 +1,4 @@
+# Test values file with empty tag to test Chart.appVersion fallback
+image:
+  repository: ghcr.io/davidpacold/airia-test-pod
+  tag: ""

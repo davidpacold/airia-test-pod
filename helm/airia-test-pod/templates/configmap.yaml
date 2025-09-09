@@ -29,14 +29,36 @@ data:
   # Azure Blob Storage configuration
   blob-account-name: {{ .Values.config.blobStorage.accountName | quote }}
   blob-container-name: {{ .Values.config.blobStorage.containerName | quote }}
+  blob-endpoint-suffix: {{ .Values.config.blobStorage.endpointSuffix | default "core.windows.net" | quote }}
   {{- end }}
   
   {{- if .Values.config.openai.enabled }}
   # Azure OpenAI configuration
   azure-openai-endpoint: {{ .Values.config.openai.endpoint | quote }}
   azure-openai-deployment-name: {{ .Values.config.openai.deploymentName | quote }}
+  azure-openai-api-version: {{ .Values.config.openai.apiVersion | default "2024-02-01" | quote }}
   {{- if .Values.config.openai.embeddingDeployment }}
   azure-openai-embedding-deployment: {{ .Values.config.openai.embeddingDeployment | quote }}
+  {{- end }}
+  # Generic OpenAI configuration
+  {{- if .Values.config.openai.openaiBaseUrl }}
+  openai-base-url: {{ .Values.config.openai.openaiBaseUrl | quote }}
+  {{- end }}
+  {{- if .Values.config.openai.openaiModelName }}
+  openai-model-name: {{ .Values.config.openai.openaiModelName | quote }}
+  {{- end }}
+  {{- if .Values.config.openai.openaiEmbeddingModel }}
+  openai-embedding-model: {{ .Values.config.openai.openaiEmbeddingModel | quote }}
+  {{- end }}
+  # Test configuration
+  openai-timeout: {{ .Values.config.openai.timeout | default 30 | quote }}
+  test-completion: {{ .Values.config.openai.testCompletion | default true | quote }}
+  test-embedding: {{ .Values.config.openai.testEmbedding | default true | quote }}
+  {{- if .Values.config.openai.customPrompt }}
+  openai-custom-prompt: {{ .Values.config.openai.customPrompt | quote }}
+  {{- end }}
+  {{- if .Values.config.openai.customSystemMessage }}
+  openai-custom-system-message: {{ .Values.config.openai.customSystemMessage | quote }}
   {{- end }}
   {{- end }}
   
@@ -44,6 +66,7 @@ data:
   # Azure Document Intelligence configuration
   azure-doc-intel-endpoint: {{ .Values.config.documentIntelligence.endpoint | quote }}
   azure-doc-intel-model: {{ .Values.config.documentIntelligence.model | quote }}
+  doc-intel-timeout: {{ .Values.config.documentIntelligence.timeout | default 60 | quote }}
   {{- end }}
   
   {{- if .Values.config.ssl.enabled }}
@@ -76,6 +99,15 @@ data:
   {{- if .Values.config.embeddings.customHeaders }}
   embedding-custom-headers: {{ .Values.config.embeddings.customHeaders | quote }}
   {{- end }}
+  {{- end }}
+  
+  {{- if .Values.config.llama.enabled }}
+  # Llama model configuration
+  llama-base-url: {{ .Values.config.llama.baseUrl | quote }}
+  llama-model-name: {{ .Values.config.llama.modelName | quote }}
+  llama-max-tokens: {{ .Values.config.llama.maxTokens | quote }}
+  llama-temperature: {{ .Values.config.llama.temperature | quote }}
+  llama-timeout: {{ .Values.config.llama.timeout | quote }}
   {{- end }}
   
   # Kubernetes configuration

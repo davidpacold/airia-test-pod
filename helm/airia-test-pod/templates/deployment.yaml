@@ -69,11 +69,21 @@ spec:
                 configMapKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-config
                   key: postgres-host
+            - name: POSTGRES_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: postgres-port
             - name: POSTGRES_DATABASE
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-config
                   key: postgres-database
+            - name: POSTGRES_SSLMODE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: postgres-sslmode
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
@@ -142,6 +152,11 @@ spec:
                 secretKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-blob
                   key: account-key
+            - name: BLOB_ENDPOINT_SUFFIX
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: blob-endpoint-suffix
             {{- end }}
             {{- if .Values.config.openai.enabled }}
             - name: AZURE_OPENAI_ENDPOINT
@@ -154,11 +169,80 @@ spec:
                 configMapKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-config
                   key: azure-openai-deployment-name
+            - name: AZURE_OPENAI_API_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: azure-openai-api-version
+            {{- if .Values.config.openai.embeddingDeployment }}
+            - name: AZURE_OPENAI_EMBEDDING_DEPLOYMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: azure-openai-embedding-deployment
+            {{- end }}
             - name: AZURE_OPENAI_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-openai
                   key: api-key
+            {{- if .Values.config.openai.openaiBaseUrl }}
+            - name: OPENAI_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: openai-base-url
+            {{- end }}
+            {{- if .Values.config.openai.openaiModelName }}
+            - name: OPENAI_MODEL_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: openai-model-name
+            {{- end }}
+            {{- if .Values.config.openai.openaiEmbeddingModel }}
+            - name: OPENAI_EMBEDDING_MODEL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: openai-embedding-model
+            {{- end }}
+            {{- if .Values.config.openai.openaiApiKey }}
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-openai
+                  key: openai-api-key
+            {{- end }}
+            - name: OPENAI_TIMEOUT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: openai-timeout
+            - name: TEST_COMPLETION
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: test-completion
+            - name: TEST_EMBEDDING
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: test-embedding
+            {{- if .Values.config.openai.customPrompt }}
+            - name: OPENAI_CUSTOM_PROMPT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: openai-custom-prompt
+            {{- end }}
+            {{- if .Values.config.openai.customSystemMessage }}
+            - name: OPENAI_CUSTOM_SYSTEM_MESSAGE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: openai-custom-system-message
+            {{- end }}
             {{- end }}
             {{- if .Values.config.documentIntelligence.enabled }}
             - name: AZURE_DOC_INTEL_ENDPOINT
@@ -166,11 +250,21 @@ spec:
                 configMapKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-config
                   key: azure-doc-intel-endpoint
+            - name: AZURE_DOC_INTEL_MODEL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: azure-doc-intel-model
             - name: AZURE_DOC_INTEL_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-doc-intel
                   key: api-key
+            - name: DOC_INTEL_TIMEOUT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: doc-intel-timeout
             {{- end }}
             {{- if .Values.config.ssl.enabled }}
             - name: SSL_TEST_URLS
@@ -178,6 +272,16 @@ spec:
                 configMapKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-config
                   key: ssl-test-urls
+            - name: SSL_CONNECT_TIMEOUT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: ssl-connect-timeout
+            - name: SSL_WARNING_DAYS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: ssl-warning-days
             {{- end }}
             {{- if .Values.config.minio.enabled }}
             - name: MINIO_ENDPOINT_URL
@@ -266,23 +370,80 @@ spec:
                   name: {{ include "airia-test-pod.fullname" . }}-embeddings
                   key: api-key
             {{- end }}
+            {{- if .Values.config.llama.enabled }}
+            - name: LLAMA_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: llama-base-url
+            - name: LLAMA_MODEL_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: llama-model-name
+            - name: LLAMA_MAX_TOKENS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: llama-max-tokens
+            - name: LLAMA_TEMPERATURE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: llama-temperature
+            - name: LLAMA_TIMEOUT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: llama-timeout
+            {{- if .Values.config.llama.apiKey }}
+            - name: LLAMA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-llama
+                  key: api-key
+            {{- end }}
+            {{- end }}
             - name: STORAGE_CLASS
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-config
                   key: storage-class
+            - name: TEST_PVC_SIZE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: test-pvc-size
           livenessProbe:
             httpGet:
-              path: /health
+              path: /health/live
               port: http
-            initialDelaySeconds: 10
+              scheme: HTTP
+            initialDelaySeconds: 30
             periodSeconds: 30
+            timeoutSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /health
+              path: /health/ready
               port: http
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 2
+          startupProbe:
+            httpGet:
+              path: /health/live
+              port: http
+              scheme: HTTP
             initialDelaySeconds: 5
-            periodSeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 12
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}

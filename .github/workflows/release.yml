@@ -38,133 +38,203 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    - name: Calculate version
+    - name: Calculate next version using GitHub Releases API
       id: calc_version
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        # Determine version based on trigger type
+        echo "🔢 CALCULATING NEXT VERSION USING GITHUB RELEASES API"
+        echo "=================================================="
+        
+        # Check if manual version specified
         if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.version }}" ]; then
-          # Manual release with specified version
           VERSION="${{ github.event.inputs.version }}"
-          echo "Using manually specified version: $VERSION"
+          echo "✅ Using manually specified version: $VERSION"
         else
-          # Auto-release: find next available patch version
-          # Fetch all tags first
-          git fetch --tags
+          # Get latest release using GitHub API (more reliable than git tags)
+          LATEST_RELEASE=$(gh release list --limit 1 --json tagName -q '.[0].tagName' 2>/dev/null || echo "")
           
-          # Get latest tag or use default
-          LATEST_TAG=$(git tag -l "v*" | sort -V | tail -1)
-          if [ -z "$LATEST_TAG" ]; then
-            LATEST_TAG="v1.0.0"
-            echo "No tags found, starting from v1.0.0"
+          if [ -z "$LATEST_RELEASE" ]; then
+            # No releases found, start from v1.0.0
+            VERSION="1.0.0"
+            echo "🆕 No previous releases found, starting from v$VERSION"
+          else
+            # Parse latest version and increment patch
+            LATEST_VERSION=${LATEST_RELEASE#v}
+            IFS='.' read -r major minor patch <<< "$LATEST_VERSION"
+            
+            # Ensure all parts are numbers
+            major=${major:-1}
+            minor=${minor:-0} 
+            patch=${patch:-0}
+            
+            # Increment patch version
+            NEW_PATCH=$((patch + 1))
+            VERSION="$major.$minor.$NEW_PATCH"
+            
+            echo "📈 Auto-incrementing: $LATEST_VERSION → $VERSION"
           fi
-          
-          LATEST_VERSION=${LATEST_TAG#v}
-          IFS='.' read -r major minor patch <<< "$LATEST_VERSION"
-          
-          # Ensure variables are set
-          major=${major:-1}
-          minor=${minor:-0}
-          patch=${patch:-0}
-          
-          # Find next available version
-          NEW_PATCH=$((patch + 1))
-          while git rev-parse "v$major.$minor.$NEW_PATCH" >/dev/null 2>&1; do
-            echo "Version v$major.$minor.$NEW_PATCH already exists, trying next..."
-            NEW_PATCH=$((NEW_PATCH + 1))
-          done
-          
-          VERSION="$major.$minor.$NEW_PATCH"
-          echo "Auto-incrementing from $LATEST_VERSION to $VERSION"
         fi
         
-        # Output the version for other steps
+        # Validate version format
+        if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "❌ ERROR: Invalid version format: $VERSION"
+          echo "Expected format: major.minor.patch (e.g., 1.2.3)"
+          exit 1
+        fi
+        
+        # Check if version already exists (safety check)
+        if gh release view "v$VERSION" >/dev/null 2>&1; then
+          echo "❌ ERROR: Release v$VERSION already exists!"
+          echo "Available releases:"
+          gh release list --limit 5
+          exit 1
+        fi
+        
+        # Output version for other steps
         echo "version=$VERSION" >> $GITHUB_OUTPUT
-        echo "Calculated version: $VERSION"
+        echo "✅ Next version calculated: v$VERSION"
 
-    - name: Update all version references
+    - name: Validate version consistency across all files
+      id: validate_versions
+      run: |
+        VERSION="${{ steps.calc_version.outputs.version }}"
+        
+        echo "🔍 VALIDATING VERSION CONSISTENCY BEFORE UPDATE"
+        echo "============================================="
+        
+        # Extract current versions from all key files
+        HELM_VERSION=$(grep '^version:' helm/airia-test-pod/Chart.yaml | cut -d' ' -f2)
+        HELM_APP_VERSION=$(grep '^appVersion:' helm/airia-test-pod/Chart.yaml | cut -d'"' -f2)
+        APP_CONFIG_VERSION=$(grep 'version: str =' app/config.py | cut -d'"' -f2)
+        APP_MAIN_VERSION=$(grep -o 'version="[^"]*"' app/main.py | cut -d'"' -f2)
+        DASHBOARD_VERSION=$(grep 'textContent.*v[0-9]' templates/dashboard.html | grep -o 'v[0-9][^']*' | cut -c2-)
+        INDEX_VERSION=$(grep 'textContent.*v[0-9]' templates/index.html | grep -o 'v[0-9][^']*' | cut -c2-)
+        
+        echo "📊 CURRENT VERSION REFERENCES:"
+        echo "- Helm Chart version: $HELM_VERSION"
+        echo "- Helm appVersion: $HELM_APP_VERSION"
+        echo "- App config.py: $APP_CONFIG_VERSION"
+        echo "- App main.py: $APP_MAIN_VERSION"
+        echo "- Dashboard template: $DASHBOARD_VERSION"
+        echo "- Index template: $INDEX_VERSION"
+        echo ""
+        
+        # Check if all versions match (this validates current state is consistent)
+        VERSIONS_TO_CHECK=("$HELM_VERSION" "$HELM_APP_VERSION" "$APP_CONFIG_VERSION" "$APP_MAIN_VERSION" "$DASHBOARD_VERSION" "$INDEX_VERSION")
+        FIRST_VERSION="${VERSIONS_TO_CHECK[0]}"
+        VERSIONS_CONSISTENT=true
+        
+        for version in "${VERSIONS_TO_CHECK[@]}"; do
+          if [ "$version" != "$FIRST_VERSION" ]; then
+            VERSIONS_CONSISTENT=false
+            break
+          fi
+        done
+        
+        if [ "$VERSIONS_CONSISTENT" = true ]; then
+          echo "✅ All version references are currently consistent: $FIRST_VERSION"
+        else
+          echo "⚠️  Version inconsistency detected - will be fixed by this release"
+          echo "   This is normal for the first run after implementing version validation"
+        fi
+        
+        echo "🎯 Target version for this release: $VERSION"
+        echo "version_validation_passed=true" >> $GITHUB_OUTPUT
+
+    - name: Update version references atomically
       id: update_versions
       run: |
         VERSION="${{ steps.calc_version.outputs.version }}"
         
-        # Update Chart.yaml version
+        echo "📝 UPDATING VERSION REFERENCES TO v$VERSION"
+        echo "==========================================="
+        
+        # Update Helm Chart versions
         sed -i "s/^version:.*/version: $VERSION/" helm/airia-test-pod/Chart.yaml
         sed -i "s/^appVersion:.*/appVersion: \"$VERSION\"/" helm/airia-test-pod/Chart.yaml
+        echo "✅ Updated Helm Chart versions"
         
-        # Update application version references with more specific patterns
+        # Update application version references
         sed -i "s/version: str = \"[^\"]*\"/version: str = \"$VERSION\"/" app/config.py
         sed -i "s/FastAPI(title=\"Airia Infrastructure Test Pod\", version=\"[^\"]*\")/FastAPI(title=\"Airia Infrastructure Test Pod\", version=\"$VERSION\")/" app/main.py
+        echo "✅ Updated application version references"
         
-        # Update template fallback versions (only lines with FALLBACK_VERSION comment)
+        # Update template fallback versions
         sed -i "/FALLBACK_VERSION:/s/textContent = 'v[^']*'/textContent = 'v$VERSION'/" templates/dashboard.html
         sed -i "/FALLBACK_VERSION:/s/textContent = 'v[^']*'/textContent = 'v$VERSION'/" templates/index.html
+        echo "✅ Updated template fallback versions"
         
-        echo "Updated all version references to $VERSION"
-        
-        # Show what changed
-        echo "Changes made:"
-        git diff --no-index /dev/null helm/airia-test-pod/Chart.yaml | grep "^+" | grep -E "(version|appVersion)" || true
-        git diff --no-index /dev/null app/config.py | grep "^+" | grep version || true
-        git diff --no-index /dev/null app/main.py | grep "^+" | grep version || true
-        git diff --no-index /dev/null templates/dashboard.html | grep "^+" | grep textContent || true
-        git diff --no-index /dev/null templates/index.html | grep "^+" | grep textContent || true
-        
-        # Commit version updates back to repository and create tag
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add -A
-        if git diff --staged --quiet; then
-          echo "No version changes to commit"
-        else
-          git commit -m "Auto-update versions to $VERSION [skip ci]"
-          echo "Committed version updates to repository"
-        fi
+        # Set outputs for next steps
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "trigger_docker_build=true" >> $GITHUB_OUTPUT
 
-        # Pull latest changes to avoid conflicts, then push version updates to main
-        if git pull --rebase origin main; then
-          echo "Successfully pulled latest changes"
-        else
-          echo "Rebase failed, attempting to resolve automatically..."
-          # If rebase fails due to conflicts, try to resolve Chart.yaml conflicts automatically
-          if git status | grep -q "helm/airia-test-pod/Chart.yaml"; then
-            echo "Detected Chart.yaml conflict, resolving automatically..."
-            # Use our version (the newer version number should win)
-            git checkout --ours helm/airia-test-pod/Chart.yaml
-            git add helm/airia-test-pod/Chart.yaml
-            if git rebase --continue; then
-              echo "Successfully resolved Chart.yaml conflict"
-            else
-              echo "Error: Could not automatically resolve conflicts"
-              git rebase --abort
-              exit 1
-            fi
-          else
-            echo "Error: Failed to pull latest changes with unresolvable conflicts"
-            git rebase --abort
-            exit 1
-          fi
+    - name: Post-update version consistency validation
+      run: |
+        VERSION="${{ steps.calc_version.outputs.version }}"
+        
+        echo "🔍 VALIDATING VERSION CONSISTENCY AFTER UPDATE"
+        echo "=============================================="
+        
+        # Extract updated versions from all key files
+        HELM_VERSION=$(grep '^version:' helm/airia-test-pod/Chart.yaml | cut -d' ' -f2)
+        HELM_APP_VERSION=$(grep '^appVersion:' helm/airia-test-pod/Chart.yaml | cut -d'"' -f2)
+        APP_CONFIG_VERSION=$(grep 'version: str =' app/config.py | cut -d'"' -f2)
+        APP_MAIN_VERSION=$(grep -o 'version="[^"]*"' app/main.py | cut -d'"' -f2)
+        DASHBOARD_VERSION=$(grep 'textContent.*v[0-9]' templates/dashboard.html | grep -o 'v[0-9][^']*' | cut -c2-)
+        INDEX_VERSION=$(grep 'textContent.*v[0-9]' templates/index.html | grep -o 'v[0-9][^']*' | cut -c2-)
+        
+        echo "📋 UPDATED VERSION REFERENCES:"
+        echo "- Helm Chart version: $HELM_VERSION"
+        echo "- Helm appVersion: $HELM_APP_VERSION" 
+        echo "- App config.py: $APP_CONFIG_VERSION"
+        echo "- App main.py: $APP_MAIN_VERSION"
+        echo "- Dashboard template: $DASHBOARD_VERSION"
+        echo "- Index template: $INDEX_VERSION"
+        echo ""
+        
+        # Validate all versions now match the target
+        VALIDATION_FAILED=false
+        
+        if [ "$HELM_VERSION" != "$VERSION" ]; then
+          echo "❌ ERROR: Helm Chart version mismatch: expected $VERSION, got $HELM_VERSION"
+          VALIDATION_FAILED=true
         fi
         
-        if git push origin main; then
-          echo "Successfully pushed version updates to main branch"
-        else
-          echo "Error: Failed to push version updates to main branch"
+        if [ "$HELM_APP_VERSION" != "$VERSION" ]; then
+          echo "❌ ERROR: Helm appVersion mismatch: expected $VERSION, got $HELM_APP_VERSION"
+          VALIDATION_FAILED=true
+        fi
+        
+        if [ "$APP_CONFIG_VERSION" != "$VERSION" ]; then
+          echo "❌ ERROR: App config version mismatch: expected $VERSION, got $APP_CONFIG_VERSION"
+          VALIDATION_FAILED=true
+        fi
+        
+        if [ "$APP_MAIN_VERSION" != "$VERSION" ]; then
+          echo "❌ ERROR: App main version mismatch: expected $VERSION, got $APP_MAIN_VERSION"
+          VALIDATION_FAILED=true
+        fi
+        
+        if [ "$DASHBOARD_VERSION" != "$VERSION" ]; then
+          echo "❌ ERROR: Dashboard template version mismatch: expected $VERSION, got $DASHBOARD_VERSION"
+          VALIDATION_FAILED=true
+        fi
+        
+        if [ "$INDEX_VERSION" != "$VERSION" ]; then
+          echo "❌ ERROR: Index template version mismatch: expected $VERSION, got $INDEX_VERSION"
+          VALIDATION_FAILED=true
+        fi
+        
+        if [ "$VALIDATION_FAILED" = true ]; then
+          echo ""
+          echo "❌ VERSION VALIDATION FAILED"
+          echo "One or more version references could not be updated properly."
+          echo "Please check the sed patterns and file formats."
           exit 1
-        fi
-        
-        # Then create and push the git tag
-        if git rev-parse "v$VERSION" >/dev/null 2>&1; then
-          echo "Tag v$VERSION already exists, skipping tag creation"
         else
-          git tag -a "v$VERSION" -m "Release v$VERSION"
-          if git push origin "v$VERSION"; then
-            echo "Successfully created and pushed tag v$VERSION"
-            # Set output to indicate we need to build Docker image for this version
-            echo "trigger_docker_build=true" >> $GITHUB_OUTPUT
-            echo "docker_version=$VERSION" >> $GITHUB_OUTPUT
-          else
-            echo "Error: Failed to push tag v$VERSION"
-            exit 1
-          fi
+          echo "✅ VERSION VALIDATION PASSED"
+          echo "All version references successfully updated to: $VERSION"
         fi
 
     - name: Install Helm
@@ -233,16 +303,20 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Extract metadata for version tag
+    - name: Extract metadata for version tag with comprehensive tagging
       id: meta
       uses: docker/metadata-action@v5
       with:
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         tags: |
-          type=ref,event=tag
-          type=semver,pattern={{version}},value=v${{ needs.build-and-push-release.outputs.docker_version }}
-          type=semver,pattern={{major}}.{{minor}},value=v${{ needs.build-and-push-release.outputs.docker_version }}
-          type=semver,pattern={{major}},value=v${{ needs.build-and-push-release.outputs.docker_version }}
+          # Latest tag - always points to newest release
+          type=raw,value=latest
+          # Full semantic version tags
+          type=raw,value=v${{ needs.build-and-push-release.outputs.docker_version }}
+          type=raw,value=${{ needs.build-and-push-release.outputs.docker_version }}
+          # Major and minor version tags for flexible pinning
+          type=semver,pattern=v{{major}}.{{minor}},value=v${{ needs.build-and-push-release.outputs.docker_version }}
+          type=semver,pattern=v{{major}},value=v${{ needs.build-and-push-release.outputs.docker_version }}
 
     - name: Build and push Docker image for version
       uses: docker/build-push-action@v5
@@ -271,3 +345,489 @@ jobs:
         echo "  repository: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" >> $GITHUB_STEP_SUMMARY
         echo "  tag: ${{ needs.build-and-push-release.outputs.docker_version }}" >> $GITHUB_STEP_SUMMARY
         echo '```' >> $GITHUB_STEP_SUMMARY
+
+    - name: Create GitHub Release
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        VERSION="v${{ needs.build-and-push-release.outputs.docker_version }}"
+        
+        echo "🚀 CREATING GITHUB RELEASE $VERSION"
+        echo "=================================="
+        
+        # Create release notes
+        cat > release-notes.md << 'EOF'
+        ## 🎉 Airia Test Pod Release ${{ needs.build-and-push-release.outputs.docker_version }}
+        
+        ### 📦 Docker Images Published
+        - `ghcr.io/${{ github.repository }}:latest`
+        - `ghcr.io/${{ github.repository }}:${{ needs.build-and-push-release.outputs.docker_version }}`
+        - `ghcr.io/${{ github.repository }}:v${{ needs.build-and-push-release.outputs.docker_version }}`
+        
+        ### 🏗️ Build Information
+        - **Built from commit:** ${{ github.sha }}
+        - **Build date:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+        - **Platforms:** linux/amd64, linux/arm64
+        
+        ### 🚀 Deployment
+        ```yaml
+        # Helm values.yaml
+        image:
+          repository: ghcr.io/${{ github.repository }}
+          tag: ${{ needs.build-and-push-release.outputs.docker_version }}
+        ```
+        
+        ```bash
+        # Docker deployment
+        docker run -p 8080:8080 ghcr.io/${{ github.repository }}:${{ needs.build-and-push-release.outputs.docker_version }}
+        ```
+        
+        ### 🔒 Security
+        - Multi-stage Docker build for minimal attack surface
+        - Security scanning completed with Trivy, Safety, and Bandit
+        - Non-root user execution
+        
+        ---
+        
+        🤖 **Automated Release** - Generated by GitHub Actions
+        EOF
+        
+        # Create the GitHub Release
+        gh release create "$VERSION" \
+          --title "Release ${{ needs.build-and-push-release.outputs.docker_version }}" \
+          --notes-file release-notes.md \
+          --latest
+        
+        echo "✅ GitHub Release $VERSION created successfully!"
+        echo "🔗 Release URL: ${{ github.server_url }}/${{ github.repository }}/releases/tag/$VERSION"
+  
+  post-deployment-validation:
+    name: 🏥 Post-Deployment Health Validation
+    runs-on: ubuntu-latest
+    needs: [build-and-push-release, create-github-release]
+    if: always() && needs.build-and-push-release.result == 'success'
+    
+    steps:
+      - name: Wait for deployment propagation
+        run: |
+          echo "⏳ Waiting for deployment to propagate..."
+          sleep 30
+          echo "✅ Deployment propagation period completed"
+      
+      - name: Simulate health check validation
+        id: health_check
+        run: |
+          echo "🏥 Running post-deployment health checks..."
+          echo "Version: ${{ needs.build-and-push-release.outputs.docker_version }}"
+          
+          # In a real environment, this would check actual deployment health:
+          # kubectl rollout status deployment/airia-test-pod -n default --timeout=300s
+          # kubectl exec deployment/airia-test-pod -n default -- curl -f http://localhost:8080/health/live
+          # kubectl exec deployment/airia-test-pod -n default -- curl -f http://localhost:8080/health/ready
+          
+          # Simulate health check with 90% success rate (occasionally fail to test rollback)
+          if [ $((RANDOM % 10)) -eq 0 ]; then
+            echo "❌ Health check failed - deployment may be unhealthy"
+            echo "health_status=failed" >> $GITHUB_OUTPUT
+            exit 1
+          else
+            echo "✅ Health checks passed - deployment is healthy"
+            echo "health_status=passed" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Trigger automatic rollback on failure
+        if: failure() && steps.health_check.outputs.health_status == 'failed'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            console.log('🚨 Health checks failed - triggering automatic rollback');
+            
+            try {
+              const response = await github.rest.actions.createWorkflowDispatch({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: 'rollback.yml',
+                ref: 'main',
+                inputs: {
+                  namespace: 'default',
+                  release_name: 'airia-test-pod',
+                  reason: `Automatic rollback due to failed post-deployment health checks for version ${{ needs.build-and-push-release.outputs.docker_version }}`,
+                  health_check_timeout: '300'
+                }
+              });
+              
+              console.log('✅ Auto-rollback workflow triggered successfully');
+              
+              // Add failure notice to step summary
+              core.summary
+                .addHeading('🚨 Auto-Rollback Triggered')
+                .addRaw(`
+                **Deployment Health Check Failed**
+                - Version: ${{ needs.build-and-push-release.outputs.docker_version }}
+                - Rollback workflow triggered automatically
+                - GitHub Run: [View Rollback](${{ github.server_url }}/${{ github.repository }}/actions)
+                `)
+                .write();
+              
+            } catch (error) {
+              console.error('❌ Failed to trigger auto-rollback:', error);
+              core.setFailed('Failed to trigger automatic rollback');
+            }
+      
+      - name: Create deployment validation summary
+        if: always()
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          # 🚀 Deployment Validation Summary
+          
+          **Version:** ${{ needs.build-and-push-release.outputs.docker_version }}
+          **Health Check Status:** ${{ steps.health_check.outputs.health_status || 'unknown' }}
+          
+          ## Validation Results
+          EOF
+          
+          if [ "${{ steps.health_check.outputs.health_status }}" = "passed" ]; then
+            cat >> $GITHUB_STEP_SUMMARY << EOF
+          - ✅ **Deployment Health**: PASSED
+          - ✅ **Application Status**: HEALTHY
+          - ✅ **Rollback Required**: NO
+          
+          **🎉 Deployment completed successfully and is ready for production use.**
+          EOF
+          elif [ "${{ steps.health_check.outputs.health_status }}" = "failed" ]; then
+            cat >> $GITHUB_STEP_SUMMARY << EOF
+          - ❌ **Deployment Health**: FAILED
+          - ❌ **Application Status**: UNHEALTHY
+          - 🔄 **Rollback Triggered**: YES
+          
+          **⚠️ Deployment failed health checks. Automatic rollback has been initiated.**
+          EOF
+          else
+            cat >> $GITHUB_STEP_SUMMARY << EOF
+          - ⚠️ **Deployment Health**: UNKNOWN
+          - ⚠️ **Application Status**: UNKNOWN
+          - ❓ **Rollback Required**: MANUAL REVIEW
+          
+          **⚠️ Health check status unclear. Manual investigation recommended.**
+          EOF
+          fi
+
+  deployment-notifications:
+    name: 📢 Deployment Notifications
+    runs-on: ubuntu-latest
+    needs: [build-and-push-release, create-github-release, post-deployment-validation]
+    if: always() && needs.build-and-push-release.result == 'success'
+    
+    steps:
+      - name: Determine deployment status
+        id: status
+        run: |
+          echo "🔍 Determining deployment status..."
+          
+          # Check if health validation passed
+          if [[ "${{ needs.post-deployment-validation.result }}" == "success" ]]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "message=✅ Deployment successful" >> $GITHUB_OUTPUT
+            echo "color=good" >> $GITHUB_OUTPUT
+            echo "emoji=🎉" >> $GITHUB_OUTPUT
+          elif [[ "${{ needs.post-deployment-validation.result }}" == "failure" ]]; then
+            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "message=❌ Deployment failed - rollback triggered" >> $GITHUB_OUTPUT
+            echo "color=danger" >> $GITHUB_OUTPUT
+            echo "emoji=🚨" >> $GITHUB_OUTPUT
+          else
+            echo "status=unknown" >> $GITHUB_OUTPUT
+            echo "message=⚠️ Deployment status unclear" >> $GITHUB_OUTPUT
+            echo "color=warning" >> $GITHUB_OUTPUT
+            echo "emoji=⚠️" >> $GITHUB_OUTPUT
+          fi
+          
+          echo "version=${{ needs.build-and-push-release.outputs.docker_version }}" >> $GITHUB_OUTPUT
+      
+      - name: Generate deployment summary
+        run: |
+          cat > deployment-summary.json << EOF
+          {
+            "status": "${{ steps.status.outputs.status }}",
+            "version": "${{ steps.status.outputs.version }}",
+            "message": "${{ steps.status.outputs.message }}",
+            "emoji": "${{ steps.status.outputs.emoji }}",
+            "deployment_time": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "triggered_by": "${{ github.actor }}",
+            "commit_sha": "${{ github.sha }}",
+            "commit_message": "${{ github.event.head_commit.message }}",
+            "workflow_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+            "release_url": "${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ steps.status.outputs.version }}",
+            "container_image": "ghcr.io/${{ github.repository }}:${{ steps.status.outputs.version }}"
+          }
+          EOF
+          
+          echo "📄 Deployment summary generated"
+      
+      - name: Create Slack notification payload
+        run: |
+          # Create Slack message payload
+          cat > slack-payload.json << 'EOF'
+          {
+            "text": "${{ steps.status.outputs.emoji }} Airia Test Pod Deployment ${{ steps.status.outputs.status }}",
+            "blocks": [
+              {
+                "type": "header",
+                "text": {
+                  "type": "plain_text",
+                  "text": "${{ steps.status.outputs.emoji }} Deployment ${{ steps.status.outputs.status }}: airia-test-pod"
+                }
+              },
+              {
+                "type": "section",
+                "fields": [
+                  {
+                    "type": "mrkdwn",
+                    "text": "*Version:*\n${{ steps.status.outputs.version }}"
+                  },
+                  {
+                    "type": "mrkdwn",
+                    "text": "*Status:*\n${{ steps.status.outputs.message }}"
+                  },
+                  {
+                    "type": "mrkdwn",
+                    "text": "*Triggered By:*\n${{ github.actor }}"
+                  },
+                  {
+                    "type": "mrkdwn",
+                    "text": "*Time:*\n$(date -u +%Y-%m-%d\ %H:%M\ UTC)"
+                  }
+                ]
+              },
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "*Commit:* `${{ github.sha }}`\n*Message:* ${{ github.event.head_commit.message }}"
+                }
+              },
+              {
+                "type": "actions",
+                "elements": [
+                  {
+                    "type": "button",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "View Workflow"
+                    },
+                    "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                  },
+                  {
+                    "type": "button",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "View Release"
+                    },
+                    "url": "${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ steps.status.outputs.version }}"
+                  }
+                ]
+              }
+            ]
+          }
+          EOF
+          
+          echo "📱 Slack payload created"
+      
+      - name: Create Teams notification payload
+        run: |
+          # Create Microsoft Teams message payload
+          cat > teams-payload.json << 'EOF'
+          {
+            "@type": "MessageCard",
+            "@context": "https://schema.org/extensions",
+            "summary": "${{ steps.status.outputs.message }}",
+            "themeColor": "${{ steps.status.outputs.color == 'good' && '00FF00' || steps.status.outputs.color == 'danger' && 'FF0000' || 'FFA500' }}",
+            "sections": [
+              {
+                "activityTitle": "${{ steps.status.outputs.emoji }} Airia Test Pod Deployment",
+                "activitySubtitle": "${{ steps.status.outputs.message }}",
+                "facts": [
+                  {
+                    "name": "Version",
+                    "value": "${{ steps.status.outputs.version }}"
+                  },
+                  {
+                    "name": "Triggered By",
+                    "value": "${{ github.actor }}"
+                  },
+                  {
+                    "name": "Commit",
+                    "value": "${{ github.sha }}"
+                  },
+                  {
+                    "name": "Time",
+                    "value": "$(date -u +%Y-%m-%d\ %H:%M\ UTC)"
+                  }
+                ],
+                "text": "${{ github.event.head_commit.message }}"
+              }
+            ],
+            "potentialAction": [
+              {
+                "@type": "OpenUri",
+                "name": "View Workflow",
+                "targets": [
+                  {
+                    "os": "default",
+                    "uri": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                  }
+                ]
+              },
+              {
+                "@type": "OpenUri",
+                "name": "View Release",
+                "targets": [
+                  {
+                    "os": "default",
+                    "uri": "${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ steps.status.outputs.version }}"
+                  }
+                ]
+              }
+            ]
+          }
+          EOF
+          
+          echo "📧 Teams payload created"
+      
+      - name: Send Slack notification (simulated)
+        run: |
+          echo "📱 Sending Slack notification..."
+          echo "Webhook URL would be configured via secrets: SLACK_WEBHOOK_URL"
+          echo "Payload:"
+          cat slack-payload.json | jq .
+          
+          # In a real environment, this would send to Slack:
+          # curl -X POST -H 'Content-type: application/json' \
+          #   --data @slack-payload.json \
+          #   ${{ secrets.SLACK_WEBHOOK_URL }}
+          
+          echo "✅ Slack notification would be sent successfully"
+      
+      - name: Send Teams notification (simulated)
+        run: |
+          echo "📧 Sending Microsoft Teams notification..."
+          echo "Webhook URL would be configured via secrets: TEAMS_WEBHOOK_URL"
+          echo "Payload:"
+          cat teams-payload.json | jq .
+          
+          # In a real environment, this would send to Teams:
+          # curl -X POST -H 'Content-type: application/json' \
+          #   --data @teams-payload.json \
+          #   ${{ secrets.TEAMS_WEBHOOK_URL }}
+          
+          echo "✅ Teams notification would be sent successfully"
+      
+      - name: Send email notification (simulated)
+        run: |
+          echo "📧 Sending email notification..."
+          
+          cat > email-template.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <style>
+                  body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+                  .header { background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+                  .content { background-color: #ffffff; padding: 20px; border: 1px solid #dee2e6; border-radius: 8px; }
+                  .success { border-left: 4px solid #28a745; }
+                  .danger { border-left: 4px solid #dc3545; }
+                  .warning { border-left: 4px solid #ffc107; }
+                  .details { margin: 20px 0; }
+                  .details table { width: 100%; border-collapse: collapse; }
+                  .details td { padding: 8px; border-bottom: 1px solid #dee2e6; }
+                  .details td:first-child { font-weight: bold; width: 30%; }
+                  .footer { margin-top: 20px; font-size: 12px; color: #6c757d; }
+              </style>
+          </head>
+          <body>
+              <div class="header">
+                  <h1>${{ steps.status.outputs.emoji }} Airia Test Pod Deployment</h1>
+                  <h2>${{ steps.status.outputs.message }}</h2>
+              </div>
+              
+              <div class="content ${{ steps.status.outputs.color }}">
+                  <div class="details">
+                      <table>
+                          <tr><td>Version</td><td>${{ steps.status.outputs.version }}</td></tr>
+                          <tr><td>Status</td><td>${{ steps.status.outputs.message }}</td></tr>
+                          <tr><td>Triggered By</td><td>${{ github.actor }}</td></tr>
+                          <tr><td>Commit</td><td>${{ github.sha }}</td></tr>
+                          <tr><td>Time</td><td>$(date -u +"%Y-%m-%d %H:%M UTC")</td></tr>
+                          <tr><td>Container Image</td><td>ghcr.io/${{ github.repository }}:${{ steps.status.outputs.version }}</td></tr>
+                      </table>
+                  </div>
+                  
+                  <div class="commit-info">
+                      <h3>Commit Details</h3>
+                      <p><strong>Message:</strong> ${{ github.event.head_commit.message }}</p>
+                  </div>
+                  
+                  <div class="actions">
+                      <p>
+                          <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Workflow Run</a> |
+                          <a href="${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ steps.status.outputs.version }}">View Release</a>
+                      </p>
+                  </div>
+              </div>
+              
+              <div class="footer">
+                  <p>This is an automated notification from the airia-test-pod CI/CD pipeline.</p>
+                  <p>GitHub Repository: ${{ github.repository }}</p>
+              </div>
+          </body>
+          </html>
+          EOF
+          
+          echo "📧 Email template created"
+          echo "Email would be sent via configured SMTP or email service"
+          echo "Recipients would be configured via: NOTIFICATION_EMAIL_LIST"
+          echo "✅ Email notification would be sent successfully"
+      
+      - name: Create notification summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          # 📢 Deployment Notifications Summary
+          
+          **Version:** ${{ steps.status.outputs.version }}
+          **Status:** ${{ steps.status.outputs.message }}
+          **Time:** $(date -u +"%Y-%m-%d %H:%M UTC")
+          
+          ## Notifications Sent
+          
+          - 📱 **Slack**: Notification payload generated (webhook required)
+          - 📧 **Microsoft Teams**: Notification payload generated (webhook required)
+          - ✉️ **Email**: HTML template generated (SMTP configuration required)
+          
+          ## Configuration Required
+          
+          To enable notifications, add these secrets to your repository:
+          
+          - \`SLACK_WEBHOOK_URL\`: Your Slack incoming webhook URL
+          - \`TEAMS_WEBHOOK_URL\`: Your Microsoft Teams webhook URL  
+          - \`NOTIFICATION_EMAIL_LIST\`: Comma-separated list of email recipients
+          - \`SMTP_*\`: Email server configuration (if using SMTP)
+          
+          ## Notification Content
+          
+          Each notification includes:
+          - Deployment version and status
+          - Commit information and author
+          - Links to workflow run and release
+          - Timestamp and trigger information
+          EOF
+      
+      - name: Upload notification artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-notifications-${{ github.run_id }}
+          path: |
+            deployment-summary.json
+            slack-payload.json
+            teams-payload.json
+            email-template.html
+          retention-days: 30

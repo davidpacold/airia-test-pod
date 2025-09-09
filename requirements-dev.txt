@@ -1,0 +1,64 @@
+# =============================================================================
+# DEVELOPMENT DEPENDENCIES - NOT INCLUDED IN PRODUCTION BUILDS
+# =============================================================================
+# These dependencies are only needed for development, testing, and CI/CD
+# Production Docker images use only requirements.txt for minimal size
+# Install with: pip install -r requirements-dev.txt
+# =============================================================================
+
+# Testing Framework
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+pytest-mock>=3.11.0
+
+# Code Quality & Linting
+black>=23.7.0
+flake8>=6.0.0
+isort>=5.12.0
+mypy>=1.5.0
+
+# Security Scanning (for local development)
+safety>=2.3.0
+bandit>=1.7.5
+pip-audit>=2.6.0
+
+# Development Tools
+pre-commit>=3.3.0
+python-dotenv>=1.0.0
+
+# Documentation
+mkdocs>=1.5.0
+mkdocs-material>=9.2.0
+
+# Performance Profiling & Debugging
+line-profiler>=4.0.0
+memory-profiler>=0.60.0
+
+# API Testing & Development
+httpx[dev]>=0.25.0
+requests>=2.31.0
+
+# Type Checking Support
+types-requests>=2.31.0
+types-setuptools>=68.0.0
+
+# Development Utilities
+ipython>=8.14.0
+jupyter>=1.0.0
+
+# =============================================================================
+# INSTALLATION NOTES:
+# =============================================================================
+# Development setup:
+#   pip install -r requirements.txt -r requirements-dev.txt
+#
+# Production setup (Docker):
+#   pip install -r requirements.txt  # Only production deps
+#
+# Local testing:
+#   pytest
+#   black .
+#   flake8
+#   safety check
+# =============================================================================

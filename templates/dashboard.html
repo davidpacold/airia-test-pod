@@ -6,7 +6,149 @@
     <title>Dashboard - {{ title }}</title>
     <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}">
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script>
+        // Configure axios to send cookies with all requests
+        axios.defaults.withCredentials = true;
+    </script>
     <style>
+        /* Notification System Styles */
+        .notification-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            max-width: 400px;
+        }
+        
+        .notification {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            margin-bottom: 10px;
+            padding: 16px;
+            border-left: 4px solid;
+            animation: slideIn 0.3s ease-out;
+            position: relative;
+        }
+        
+        .notification.error {
+            border-left-color: #e74c3c;
+            background: linear-gradient(90deg, #fdf2f2 0%, #fff 100%);
+        }
+        
+        .notification.success {
+            border-left-color: #27ae60;
+            background: linear-gradient(90deg, #f0f9f0 0%, #fff 100%);
+        }
+        
+        .notification.warning {
+            border-left-color: #f39c12;
+            background: linear-gradient(90deg, #fdf8f0 0%, #fff 100%);
+        }
+        
+        .notification.info {
+            border-left-color: #3498db;
+            background: linear-gradient(90deg, #f0f8ff 0%, #fff 100%);
+        }
+        
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .notification-title {
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .notification-close {
+            background: none;
+            border: none;
+            font-size: 18px;
+            color: #999;
+            cursor: pointer;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .notification-close:hover {
+            color: #666;
+        }
+        
+        .notification-message {
+            font-size: 13px;
+            line-height: 1.4;
+            color: #333;
+        }
+        
+        .notification-details {
+            margin-top: 8px;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+        
+        /* Loading State Improvements */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            z-index: 10;
+        }
+        
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Enhanced Form Error States */
+        .form-error {
+            border-color: #e74c3c !important;
+            background-color: #fdf2f2;
+        }
+        
+        .form-error-message {
+            color: #e74c3c;
+            font-size: 12px;
+            margin-top: 4px;
+            display: block;
+        }
+        
         .dashboard-header {
             display: flex;
             justify-content: space-between;
@@ -259,6 +401,9 @@
     </style>
 </head>
 <body>
+    <!-- Notification System -->
+    <div class="notification-container" id="notificationContainer"></div>
+    
     <div class="container">
         <header class="dashboard-header">
             <div>
@@ -496,6 +641,173 @@
     </div>
     
     <script>
+        // Enhanced Notification System
+        class NotificationManager {
+            constructor() {
+                this.container = document.getElementById('notificationContainer');
+                this.notifications = new Map();
+            }
+            
+            show(type, title, message, details = null, duration = 5000) {
+                const id = Date.now().toString();
+                
+                const notification = document.createElement('div');
+                notification.className = `notification ${type}`;
+                notification.id = `notification-${id}`;
+                
+                const icon = this.getIcon(type);
+                
+                notification.innerHTML = `
+                    <div class="notification-header">
+                        <span class="notification-title">${icon} ${title}</span>
+                        <button class="notification-close" onclick="notificationManager.remove('${id}')">×</button>
+                    </div>
+                    <div class="notification-message">${message}</div>
+                    ${details ? `<div class="notification-details">${details}</div>` : ''}
+                `;
+                
+                this.container.appendChild(notification);
+                this.notifications.set(id, notification);
+                
+                // Auto-remove after duration (except for error notifications)
+                if (type !== 'error' && duration > 0) {
+                    setTimeout(() => this.remove(id), duration);
+                }
+                
+                return id;
+            }
+            
+            remove(id) {
+                const notification = this.notifications.get(id);
+                if (notification) {
+                    notification.style.animation = 'slideOut 0.3s ease-out';
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                        this.notifications.delete(id);
+                    }, 300);
+                }
+            }
+            
+            clear() {
+                this.notifications.forEach((_, id) => this.remove(id));
+            }
+            
+            getIcon(type) {
+                const icons = {
+                    success: '✅',
+                    error: '❌',
+                    warning: '⚠️',
+                    info: 'ℹ️'
+                };
+                return icons[type] || 'ℹ️';
+            }
+            
+            // Convenience methods
+            success(title, message, details = null) {
+                return this.show('success', title, message, details);
+            }
+            
+            error(title, message, details = null) {
+                return this.show('error', title, message, details, 0); // Don't auto-remove errors
+            }
+            
+            warning(title, message, details = null) {
+                return this.show('warning', title, message, details);
+            }
+            
+            info(title, message, details = null) {
+                return this.show('info', title, message, details);
+            }
+        }
+        
+        // Initialize notification manager
+        const notificationManager = new NotificationManager();
+        
+        // Enhanced Error Handling Functions
+        function handleApiError(error, context = 'Operation') {
+            console.error(`${context} error:`, error);
+            
+            const status = error.response?.status;
+            let title, message, details;
+            
+            // Handle different error types
+            switch (status) {
+                case 401:
+                case 403:
+                    title = 'Authentication Required';
+                    message = 'Your session has expired. Please log in again.';
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 2000);
+                    break;
+                    
+                case 404:
+                    title = 'Service Not Found';
+                    message = 'The requested service or endpoint could not be found.';
+                    details = `URL: ${error.config?.url || 'Unknown'}`;
+                    break;
+                    
+                case 422:
+                    title = 'Validation Error';
+                    message = 'The provided data is invalid or incomplete.';
+                    details = error.response?.data?.detail || 'Please check your input and try again.';
+                    break;
+                    
+                case 424:
+                    title = 'Service Dependency Failed';
+                    message = 'A required service is not properly configured or unavailable.';
+                    details = error.response?.data?.detail || 'Check service configuration.';
+                    break;
+                    
+                case 500:
+                    title = 'Server Error';
+                    message = 'An internal server error occurred. Please try again later.';
+                    details = error.response?.data?.detail || error.message;
+                    break;
+                    
+                case 503:
+                    title = 'Service Unavailable';
+                    message = 'The service is temporarily unavailable. Please try again later.';
+                    break;
+                    
+                default:
+                    if (error.code === 'NETWORK_ERROR' || !error.response) {
+                        title = 'Network Error';
+                        message = 'Unable to connect to the server. Check your connection and try again.';
+                        details = 'This might be a temporary network issue.';
+                    } else {
+                        title = 'Unexpected Error';
+                        message = error.response?.data?.detail || error.message || 'An unknown error occurred.';
+                        details = `Status: ${status} | ${context}`;
+                    }
+            }
+            
+            notificationManager.error(title, message, details);
+        }
+        
+        function showLoadingState(element, text = 'Loading...') {
+            if (!element) return;
+            
+            const loadingOverlay = document.createElement('div');
+            loadingOverlay.className = 'loading-overlay';
+            loadingOverlay.innerHTML = `
+                <div class="loading-spinner"></div>
+                <span>${text}</span>
+            `;
+            
+            element.style.position = 'relative';
+            element.appendChild(loadingOverlay);
+            return loadingOverlay;
+        }
+        
+        function hideLoadingState(loadingOverlay) {
+            if (loadingOverlay && loadingOverlay.parentNode) {
+                loadingOverlay.parentNode.removeChild(loadingOverlay);
+            }
+        }
+
         // Initialize dashboard
         window.addEventListener('load', function() {
             checkTestStatus(); // Load current test status
@@ -512,7 +824,8 @@
                 const data = await response.json();
                 document.getElementById('version-display').textContent = 'v' + data.version;
             } catch (error) {
-                console.error('Error loading version:', error);
+                // Silently fail version loading - not critical for functionality
+                console.warn('Version loading failed (non-critical):', error.message);
                 // FALLBACK_VERSION: This line gets updated by automated versioning
                 document.getElementById('version-display').textContent = 'v1.0.40';
             }
@@ -532,19 +845,8 @@
             detailsElement.classList.remove('show');
             
             try {
-                // Get a fresh token first
-                const tokenResponse = await axios.post('/token', new URLSearchParams({
-                    'username': 'admin',
-                    'password': 'changeme'
-                }));
-                
-                const token = tokenResponse.data.access_token;
-                
-                const response = await axios.post(`/api/tests/${testName}`, {}, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+                // Use existing session authentication (cookies)
+                const response = await axios.post(`/api/tests/${testName}`);
                 const result = response.data;
                 
                 // Update status based on result
@@ -569,6 +871,9 @@
                 statusElement.className = 'test-status failed';
                 detailsElement.innerHTML = `<strong>Error:</strong> ${error.response?.data?.detail || error.message}`;
                 detailsElement.classList.add('show');
+                
+                // Also show a notification for the error
+                handleApiError(error, `${testName} test`);
             } finally {
                 buttonElement.disabled = false;
                 buttonElement.innerHTML = 'Run Test';
@@ -581,19 +886,8 @@
             button.innerHTML = 'Running All Tests <span class="loading-spinner"></span>';
             
             try {
-                // Get a fresh token first
-                const tokenResponse = await axios.post('/token', new URLSearchParams({
-                    'username': 'admin',
-                    'password': 'changeme'
-                }));
-                
-                const token = tokenResponse.data.access_token;
-                
-                const response = await axios.post('/api/tests/run-all', {}, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+                // Use existing session authentication (cookies)
+                const response = await axios.post('/api/tests/run-all');
                 const data = response.data;
                 const results = data.results || {};
                 
@@ -623,12 +917,13 @@
                 
                 // Show overall summary
                 if (data.overall_status) {
-                    const message = `Tests completed: ${data.passed_count || 0} passed, ${data.failed_count || 0} failed, ${data.skipped_count || 0} skipped`;
-                    alert(message);
+                    const message = `${data.passed_count || 0} passed, ${data.failed_count || 0} failed, ${data.skipped_count || 0} skipped`;
+                    const notificationType = (data.failed_count > 0) ? 'warning' : 'success';
+                    notificationManager.show(notificationType, 'All Tests Completed', message);
                 }
                 
             } catch (error) {
-                alert('Error running tests: ' + (error.response?.data?.detail || error.message));
+                handleApiError(error, 'Running all tests');
             } finally {
                 button.disabled = false;
                 button.innerHTML = 'Run All Tests';
@@ -746,7 +1041,8 @@
                     }
                 }
             } catch (error) {
-                console.error('Error checking test status:', error);
+                // Don't spam console with status check errors - they happen during normal operation
+                console.warn('Status check failed (will retry):', error.message);
             }
         }
         
@@ -815,18 +1111,18 @@
                 if (result.success) {
                     resultsElement.className = 'test-details show custom-test-results success';
                     resultsElement.innerHTML = formatCustomTestResult(result);
+                    notificationManager.success('Test Completed', 'Custom AI test completed successfully!');
                 } else {
                     resultsElement.className = 'test-details show custom-test-results error';
                     resultsElement.innerHTML = `❌ Test Failed: ${result.message}\\n\\n${result.remediation || ''}`;
+                    notificationManager.error('Test Failed', result.message, result.remediation);
                 }
                 
             } catch (error) {
                 resultsElement.className = 'test-details show custom-test-results error';
-                if (error.response && error.response.data) {
-                    resultsElement.innerHTML = `❌ Error: ${error.response.data.detail}`;
-                } else {
-                    resultsElement.innerHTML = `❌ Network Error: ${error.message}`;
-                }
+                const errorMessage = error.response?.data?.detail || error.message || 'Unknown error occurred';
+                resultsElement.innerHTML = `❌ Error: ${errorMessage}`;
+                handleApiError(error, 'Custom AI test');
             } finally {
                 // Re-enable submit button
                 submitButton.disabled = false;
@@ -877,6 +1173,7 @@
                 if (!form.file.files[0]) {
                     resultsElement.className = 'test-details show custom-test-results error';
                     resultsElement.innerHTML = '❌ Error: Please select a document to analyze';
+                    notificationManager.warning('Missing File', 'Please select a document file to analyze');
                     return;
                 }
                 
@@ -907,11 +1204,9 @@
                 
             } catch (error) {
                 resultsElement.className = 'test-details show custom-test-results error';
-                if (error.response && error.response.data) {
-                    resultsElement.innerHTML = `❌ Error: ${error.response.data.detail}`;
-                } else {
-                    resultsElement.innerHTML = `❌ Network Error: ${error.message}`;
-                }
+                const errorMessage = error.response?.data?.detail || error.message || 'Unknown error occurred';
+                resultsElement.innerHTML = `❌ Error: ${errorMessage}`;
+                handleApiError(error, 'Custom AI test');
             } finally {
                 // Re-enable submit button
                 submitButton.disabled = false;
@@ -969,6 +1264,7 @@
                 if (!form.text.value.trim()) {
                     resultsElement.className = 'test-details show custom-test-results error';
                     resultsElement.innerHTML = '❌ Error: Please enter primary text for embedding generation';
+                    notificationManager.warning('Missing Text', 'Please enter primary text for embedding generation');
                     return;
                 }
                 
@@ -1004,11 +1300,9 @@
                 
             } catch (error) {
                 resultsElement.className = 'test-details show custom-test-results error';
-                if (error.response && error.response.data) {
-                    resultsElement.innerHTML = `❌ Error: ${error.response.data.detail}`;
-                } else {
-                    resultsElement.innerHTML = `❌ Network Error: ${error.message}`;
-                }
+                const errorMessage = error.response?.data?.detail || error.message || 'Unknown error occurred';
+                resultsElement.innerHTML = `❌ Error: ${errorMessage}`;
+                handleApiError(error, 'Custom AI test');
             } finally {
                 // Re-enable submit button
                 submitButton.disabled = false;

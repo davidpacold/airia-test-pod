@@ -1,0 +1,96 @@
+# Test Helm Upgrade Scenarios for Version Management Verification
+
+# Scenario 1: Default values.yaml (uses latest)
+# Command: helm upgrade airia-test-pod ./helm/airia-test-pod
+# Expected: image: ghcr.io/davidpacold/airia-test-pod:latest
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-scenario-1
+data:
+  description: "Default values.yaml with tag: latest"
+  expected-image: "ghcr.io/davidpacold/airia-test-pod:latest"
+  
+---
+# Scenario 2: Explicit version override (uses specific version)
+# Command: helm upgrade airia-test-pod ./helm/airia-test-pod --set image.tag=v1.0.73
+# Expected: image: ghcr.io/davidpacold/airia-test-pod:v1.0.73
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-scenario-2
+data:
+  description: "Explicit version tag override"
+  expected-image: "ghcr.io/davidpacold/airia-test-pod:v1.0.73"
+
+---
+# Scenario 3: Custom values with empty tag (fallback to appVersion)
+# values-empty-tag.yaml:
+# image:
+#   repository: ghcr.io/davidpacold/airia-test-pod
+#   tag: ""
+# Command: helm upgrade airia-test-pod ./helm/airia-test-pod -f values-empty-tag.yaml
+# Expected: image: ghcr.io/davidpacold/airia-test-pod:1.0.100 (Chart.appVersion)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-scenario-3
+data:
+  description: "Custom values with empty tag"
+  expected-image: "ghcr.io/davidpacold/airia-test-pod:1.0.100"
+  note: "Uses Chart.appVersion as fallback"
+
+---
+# Scenario 4: Custom values with no tag field (fallback to appVersion) 
+# values-no-tag.yaml:
+# image:
+#   repository: ghcr.io/davidpacold/airia-test-pod
+#   # tag field omitted entirely
+# Command: helm upgrade airia-test-pod ./helm/airia-test-pod -f values-no-tag.yaml  
+# Expected: image: ghcr.io/davidpacold/airia-test-pod:1.0.100 (Chart.appVersion)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-scenario-4  
+data:
+  description: "Custom values with no tag field"
+  expected-image: "ghcr.io/davidpacold/airia-test-pod:1.0.100"
+  note: "Uses Chart.appVersion as fallback"
+
+---
+# Scenario 5: Latest tag override (uses latest)
+# Command: helm upgrade airia-test-pod ./helm/airia-test-pod --set image.tag=latest
+# Expected: image: ghcr.io/davidpacold/airia-test-pod:latest
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-scenario-5
+data:
+  description: "Explicit latest tag override"
+  expected-image: "ghcr.io/davidpacold/airia-test-pod:latest"
+
+---
+# Scenario 6: Semantic version without v prefix (uses specific version)
+# Command: helm upgrade airia-test-pod ./helm/airia-test-pod --set image.tag=1.0.73
+# Expected: image: ghcr.io/davidpacold/airia-test-pod:1.0.73
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-scenario-6
+data:
+  description: "Semantic version without v prefix"
+  expected-image: "ghcr.io/davidpacold/airia-test-pod:1.0.73"
+
+---
+# Scenario 7: Major version pinning (uses major version tag)
+# Command: helm upgrade airia-test-pod ./helm/airia-test-pod --set image.tag=v1
+# Expected: image: ghcr.io/davidpacold/airia-test-pod:v1
+apiVersion: v1
+kind: ConfigMap  
+metadata:
+  name: test-scenario-7
+data:
+  description: "Major version pinning"
+  expected-image: "ghcr.io/davidpacold/airia-test-pod:v1"
+  note: "Gets latest minor.patch in v1.x.x series"
