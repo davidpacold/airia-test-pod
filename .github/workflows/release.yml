@@ -27,6 +27,7 @@ jobs:
     permissions:
       contents: write
       packages: write
+      actions: write
     outputs:
       trigger_docker_build: ${{ steps.update_versions.outputs.trigger_docker_build }}
       docker_version: ${{ steps.update_versions.outputs.docker_version }}
