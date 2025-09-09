@@ -41,9 +41,22 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Set ref for metadata extraction
+      id: set_ref
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.ref }}" ]; then
+          echo "METADATA_REF=${{ github.event.inputs.ref }}" >> $GITHUB_ENV
+          echo "Using manual ref: ${{ github.event.inputs.ref }}"
+        else
+          echo "METADATA_REF=${{ github.ref }}" >> $GITHUB_ENV
+          echo "Using GitHub ref: ${{ github.ref }}"
+        fi
+
     - name: Extract metadata
       id: meta
       uses: docker/metadata-action@v5
+      env:
+        GITHUB_REF: ${{ env.METADATA_REF }}
       with:
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         tags: |
