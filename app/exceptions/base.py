@@ -173,16 +173,22 @@ class TestExecutionError(TestPodException):
         error_code: ErrorCode = ErrorCode.TEST_FAILED,
         test_id: str = None,
         duration: float = None,
-        **kwargs
+        details: Dict[str, Any] = None,
+        remediation: str = None,
+        service_name: str = None,
     ):
-        details = kwargs.get("details", {})
+        details = details or {}
         if test_id:
             details["test_id"] = test_id
         if duration is not None:
             details["duration_seconds"] = duration
 
         super().__init__(
-            message=message, error_code=error_code, details=details, **kwargs
+            message=message, 
+            error_code=error_code, 
+            details=details,
+            remediation=remediation,
+            service_name=service_name
         )
 
 
