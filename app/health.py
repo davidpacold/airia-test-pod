@@ -417,7 +417,15 @@ class HealthChecker:
                 }
 
             # Import here to avoid circular dependencies
-            from .tests.postgres_test_v2 import PostgreSQLTestV2
+            try:
+                from .tests.postgres_test_v2 import PostgreSQLTestV2
+            except ImportError:
+                return {
+                    "status": HealthStatus.UNKNOWN.value,
+                    "database_connected": False,
+                    "error": "PostgreSQLTestV2 not available",
+                    "skipped": True,
+                }
 
             postgres_test = PostgreSQLTestV2()
             if not postgres_test.is_configured():
@@ -429,7 +437,15 @@ class HealthChecker:
 
             # Run a quick connection test
             try:
-                import psycopg2
+                try:
+                    import psycopg2
+                except ImportError:
+                    return {
+                        "status": HealthStatus.UNKNOWN.value,
+                        "database_connected": False,
+                        "error": "psycopg2 not available",
+                        "skipped": True,
+                    }
 
                 conn_params = postgres_test.get_connection_params()
                 conn_params["connect_timeout"] = 5  # Quick timeout for health check
