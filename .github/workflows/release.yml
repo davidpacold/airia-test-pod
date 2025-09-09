@@ -652,7 +652,7 @@ jobs:
       - name: Create Teams notification payload
         run: |
           # Create Microsoft Teams message payload
-          cat > teams-payload.json << 'EOF'
+          cat > teams-payload.json << EOF
           {
             "@type": "MessageCard",
             "@context": "https://schema.org/extensions",
