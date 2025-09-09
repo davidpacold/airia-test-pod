@@ -65,10 +65,6 @@ jobs:
           
           VERSION="$major.$minor.$NEW_PATCH"
           echo "Auto-incrementing from $LATEST_VERSION to $VERSION"
-        else
-          # Release event
-          VERSION=${GITHUB_REF#refs/tags/}
-          VERSION=${VERSION#v}
         fi
         
         # Update Chart.yaml version
@@ -146,9 +142,6 @@ jobs:
             NEW_PATCH=$((NEW_PATCH + 1))
           done
           echo "version=$major.$minor.$NEW_PATCH" >> $GITHUB_OUTPUT
-        else
-          VERSION=${GITHUB_REF#refs/tags/}
-          echo "version=${VERSION#v}" >> $GITHUB_OUTPUT
         fi
 
     - name: Upload Helm chart to release
