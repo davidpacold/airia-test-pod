@@ -86,7 +86,7 @@ class CassandraTest(BaseTest):
 
         try:
             # Test 1: Connection
-            connection_result = self._test_connection()
+            connection_result, cluster, session = self._test_connection()
             result.add_sub_test("connection", connection_result)
 
             if not connection_result["success"]:
@@ -95,9 +95,6 @@ class CassandraTest(BaseTest):
                     remediation="Check hosts, credentials, SSL settings, and network connectivity",
                 )
                 return result
-
-            cluster = connection_result["cluster"]
-            session = connection_result["session"]
 
             # Test 2: Cluster health
             health_result = self._test_cluster_health(cluster)
@@ -159,7 +156,7 @@ class CassandraTest(BaseTest):
 
         return result
 
-    def _test_connection(self) -> Dict[str, Any]:
+    def _test_connection(self):
         """Test basic connection to Cassandra"""
         try:
             result = {"success": False, "message": "", "details": {}}
@@ -176,19 +173,18 @@ class CassandraTest(BaseTest):
 
             result["success"] = True
             result["message"] = "Successfully connected to Cassandra cluster"
-            result["cluster"] = cluster
-            result["session"] = session
 
             self.logger.info("Cassandra connection successful")
-            return result
+            return result, cluster, session
 
         except Exception as e:
             self.logger.error(f"Cassandra connection failed: {str(e)}")
-            return {
+            error_result = {
                 "success": False,
                 "message": f"Connection failed: {str(e)}",
                 "error": str(e),
             }
+            return error_result, None, None
 
     def _test_cluster_health(self, cluster) -> Dict[str, Any]:
         """Test cluster health and node status"""
