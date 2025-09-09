@@ -10,9 +10,6 @@ from .config import get_settings
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
 
-settings = get_settings()
-
-
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
@@ -22,12 +19,14 @@ def get_password_hash(password: str) -> str:
 
 
 def authenticate_user(username: str, password: str) -> bool:
+    settings = get_settings()
     if username == settings.auth_username and password == settings.auth_password:
         return True
     return False
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    settings = get_settings()
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
@@ -43,6 +42,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 async def get_current_user(
     request: Request, token: Optional[str] = Depends(oauth2_scheme)
 ):
+    settings = get_settings()
     # Check for token in Authorization header
     if token:
         try:

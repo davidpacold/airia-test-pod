@@ -384,12 +384,19 @@ class TestServiceIntegration:
             configured_count = 0
             total_count = len(available_tests)
 
-            for test_result in results.values():
-                if hasattr(test_result, "status"):
-                    if test_result.status.value != "skipped":
-                        configured_count += 1
-                elif "overall_status" in test_result:
-                    configured_count += 1
+            # Check if results has individual test results
+            if "results" in results:
+                for test_result in results["results"].values():
+                    if hasattr(test_result, "status"):
+                        if test_result.status.value != "skipped":
+                            configured_count += 1
+                    elif isinstance(test_result, dict) and "status" in test_result:
+                        if test_result["status"] != "skipped":
+                            configured_count += 1
+            else:
+                # If no individual results, count based on overall status
+                if results.get("overall_status") == "passed":
+                    configured_count = 1
 
             # Should have some tests available
             assert total_count > 0
