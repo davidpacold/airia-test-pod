@@ -144,7 +144,6 @@ class LlamaTest(BaseTest):
             result.fail(f"Llama model test failed: {str(e)}")
             result.add_log("ERROR", f"Exception: {str(e)}")
 
-        result.end()
         return result
 
     def _test_connection(self, client: OpenAI) -> Dict[str, Any]:
