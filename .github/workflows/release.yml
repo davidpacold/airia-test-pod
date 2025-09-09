@@ -16,6 +16,11 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
+# Prevent concurrent releases to avoid conflicts
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build-and-push-release:
     runs-on: ubuntu-latest
@@ -115,8 +120,25 @@ jobs:
         if git pull --rebase origin main; then
           echo "Successfully pulled latest changes"
         else
-          echo "Error: Failed to pull latest changes. Please check for conflicts."
-          exit 1
+          echo "Rebase failed, attempting to resolve automatically..."
+          # If rebase fails due to conflicts, try to resolve Chart.yaml conflicts automatically
+          if git status | grep -q "helm/airia-test-pod/Chart.yaml"; then
+            echo "Detected Chart.yaml conflict, resolving automatically..."
+            # Use our version (the newer version number should win)
+            git checkout --ours helm/airia-test-pod/Chart.yaml
+            git add helm/airia-test-pod/Chart.yaml
+            if git rebase --continue; then
+              echo "Successfully resolved Chart.yaml conflict"
+            else
+              echo "Error: Could not automatically resolve conflicts"
+              git rebase --abort
+              exit 1
+            fi
+          else
+            echo "Error: Failed to pull latest changes with unresolvable conflicts"
+            git rebase --abort
+            exit 1
+          fi
         fi
         
         if git push origin main; then
