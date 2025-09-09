@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
@@ -29,6 +30,9 @@ app = FastAPI(title="Airia Infrastructure Test Pod", version="1.0.108")
 
 # Setup standardized error handling
 setup_error_handlers(app)
+
+# Initialize logger
+logger = logging.getLogger(__name__)
 
 
 # Security headers middleware
@@ -406,7 +410,7 @@ async def test_docintel_custom(
             )
 
         # Read original file content for Document Intelligence API
-        await file.seek(0)  # Reset file pointer
+        await file.seek(0, 0)  # Reset file pointer to beginning
         content = await file.read()
 
         # Run custom test with sanitized inputs

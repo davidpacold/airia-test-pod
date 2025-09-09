@@ -76,12 +76,19 @@ class LlamaTest(BaseTest):
     def run_test(self) -> TestResult:
         result = TestResult(self.test_name)
         result.start()
+        
+        self.logger.info("Starting Llama model test...")
+        print("🦙 Starting Llama model test...")
 
         try:
             # Determine which configuration to use
             use_llama_config = bool(self.llama_base_url)
 
             if use_llama_config:
+                self.logger.info(f"Using Llama API configuration: {self.llama_base_url}")
+                self.logger.info(f"Model: {self.llama_model_name}")
+                print(f"🔧 Using Llama API configuration: {self.llama_base_url}")
+                print(f"🤖 Model: {self.llama_model_name}")
                 result.add_log(
                     "INFO", f"Using Llama API configuration: {self.llama_base_url}"
                 )
@@ -95,6 +102,11 @@ class LlamaTest(BaseTest):
                 max_tokens = self.llama_max_tokens
                 temperature = self.llama_temperature
             else:
+                self.logger.info(f"Using OpenAI-compatible API: {self.openai_base_url}")
+                self.logger.info(f"Model: {self.openai_model_name}")
+                print(f"🔧 Using OpenAI-compatible API: {self.openai_base_url}")
+                print(f"🤖 Model: {self.openai_model_name}")
+                print("🔍 Detected Llama model via OpenAI-compatible interface")
                 result.add_log(
                     "INFO", f"Using OpenAI-compatible API: {self.openai_base_url}"
                 )
@@ -114,34 +126,63 @@ class LlamaTest(BaseTest):
             all_passed = True
 
             # Test 1: Basic connection test
+            self.logger.info("Running API connection test...")
+            print("🔗 Running API connection test...")
             connection_result = self._test_connection(client)
             result.add_sub_test("API Connection", connection_result)
-            if not connection_result["success"]:
+            if connection_result["success"]:
+                self.logger.info("✅ API connection test passed")
+                print("✅ API connection test passed")
+            else:
+                self.logger.error(f"❌ API connection test failed: {connection_result.get('message', 'Unknown error')}")
+                print(f"❌ API connection test failed: {connection_result.get('message', 'Unknown error')}")
                 all_passed = False
 
             # Test 2: Simple text completion
+            self.logger.info("Running text generation test...")
+            print("💬 Running text generation test...")
             completion_result = self._test_completion(
                 client, model_name, max_tokens, temperature
             )
             result.add_sub_test("Text Generation", completion_result)
-            if not completion_result["success"]:
+            if completion_result["success"]:
+                self.logger.info("✅ Text generation test passed")
+                print("✅ Text generation test passed")
+            else:
+                self.logger.error(f"❌ Text generation test failed: {completion_result.get('message', 'Unknown error')}")
+                print(f"❌ Text generation test failed: {completion_result.get('message', 'Unknown error')}")
                 all_passed = False
 
             # Test 3: Llama-specific prompt test
+            self.logger.info("Running Llama-style prompt test...")
+            print("🦙 Running Llama-style prompt test...")
             llama_prompt_result = self._test_llama_prompt(
                 client, model_name, max_tokens, temperature
             )
             result.add_sub_test("Llama-style Prompt", llama_prompt_result)
-            if not llama_prompt_result["success"]:
+            if llama_prompt_result["success"]:
+                self.logger.info("✅ Llama-style prompt test passed")
+                print("✅ Llama-style prompt test passed")
+            else:
+                self.logger.error(f"❌ Llama-style prompt test failed: {llama_prompt_result.get('message', 'Unknown error')}")
+                print(f"❌ Llama-style prompt test failed: {llama_prompt_result.get('message', 'Unknown error')}")
                 all_passed = False
 
             if all_passed:
+                self.logger.info("🎉 All Llama model tests passed successfully")
+                print("🎉 All Llama model tests passed successfully")
                 result.complete(True, "All Llama model tests passed successfully")
             else:
+                self.logger.error("💥 One or more Llama model tests failed")
+                print("💥 One or more Llama model tests failed")
                 result.complete(False, "One or more Llama model tests failed")
 
         except Exception as e:
-            result.fail(f"Llama model test failed: {str(e)}")
+            error_msg = f"Llama model test failed: {str(e)}"
+            self.logger.error(f"💥 {error_msg}")
+            print(f"💥 {error_msg}")
+            print(f"Stack trace: {e}")
+            result.fail(error_msg)
             result.add_log("ERROR", f"Exception: {str(e)}")
 
         return result
@@ -287,6 +328,15 @@ What are the key capabilities of Llama models? [/INST]"""
         system_message: str = None,
     ) -> Dict[str, Any]:
         """Test with custom user input - can be called directly from API"""
+        self.logger.info(f"Starting custom input test with prompt: {custom_prompt[:100]}{'...' if len(custom_prompt) > 100 else ''}")
+        print(f"🎯 Starting custom input test with prompt: {custom_prompt[:100]}{'...' if len(custom_prompt) > 100 else ''}")
+        if custom_file_content:
+            self.logger.info(f"File provided: {file_type} ({len(custom_file_content)} characters)")
+            print(f"📄 File provided: {file_type} ({len(custom_file_content)} characters)")
+        if system_message:
+            self.logger.info(f"Custom system message: {system_message[:100]}{'...' if len(system_message) > 100 else ''}")
+            print(f"🗨️  Custom system message: {system_message[:100]}{'...' if len(system_message) > 100 else ''}")
+            
         try:
             # Determine which configuration to use
             use_llama_config = bool(self.llama_base_url)

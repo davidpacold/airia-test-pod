@@ -61,47 +61,81 @@ class DocumentIntelligenceTest(BaseTest):
     def run_test(self) -> TestResult:
         result = TestResult(self.test_name)
         result.start()
+        
+        self.logger.info(f"Starting Document Intelligence test with endpoint: {self.endpoint}")
+        self.logger.info(f"Using model: {self.model_id}")
+        print(f"🔍 Starting Document Intelligence test with endpoint: {self.endpoint}")
+        print(f"📝 Using model: {self.model_id}")
 
         try:
             # Create Document Analysis client
+            self.logger.info("Creating Document Analysis client...")
+            print("⚙️  Creating Document Analysis client...")
             client = DocumentAnalysisClient(
                 endpoint=self.endpoint, credential=AzureKeyCredential(self.api_key)
             )
+            self.logger.info("Document Analysis client created successfully")
+            print("✅ Document Analysis client created successfully")
 
             all_passed = True
 
             # Test 1: Basic connectivity test
+            self.logger.info("Running connectivity test...")
+            print("🔗 Running connectivity test...")
             connectivity_result = self._test_connectivity(client)
             result.add_sub_test("API Connectivity", connectivity_result)
-            if not connectivity_result["success"]:
+            if connectivity_result["success"]:
+                self.logger.info("✅ Connectivity test passed")
+                print("✅ Connectivity test passed")
+            else:
+                self.logger.error(f"❌ Connectivity test failed: {connectivity_result.get('message', 'Unknown error')}")
+                print(f"❌ Connectivity test failed: {connectivity_result.get('message', 'Unknown error')}")
                 all_passed = False
 
             # Test 2: Document analysis with sample content
             if self.test_document_url:
                 # Test with provided URL
+                self.logger.info(f"Testing document analysis with URL: {self.test_document_url}")
+                print(f"🌐 Testing document analysis with URL: {self.test_document_url}")
                 analysis_result = self._test_document_analysis_url(
                     client, self.test_document_url
                 )
                 result.add_sub_test("Document Analysis (URL)", analysis_result)
             else:
                 # Test with sample content
+                self.logger.info("Testing document analysis with sample content...")
+                print("📄 Testing document analysis with sample content...")
                 analysis_result = self._test_document_analysis_content(client)
                 result.add_sub_test("Document Analysis (Sample)", analysis_result)
 
-            if not analysis_result["success"]:
+            if analysis_result["success"]:
+                self.logger.info("✅ Document analysis test passed")
+                print("✅ Document analysis test passed")
+            else:
+                self.logger.error(f"❌ Document analysis test failed: {analysis_result.get('message', 'Unknown error')}")
+                print(f"❌ Document analysis test failed: {analysis_result.get('message', 'Unknown error')}")
                 all_passed = False
 
             # Test 3: Model information (if possible)
+            self.logger.info("Running model information test...")
+            print("📋 Running model information test...")
             model_result = self._test_model_info(client)
             result.add_sub_test("Model Information", model_result)
             if not model_result["success"]:
                 # Model info failure shouldn't fail the overall test
+                self.logger.warning(f"Model info test failed (non-critical): {model_result.get('message', 'Unknown error')}")
+                print(f"⚠️  Model info test failed (non-critical): {model_result.get('message', 'Unknown error')}")
                 result.add_log(
                     "WARNING",
                     f"Model info test failed: {model_result.get('message', 'Unknown error')}",
                 )
+            else:
+                self.logger.info("✅ Model information test passed")
+                print("✅ Model information test passed")
 
             if all_passed:
+                self.logger.info("🎉 All Document Intelligence tests passed successfully")
+                print("🎉 All Document Intelligence tests passed successfully")
                 result.complete(
                     True, "All Document Intelligence tests passed successfully"
                 )
@@ -111,14 +145,21 @@ class DocumentIntelligenceTest(BaseTest):
                     for name, test_result in result.sub_tests.items()
                     if not test_result.get("success", False)
                 ]
+                failure_msg = f"Document Intelligence tests failed: {', '.join(failed_tests)}"
+                self.logger.error(f"💥 {failure_msg}")
+                print(f"💥 {failure_msg}")
                 result.fail(
-                    f"Document Intelligence tests failed: {', '.join(failed_tests)}",
+                    failure_msg,
                     remediation="Check API credentials, endpoint configuration, and service availability",
                 )
 
         except Exception as e:
+            error_msg = f"Document Intelligence test failed: {str(e)}"
+            self.logger.error(f"💥 {error_msg}")
+            print(f"💥 {error_msg}")
+            print(f"Stack trace: {e}")
             result.fail(
-                f"Document Intelligence test failed: {str(e)}",
+                error_msg,
                 error=e,
                 remediation="Check API configuration, credentials, and network connectivity",
             )
@@ -319,8 +360,16 @@ startxref
         self, file_content: bytes, file_type: str, custom_prompt: str = None
     ) -> Dict[str, Any]:
         """Test Document Intelligence with custom file upload"""
+        self.logger.info(f"Starting custom file test with file type: {file_type}")
+        print(f"📁 Starting custom file test with file type: {file_type}")
+        if custom_prompt:
+            self.logger.info(f"Custom prompt: {custom_prompt}")
+            print(f"💬 Custom prompt: {custom_prompt}")
+        
         try:
             if not self.is_configured():
+                self.logger.error("Document Intelligence not configured")
+                print("❌ Document Intelligence not configured")
                 return {
                     "success": False,
                     "message": "Document Intelligence not configured",
@@ -328,12 +377,18 @@ startxref
                 }
 
             # Create client
+            self.logger.info("Creating Document Intelligence client for custom file...")
+            print("⚙️  Creating Document Intelligence client for custom file...")
             credential = AzureKeyCredential(self.api_key)
             client = DocumentAnalysisClient(
                 endpoint=self.endpoint, credential=credential
             )
+            self.logger.info("Client created successfully")
+            print("✅ Client created successfully")
 
             start_time = time.time()
+            self.logger.info(f"Starting document analysis for {len(file_content)} bytes of {file_type} content...")
+            print(f"🔍 Starting document analysis for {len(file_content)} bytes of {file_type} content...")
 
             # Analyze the provided document
             poller = client.begin_analyze_document(

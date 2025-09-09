@@ -71,7 +71,7 @@ class FileUploadHandler:
         # Get file size
         await file.seek(0, 2)  # Seek to end
         file_size = await file.tell()
-        await file.seek(0)  # Reset to beginning
+        await file.seek(0, 0)  # Reset to beginning
 
         max_size_bytes = max_size_mb * 1024 * 1024
         if file_size > max_size_bytes:
@@ -223,7 +223,7 @@ class FileUploadHandler:
 
         # Read file content
         content = await file.read()
-        await file.seek(0)  # Reset for potential future reads
+        await file.seek(0, 0)  # Reset for potential future reads
 
         # Process based on file type
         processed_content = None
