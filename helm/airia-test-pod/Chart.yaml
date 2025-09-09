@@ -2,8 +2,8 @@ apiVersion: v2
 name: airia-test-pod
 description: A Helm chart for Airia Infrastructure Test Pod - validates customer infrastructure readiness
 type: application
-version: 1.0.85
-appVersion: "1.0.85"
+version: 1.0.87
+appVersion: "1.0.87"
 keywords:
 - infrastructure
 - testing
