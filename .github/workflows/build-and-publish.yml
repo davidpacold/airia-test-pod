@@ -55,8 +55,6 @@ jobs:
     - name: Extract metadata
       id: meta
       uses: docker/metadata-action@v5
-      env:
-        GITHUB_REF: ${{ env.METADATA_REF }}
       with:
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         tags: |
@@ -67,6 +65,18 @@ jobs:
           type=semver,pattern={{major}}
           type=sha
           type=raw,value=latest,enable={{is_default_branch}}
+        # Override GitHub context for workflow_dispatch with manual ref
+        context: |
+          ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref && format('{{
+            "eventName": "push",
+            "sha": "{0}",
+            "ref": "refs/tags/{1}",
+            "workflow": "{2}",
+            "action": "{3}",
+            "actor": "{4}",
+            "runNumber": {5},
+            "runId": {6}
+          }}', github.sha, github.event.inputs.ref, github.workflow, github.action, github.actor, github.run_number, github.run_id) || '' }}
 
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
