@@ -112,8 +112,11 @@ config:
     apiKey: "your-api-key"  # API key for authentication
     deploymentName: "gpt-35-turbo"  # Model deployment name (gpt-35-turbo, gpt-4, etc.)
     embeddingDeployment: "text-embedding-ada-002"  # Optional: Embedding model deployment
+    testCompletion: true  # Test text completion/chat capabilities (default: true)
+    testEmbedding: true  # Test embedding generation (default: true, skipped if embeddingDeployment not set)
     customPrompt: "Test the infrastructure readiness"  # Optional: Custom test prompt
     customSystemMessage: "You are a helpful assistant"  # Optional: System message for tests
+    timeout: 30  # Request timeout in seconds (default: 30)
     # Note: Test will verify API access, model availability, and optionally test embeddings
     # Supports custom file uploads (PDF, images) via dashboard UI
 
@@ -137,6 +140,7 @@ config:
     modelName: "llama2"  # Llama model name (llama2, mistral, codellama, etc.)
     maxTokens: 500  # Maximum tokens for responses
     temperature: 0.1  # Temperature for generation (0.0 to 1.0)
+    timeout: 60  # Request timeout in seconds (default: 60)
     # Note: Dashboard supports custom prompts and file uploads for Llama models
 
   # Azure Document Intelligence (Form Recognizer)
@@ -145,6 +149,7 @@ config:
     endpoint: "https://your-doc-intel.cognitiveservices.azure.com/"  # Cognitive Services endpoint
     apiKey: "your-api-key"  # Cognitive Services API key
     model: "prebuilt-document"  # Model to use (prebuilt-document, prebuilt-invoice, etc.)
+    timeout: 60  # Request timeout in seconds (default: 60)
     # Note: Test will analyze sample documents and verify API access
     # Supports custom document uploads via dashboard UI
 
@@ -166,15 +171,15 @@ config:
   ssl:
     enabled: false  # Set to true to test SSL certificates
     testUrls: "https://api.example.com,https://app.example.com"  # Comma-separated URLs to test
-    connectTimeout: 10  # Connection timeout in seconds
-    warningDays: 30  # Warn if certificate expires within this many days
+    connectTimeout: 10  # Connection timeout in seconds (default: 10)
+    warningDays: 30  # Warn if certificate expires within this many days (default: 30)
     # Note: Test will validate certificate chains, expiration, and hostname matching
     # Detects common issues like missing intermediate certificates
   
   # Kubernetes Storage Testing (PVC - Persistent Volume Claims)
   kubernetes:
     storageClass: ""  # Leave empty to use cluster default, or specify custom class
-    testPvcSize: "1Gi"  # Size of test PVC to create
+    testPvcSize: "1Gi"  # Size of test PVC to create (default: 1Gi)
     # Note: Test will verify storage class availability and PVC creation permissions
     # Requires RBAC permissions (automatically configured by Helm)
 
