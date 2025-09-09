@@ -108,8 +108,8 @@ jobs:
         HELM_APP_VERSION=$(grep '^appVersion:' helm/airia-test-pod/Chart.yaml | cut -d'"' -f2)
         APP_CONFIG_VERSION=$(grep 'version: str =' app/config.py | cut -d'"' -f2)
         APP_MAIN_VERSION=$(grep -o 'version="[^"]*"' app/main.py | cut -d'"' -f2)
-        DASHBOARD_VERSION=$(grep 'textContent.*v[0-9]' templates/dashboard.html | grep -o 'v[0-9][^']*' | cut -c2-)
-        INDEX_VERSION=$(grep 'textContent.*v[0-9]' templates/index.html | grep -o 'v[0-9][^']*' | cut -c2-)
+        DASHBOARD_VERSION=$(grep 'textContent.*v[0-9]' templates/dashboard.html | grep -o "v[0-9][^']*" | cut -c2-)
+        INDEX_VERSION=$(grep 'textContent.*v[0-9]' templates/index.html | grep -o "v[0-9][^']*" | cut -c2-)
         
         echo "📊 CURRENT VERSION REFERENCES:"
         echo "- Helm Chart version: $HELM_VERSION"
@@ -181,8 +181,8 @@ jobs:
         HELM_APP_VERSION=$(grep '^appVersion:' helm/airia-test-pod/Chart.yaml | cut -d'"' -f2)
         APP_CONFIG_VERSION=$(grep 'version: str =' app/config.py | cut -d'"' -f2)
         APP_MAIN_VERSION=$(grep -o 'version="[^"]*"' app/main.py | cut -d'"' -f2)
-        DASHBOARD_VERSION=$(grep 'textContent.*v[0-9]' templates/dashboard.html | grep -o 'v[0-9][^']*' | cut -c2-)
-        INDEX_VERSION=$(grep 'textContent.*v[0-9]' templates/index.html | grep -o 'v[0-9][^']*' | cut -c2-)
+        DASHBOARD_VERSION=$(grep 'textContent.*v[0-9]' templates/dashboard.html | grep -o "v[0-9][^']*" | cut -c2-)
+        INDEX_VERSION=$(grep 'textContent.*v[0-9]' templates/index.html | grep -o "v[0-9][^']*" | cut -c2-)
         
         echo "📋 UPDATED VERSION REFERENCES:"
         echo "- Helm Chart version: $HELM_VERSION"
