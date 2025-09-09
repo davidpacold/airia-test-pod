@@ -124,7 +124,7 @@ class TestJWTTokens:
             )
 
             # Check expiry is approximately 1 hour from now
-            exp_time = datetime.utcfromtimestamp(payload["exp"])
+            exp_time = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
             expected_time = datetime.now(timezone.utc) + expires_delta
 
             # Allow 10 second difference for processing time
