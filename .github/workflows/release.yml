@@ -104,10 +104,9 @@ jobs:
         echo "🔍 VALIDATING VERSION CONSISTENCY BEFORE UPDATE"
         echo "============================================="
         
-        # Extract current versions from all key files
+        # Extract current versions from all key files (config.py now uses environment variable)
         HELM_VERSION=$(grep '^version:' helm/airia-test-pod/Chart.yaml | cut -d' ' -f2)
         HELM_APP_VERSION=$(grep '^appVersion:' helm/airia-test-pod/Chart.yaml | cut -d'"' -f2)
-        APP_CONFIG_VERSION=$(grep 'version: str =' app/config.py | cut -d'"' -f2)
         APP_MAIN_VERSION=$(grep -o 'version="[^"]*"' app/main.py | cut -d'"' -f2)
         DASHBOARD_VERSION=$(grep 'textContent.*v[0-9]' templates/dashboard.html | grep -o "v[0-9][^']*" | cut -c2-)
         INDEX_VERSION=$(grep 'textContent.*v[0-9]' templates/index.html | grep -o "v[0-9][^']*" | cut -c2-)
@@ -115,14 +114,14 @@ jobs:
         echo "📊 CURRENT VERSION REFERENCES:"
         echo "- Helm Chart version: $HELM_VERSION"
         echo "- Helm appVersion: $HELM_APP_VERSION"
-        echo "- App config.py: $APP_CONFIG_VERSION"
+        echo "- App config.py: uses environment variable (APP_VERSION)"
         echo "- App main.py: $APP_MAIN_VERSION"
         echo "- Dashboard template: $DASHBOARD_VERSION"
         echo "- Index template: $INDEX_VERSION"
         echo ""
         
         # Check if all versions match (this validates current state is consistent)
-        VERSIONS_TO_CHECK=("$HELM_VERSION" "$HELM_APP_VERSION" "$APP_CONFIG_VERSION" "$APP_MAIN_VERSION" "$DASHBOARD_VERSION" "$INDEX_VERSION")
+        VERSIONS_TO_CHECK=("$HELM_VERSION" "$HELM_APP_VERSION" "$APP_MAIN_VERSION" "$DASHBOARD_VERSION" "$INDEX_VERSION")
         FIRST_VERSION="${VERSIONS_TO_CHECK[0]}"
         VERSIONS_CONSISTENT=true
         
@@ -156,8 +155,7 @@ jobs:
         sed -i "s/^appVersion:.*/appVersion: \"$VERSION\"/" helm/airia-test-pod/Chart.yaml
         echo "✅ Updated Helm Chart versions"
         
-        # Update application version references
-        sed -i "s/version: str = \"[^\"]*\"/version: str = \"$VERSION\"/" app/config.py
+        # Update application version references (config.py now uses environment variable)
         sed -i "s/FastAPI(title=\"Airia Infrastructure Test Pod\", version=\"[^\"]*\")/FastAPI(title=\"Airia Infrastructure Test Pod\", version=\"$VERSION\")/" app/main.py
         echo "✅ Updated application version references"
         
@@ -177,10 +175,9 @@ jobs:
         echo "🔍 VALIDATING VERSION CONSISTENCY AFTER UPDATE"
         echo "=============================================="
         
-        # Extract updated versions from all key files
+        # Extract updated versions from all key files (config.py now uses environment variable)
         HELM_VERSION=$(grep '^version:' helm/airia-test-pod/Chart.yaml | cut -d' ' -f2)
         HELM_APP_VERSION=$(grep '^appVersion:' helm/airia-test-pod/Chart.yaml | cut -d'"' -f2)
-        APP_CONFIG_VERSION=$(grep 'version: str =' app/config.py | cut -d'"' -f2)
         APP_MAIN_VERSION=$(grep -o 'version="[^"]*"' app/main.py | cut -d'"' -f2)
         DASHBOARD_VERSION=$(grep 'textContent.*v[0-9]' templates/dashboard.html | grep -o "v[0-9][^']*" | cut -c2-)
         INDEX_VERSION=$(grep 'textContent.*v[0-9]' templates/index.html | grep -o "v[0-9][^']*" | cut -c2-)
@@ -188,7 +185,7 @@ jobs:
         echo "📋 UPDATED VERSION REFERENCES:"
         echo "- Helm Chart version: $HELM_VERSION"
         echo "- Helm appVersion: $HELM_APP_VERSION" 
-        echo "- App config.py: $APP_CONFIG_VERSION"
+        echo "- App config.py: uses environment variable (APP_VERSION=$VERSION)"
         echo "- App main.py: $APP_MAIN_VERSION"
         echo "- Dashboard template: $DASHBOARD_VERSION"
         echo "- Index template: $INDEX_VERSION"
@@ -207,10 +204,7 @@ jobs:
           VALIDATION_FAILED=true
         fi
         
-        if [ "$APP_CONFIG_VERSION" != "$VERSION" ]; then
-          echo "❌ ERROR: App config version mismatch: expected $VERSION, got $APP_CONFIG_VERSION"
-          VALIDATION_FAILED=true
-        fi
+        # App config.py validation skipped - uses environment variable
         
         if [ "$APP_MAIN_VERSION" != "$VERSION" ]; then
           echo "❌ ERROR: App main version mismatch: expected $VERSION, got $APP_MAIN_VERSION"
