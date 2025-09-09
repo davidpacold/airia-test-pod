@@ -30,12 +30,14 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    - name: Update all version references
+    - name: Calculate version
+      id: calc_version
       run: |
         # Determine version based on trigger type
         if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.version }}" ]; then
           # Manual release with specified version
           VERSION="${{ github.event.inputs.version }}"
+          echo "Using manually specified version: $VERSION"
         else
           # Auto-release: find next available patch version
           # Fetch all tags first
@@ -66,6 +68,14 @@ jobs:
           VERSION="$major.$minor.$NEW_PATCH"
           echo "Auto-incrementing from $LATEST_VERSION to $VERSION"
         fi
+        
+        # Output the version for other steps
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Calculated version: $VERSION"
+
+    - name: Update all version references
+      run: |
+        VERSION="${{ steps.calc_version.outputs.version }}"
         
         # Update Chart.yaml version
         sed -i "s/^version:.*/version: $VERSION/" helm/airia-test-pod/Chart.yaml
@@ -101,20 +111,19 @@ jobs:
           echo "Committed version updates to repository"
         fi
 
-        # Create and push the git tag
+        # Push the version updates to main first
+        git push origin main
+        echo "Pushed version updates to main branch"
+        
+        # Then create and push the git tag
         if git rev-parse "v$VERSION" >/dev/null 2>&1; then
           echo "Tag v$VERSION already exists, skipping tag creation"
         else
           git tag -a "v$VERSION" -m "Release v$VERSION"
           git push origin "v$VERSION"
           echo "Created and pushed tag v$VERSION"
+          echo "The tag push will automatically trigger the Docker build workflow"
         fi
-        
-        # Push the version updates to main
-        git push origin main
-        
-        # The tag push will automatically trigger the Docker build workflow
-        echo "Tag v$VERSION created successfully. Docker build will be triggered automatically by the tag push event."
 
     - name: Install Helm
       uses: azure/setup-helm@v4
@@ -129,20 +138,8 @@ jobs:
     - name: Set version output
       id: version
       run: |
-        if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.version }}" ]; then
-          echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-        else
-          LATEST_TAG=$(git tag -l "v*" | sort -V | tail -1 || echo "v1.0.0")
-          LATEST_VERSION=${LATEST_TAG#v}
-          IFS='.' read -r major minor patch <<< "$LATEST_VERSION"
-          
-          # Find next available version
-          NEW_PATCH=$((patch + 1))
-          while git rev-parse "v$major.$minor.$NEW_PATCH" >/dev/null 2>&1; do
-            NEW_PATCH=$((NEW_PATCH + 1))
-          done
-          echo "version=$major.$minor.$NEW_PATCH" >> $GITHUB_OUTPUT
-        fi
+        # Use the version calculated in the previous step
+        echo "version=${{ steps.calc_version.outputs.version }}" >> $GITHUB_OUTPUT
 
     - name: Upload Helm chart to release
       uses: softprops/action-gh-release@v1
