@@ -260,8 +260,8 @@ class HealthChecker:
             "non_critical_failures": non_critical_failures,
             "total_duration_seconds": round(total_duration, 3),
             "checks": results,
-            "version": self.settings.version,
-            "application": self.settings.app_name,
+            "version": getattr(self.settings, "version", "unknown"),
+            "application": getattr(self.settings, "app_name", "Test Application"),
         }
 
     async def get_readiness_status(self) -> Dict[str, Any]:
@@ -291,7 +291,7 @@ class HealthChecker:
                 "uptime_seconds": (
                     datetime.now(timezone.utc) - self.startup_time
                 ).total_seconds(),
-                "version": self.settings.version,
+                "version": getattr(self.settings, "version", "unknown"),
             }
         except Exception as e:
             return {
@@ -326,16 +326,16 @@ class HealthChecker:
         issues = []
 
         # Check critical settings
-        if not self.settings.secret_key or len(self.settings.secret_key) < 16:
+        secret_key = getattr(self.settings, "secret_key", "")
+        if not secret_key or len(secret_key) < 16:
             issues.append("secret_key_too_short")
 
-        if "change-in-production" in self.settings.secret_key:
+        if "change-in-production" in secret_key:
             issues.append("default_secret_key_in_use")
 
-        if (
-            self.settings.auth_username == "admin"
-            and self.settings.auth_password == "changeme"
-        ):
+        auth_username = getattr(self.settings, "auth_username", "")
+        auth_password = getattr(self.settings, "auth_password", "")
+        if auth_username == "admin" and auth_password == "changeme":
             issues.append("default_credentials_in_use")
 
         if issues:
@@ -406,10 +406,8 @@ class HealthChecker:
         """Test database connectivity if configured."""
         try:
             # Check if database is configured
-            if (
-                not self.settings.postgres_host
-                or self.settings.postgres_host == "localhost"
-            ):
+            postgres_host = getattr(self.settings, "postgres_host", "localhost")
+            if not postgres_host or postgres_host == "localhost":
                 return {
                     "status": HealthStatus.HEALTHY.value,
                     "message": "Database not configured for health checking",
@@ -458,7 +456,7 @@ class HealthChecker:
                 return {
                     "status": HealthStatus.HEALTHY.value,
                     "database_connected": True,
-                    "host": self.settings.postgres_host,
+                    "host": postgres_host,
                 }
 
             except Exception as db_error:
@@ -466,7 +464,7 @@ class HealthChecker:
                     "status": HealthStatus.DEGRADED.value,
                     "database_connected": False,
                     "error": str(db_error),
-                    "host": self.settings.postgres_host,
+                    "host": postgres_host,
                 }
 
         except Exception as e:
@@ -481,11 +479,12 @@ class HealthChecker:
         overall_status = HealthStatus.HEALTHY.value
 
         # Check blob storage if configured
-        if self.settings.blob_account_name:
+        blob_account_name = getattr(self.settings, "blob_account_name", "")
+        if blob_account_name:
             try:
                 dependencies["azure_blob"] = {
                     "configured": True,
-                    "account": self.settings.blob_account_name,
+                    "account": blob_account_name,
                     "status": "configured_not_tested",
                 }
             except Exception:
@@ -501,10 +500,11 @@ class HealthChecker:
             }
 
         # Check Cassandra if configured
-        if self.settings.cassandra_hosts:
+        cassandra_hosts = getattr(self.settings, "cassandra_hosts", "")
+        if cassandra_hosts:
             dependencies["cassandra"] = {
                 "configured": True,
-                "hosts": self.settings.cassandra_hosts,
+                "hosts": cassandra_hosts,
                 "status": "configured_not_tested",
             }
         else:
