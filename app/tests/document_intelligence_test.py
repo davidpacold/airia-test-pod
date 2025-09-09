@@ -301,3 +301,76 @@ startxref
 290
 %%EOF"""
         return minimal_pdf.encode('latin-1')
+    
+    def test_with_custom_file(self, file_content: bytes, file_type: str, custom_prompt: str = None) -> Dict[str, Any]:
+        """Test Document Intelligence with custom file upload"""
+        try:
+            if not self.is_configured():
+                return {
+                    "success": False,
+                    "message": "Document Intelligence not configured",
+                    "remediation": self.get_configuration_help()
+                }
+            
+            # Create client
+            credential = AzureKeyCredential(self.api_key)
+            client = DocumentAnalysisClient(endpoint=self.endpoint, credential=credential)
+            
+            start_time = time.time()
+            
+            # Analyze the provided document
+            poller = client.begin_analyze_document(
+                model_id=self.model_id,
+                document=file_content,
+                content_type="application/octet-stream"
+            )
+            
+            # Wait for analysis to complete
+            result_doc = poller.result()
+            
+            duration = time.time() - start_time
+            
+            # Extract information from the document
+            page_count = len(result_doc.pages)
+            content_length = len(result_doc.content) if result_doc.content else 0
+            table_count = len(result_doc.tables) if result_doc.tables else 0
+            
+            # Extract text content (first 1000 characters for preview)
+            content_preview = result_doc.content[:1000] + "..." if result_doc.content and len(result_doc.content) > 1000 else result_doc.content or ""
+            
+            # Get document structure information
+            structure_info = {
+                "pages": page_count,
+                "tables": table_count,
+                "paragraphs": len(result_doc.paragraphs) if result_doc.paragraphs else 0,
+                "key_value_pairs": len(result_doc.key_value_pairs) if result_doc.key_value_pairs else 0
+            }
+            
+            analysis_result = {
+                "success": True,
+                "message": "Document analysis completed successfully",
+                "file_type": file_type,
+                "model_used": self.model_id,
+                "processing_time_ms": round(duration * 1000, 2),
+                "document_info": structure_info,
+                "content_length": content_length,
+                "content_preview": content_preview,
+                "analysis_complete": True
+            }
+            
+            # If a custom prompt was provided, include it in the response
+            if custom_prompt:
+                analysis_result["custom_prompt"] = custom_prompt
+                analysis_result["prompt_response"] = f"Custom analysis request: '{custom_prompt}'\n\nDocument content extracted successfully. The document contains {page_count} page(s) with {content_length} characters of text content."
+            
+            return analysis_result
+            
+        except Exception as e:
+            error_msg = str(e)
+            return {
+                "success": False,
+                "message": f"Custom document analysis failed: {error_msg}",
+                "file_type": file_type,
+                "error": error_msg,
+                "remediation": "Check file format support and Document Intelligence configuration"
+            }

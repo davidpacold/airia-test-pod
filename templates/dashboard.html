@@ -196,6 +196,66 @@
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
+        
+        /* Custom AI Testing Styles */
+        .custom-test-form {
+            margin-top: 15px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            font-family: inherit;
+        }
+        
+        .form-group small {
+            display: block;
+            margin-top: 5px;
+            color: #666;
+            font-size: 12px;
+        }
+        
+        .custom-test-results {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+            font-size: 14px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .custom-test-results.success {
+            border-left-color: #28a745;
+            background-color: #d4edda;
+        }
+        
+        .custom-test-results.error {
+            border-left-color: #dc3545;
+            background-color: #f8d7da;
+        }
     </style>
 </head>
 <body>
@@ -335,6 +395,98 @@
                     <div class="test-details" id="ssl-details"></div>
                 </div>
             </div>
+            </div>
+            
+            <!-- Custom AI Testing Section -->
+            <div class="test-section">
+                <h2>🎯 Custom AI Model Testing</h2>
+                <p>Test your AI models with custom prompts and file content</p>
+                <div class="test-grid">
+                    <div class="test-card" id="custom-openai-card">
+                        <h3>Custom OpenAI Test</h3>
+                        <p>Send custom prompts and files to OpenAI models</p>
+                        <form id="custom-openai-form" class="custom-test-form">
+                            <div class="form-group">
+                                <label for="openai-prompt">Your Prompt:</label>
+                                <textarea id="openai-prompt" name="prompt" placeholder="Enter your custom prompt here..." rows="3" required></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="openai-system">System Message (optional):</label>
+                                <input type="text" id="openai-system" name="system_message" placeholder="You are a helpful assistant...">
+                            </div>
+                            <div class="form-group">
+                                <label for="openai-file">Upload File (optional):</label>
+                                <input type="file" id="openai-file" name="file" accept=".txt,.md,.json,.csv,.log,.pdf,.jpg,.jpeg,.png">
+                                <small>Max 25MB, supports: text files, PDF, images (JPG, PNG)</small>
+                            </div>
+                            <button type="submit" class="test-button">Test OpenAI</button>
+                        </form>
+                        <div class="test-details" id="custom-openai-results"></div>
+                    </div>
+                    
+                    <div class="test-card" id="custom-llama-card">
+                        <h3>Custom Llama Test</h3>
+                        <p>Send custom prompts and files to Llama models</p>
+                        <form id="custom-llama-form" class="custom-test-form">
+                            <div class="form-group">
+                                <label for="llama-prompt">Your Prompt:</label>
+                                <textarea id="llama-prompt" name="prompt" placeholder="Enter your custom prompt here..." rows="3" required></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="llama-system">System Message (optional):</label>
+                                <input type="text" id="llama-system" name="system_message" placeholder="You are a helpful assistant...">
+                            </div>
+                            <div class="form-group">
+                                <label for="llama-file">Upload File (optional):</label>
+                                <input type="file" id="llama-file" name="file" accept=".txt,.md,.json,.csv,.log,.pdf,.jpg,.jpeg,.png">
+                                <small>Max 25MB, supports: text files, PDF, images (JPG, PNG)</small>
+                            </div>
+                            <button type="submit" class="test-button">Test Llama</button>
+                        </form>
+                        <div class="test-details" id="custom-llama-results"></div>
+                    </div>
+                    
+                    <div class="test-card" id="custom-docintel-card">
+                        <h3>Custom Document Intelligence Test</h3>
+                        <p>Upload documents for Azure Document Intelligence analysis</p>
+                        <form id="custom-docintel-form" class="custom-test-form">
+                            <div class="form-group">
+                                <label for="docintel-prompt">Analysis Request (optional):</label>
+                                <textarea id="docintel-prompt" name="prompt" placeholder="Describe what you want to analyze in this document..." rows="2"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="docintel-file">Upload Document (required):</label>
+                                <input type="file" id="docintel-file" name="file" accept=".pdf,.jpg,.jpeg,.png,.bmp,.tiff,.tif,.docx,.xlsx,.pptx" required>
+                                <small>Max 25MB, supports: PDF, images, Office documents</small>
+                            </div>
+                            <button type="submit" class="test-button">Analyze Document</button>
+                        </form>
+                        <div class="test-details" id="custom-docintel-results"></div>
+                    </div>
+                    
+                    <div class="test-card" id="custom-embeddings-card">
+                        <h3>Custom Embedding Test</h3>
+                        <p>Generate embeddings for custom text with similarity analysis</p>
+                        <form id="custom-embeddings-form" class="custom-test-form">
+                            <div class="form-group">
+                                <label for="embeddings-text">Primary Text (required):</label>
+                                <textarea id="embeddings-text" name="text" placeholder="Enter text to generate embeddings for..." rows="3" required></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="embeddings-batch">Additional Texts (optional):</label>
+                                <textarea id="embeddings-batch" name="batch_texts" placeholder="Enter additional texts separated by commas for similarity comparison..." rows="2"></textarea>
+                                <small>Separate multiple texts with commas for batch processing and similarity analysis</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="embeddings-file">Upload File (optional):</label>
+                                <input type="file" id="embeddings-file" name="file" accept=".txt,.md,.json,.csv,.log,.pdf">
+                                <small>Max 25MB, supports: text files, PDF (images not recommended for text embeddings)</small>
+                            </div>
+                            <button type="submit" class="test-button">Generate Embeddings</button>
+                        </form>
+                        <div class="test-details" id="custom-embeddings-results"></div>
+                    </div>
+                </div>
             </div>
         </main>
         
@@ -596,6 +748,321 @@
             } catch (error) {
                 console.error('Error checking test status:', error);
             }
+        }
+        
+        // Custom AI Testing Functions
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle OpenAI custom test form
+            document.getElementById('custom-openai-form').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                await handleCustomTest('openai', this);
+            });
+            
+            // Handle Llama custom test form
+            document.getElementById('custom-llama-form').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                await handleCustomTest('llama', this);
+            });
+            
+            // Handle Document Intelligence custom test form
+            document.getElementById('custom-docintel-form').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                await handleCustomDocIntelTest(this);
+            });
+            
+            // Handle Embeddings custom test form
+            document.getElementById('custom-embeddings-form').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                await handleCustomEmbeddingsTest(this);
+            });
+        });
+        
+        async function handleCustomTest(testType, form) {
+            const resultsElement = document.getElementById(`custom-${testType}-results`);
+            const submitButton = form.querySelector('button[type="submit"]');
+            
+            try {
+                // Disable submit button and show loading
+                submitButton.disabled = true;
+                submitButton.innerHTML = `Testing ${testType}... <span class="loading-spinner"></span>`;
+                
+                // Clear previous results
+                resultsElement.innerHTML = '';
+                resultsElement.className = 'test-details';
+                
+                // Prepare form data
+                const formData = new FormData();
+                formData.append('prompt', form.prompt.value);
+                
+                if (form.system_message.value) {
+                    formData.append('system_message', form.system_message.value);
+                }
+                
+                if (form.file.files[0]) {
+                    formData.append('file', form.file.files[0]);
+                }
+                
+                // Send request
+                const response = await axios.post(`/api/tests/${testType}/custom`, formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                });
+                
+                const result = response.data;
+                
+                // Display results
+                if (result.success) {
+                    resultsElement.className = 'test-details show custom-test-results success';
+                    resultsElement.innerHTML = formatCustomTestResult(result);
+                } else {
+                    resultsElement.className = 'test-details show custom-test-results error';
+                    resultsElement.innerHTML = `❌ Test Failed: ${result.message}\\n\\n${result.remediation || ''}`;
+                }
+                
+            } catch (error) {
+                resultsElement.className = 'test-details show custom-test-results error';
+                if (error.response && error.response.data) {
+                    resultsElement.innerHTML = `❌ Error: ${error.response.data.detail}`;
+                } else {
+                    resultsElement.innerHTML = `❌ Network Error: ${error.message}`;
+                }
+            } finally {
+                // Re-enable submit button
+                submitButton.disabled = false;
+                submitButton.innerHTML = `Test ${testType.charAt(0).toUpperCase() + testType.slice(1)}`;
+            }
+        }
+        
+        function formatCustomTestResult(result) {
+            let html = `✅ Test Successful!\\n\\n`;
+            html += `Model: ${result.model}\\n`;
+            html += `Response Time: ${result.response_time_ms}ms\\n`;
+            
+            if (result.tokens_used) {
+                if (typeof result.tokens_used === 'object') {
+                    html += `Tokens Used: ${result.tokens_used.total_tokens} (prompt: ${result.tokens_used.prompt_tokens}, completion: ${result.tokens_used.completion_tokens})\\n`;
+                } else {
+                    html += `Tokens Used: ${result.tokens_used}\\n`;
+                }
+            }
+            
+            if (result.file_provided) {
+                html += `File Content: Included in analysis`;
+                if (result.file_type && result.file_type !== 'none') {
+                    html += ` (${result.file_type.toUpperCase()})`;
+                }
+                html += `\\n`;
+            }
+            
+            html += `\\n--- Response ---\\n${result.response_text}`;
+            
+            return html;
+        }
+        
+        async function handleCustomDocIntelTest(form) {
+            const resultsElement = document.getElementById('custom-docintel-results');
+            const submitButton = form.querySelector('button[type="submit"]');
+            
+            try {
+                // Disable submit button and show loading
+                submitButton.disabled = true;
+                submitButton.innerHTML = 'Analyzing Document... <span class="loading-spinner"></span>';
+                
+                // Clear previous results
+                resultsElement.innerHTML = '';
+                resultsElement.className = 'test-details';
+                
+                // Check if file is selected (required for Document Intelligence)
+                if (!form.file.files[0]) {
+                    resultsElement.className = 'test-details show custom-test-results error';
+                    resultsElement.innerHTML = '❌ Error: Please select a document to analyze';
+                    return;
+                }
+                
+                // Prepare form data
+                const formData = new FormData();
+                if (form.prompt.value) {
+                    formData.append('prompt', form.prompt.value);
+                }
+                formData.append('file', form.file.files[0]);
+                
+                // Send request
+                const response = await axios.post('/api/tests/docintel/custom', formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                });
+                
+                const result = response.data;
+                
+                // Display results
+                if (result.success) {
+                    resultsElement.className = 'test-details show custom-test-results success';
+                    resultsElement.innerHTML = formatDocIntelResult(result);
+                } else {
+                    resultsElement.className = 'test-details show custom-test-results error';
+                    resultsElement.innerHTML = `❌ Analysis Failed: ${result.message}\\n\\n${result.remediation || ''}`;
+                }
+                
+            } catch (error) {
+                resultsElement.className = 'test-details show custom-test-results error';
+                if (error.response && error.response.data) {
+                    resultsElement.innerHTML = `❌ Error: ${error.response.data.detail}`;
+                } else {
+                    resultsElement.innerHTML = `❌ Network Error: ${error.message}`;
+                }
+            } finally {
+                // Re-enable submit button
+                submitButton.disabled = false;
+                submitButton.innerHTML = 'Analyze Document';
+            }
+        }
+        
+        function formatDocIntelResult(result) {
+            let html = `✅ Document Analysis Successful!\\n\\n`;
+            html += `File Type: ${result.file_type.toUpperCase()}\\n`;
+            html += `Model Used: ${result.model_used}\\n`;
+            html += `Processing Time: ${result.processing_time_ms}ms\\n`;
+            
+            if (result.document_info) {
+                html += `\\nDocument Structure:\\n`;
+                html += `- Pages: ${result.document_info.pages}\\n`;
+                html += `- Tables: ${result.document_info.tables}\\n`;
+                html += `- Paragraphs: ${result.document_info.paragraphs}\\n`;
+                html += `- Key-Value Pairs: ${result.document_info.key_value_pairs}\\n`;
+            }
+            
+            if (result.content_length) {
+                html += `\\nContent Length: ${result.content_length} characters\\n`;
+            }
+            
+            if (result.custom_prompt) {
+                html += `\\n--- Analysis Request ---\\n${result.custom_prompt}\\n`;
+            }
+            
+            if (result.prompt_response) {
+                html += `\\n--- Analysis Response ---\\n${result.prompt_response}\\n`;
+            }
+            
+            if (result.content_preview) {
+                html += `\\n--- Extracted Content Preview ---\\n${result.content_preview}`;
+            }
+            
+            return html;
+        }
+        
+        async function handleCustomEmbeddingsTest(form) {
+            const resultsElement = document.getElementById('custom-embeddings-results');
+            const submitButton = form.querySelector('button[type="submit"]');
+            
+            try {
+                // Disable submit button and show loading
+                submitButton.disabled = true;
+                submitButton.innerHTML = 'Generating Embeddings... <span class="loading-spinner"></span>';
+                
+                // Clear previous results
+                resultsElement.innerHTML = '';
+                resultsElement.className = 'test-details';
+                
+                // Check if primary text is provided (required)
+                if (!form.text.value.trim()) {
+                    resultsElement.className = 'test-details show custom-test-results error';
+                    resultsElement.innerHTML = '❌ Error: Please enter primary text for embedding generation';
+                    return;
+                }
+                
+                // Prepare form data
+                const formData = new FormData();
+                formData.append('text', form.text.value);
+                
+                if (form.batch_texts.value.trim()) {
+                    formData.append('batch_texts', form.batch_texts.value);
+                }
+                
+                if (form.file.files[0]) {
+                    formData.append('file', form.file.files[0]);
+                }
+                
+                // Send request
+                const response = await axios.post('/api/tests/embeddings/custom', formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                });
+                
+                const result = response.data;
+                
+                // Display results
+                if (result.success) {
+                    resultsElement.className = 'test-details show custom-test-results success';
+                    resultsElement.innerHTML = formatEmbeddingsResult(result);
+                } else {
+                    resultsElement.className = 'test-details show custom-test-results error';
+                    resultsElement.innerHTML = `❌ Embedding Generation Failed: ${result.message}\\n\\n${result.remediation || ''}`;
+                }
+                
+            } catch (error) {
+                resultsElement.className = 'test-details show custom-test-results error';
+                if (error.response && error.response.data) {
+                    resultsElement.innerHTML = `❌ Error: ${error.response.data.detail}`;
+                } else {
+                    resultsElement.innerHTML = `❌ Network Error: ${error.message}`;
+                }
+            } finally {
+                // Re-enable submit button
+                submitButton.disabled = false;
+                submitButton.innerHTML = 'Generate Embeddings';
+            }
+        }
+        
+        function formatEmbeddingsResult(result) {
+            let html = `✅ Embedding Generation Successful!\\n\\n`;
+            html += `Model: ${result.model}\\n`;
+            html += `Processing Time: ${result.response_time_ms}ms\\n`;
+            html += `Embeddings Generated: ${result.embeddings_generated}\\n`;
+            html += `Embedding Dimension: ${result.embedding_dimension}\\n`;
+            
+            if (result.total_tokens_used) {
+                html += `Tokens Used: ${result.total_tokens_used}\\n`;
+            }
+            
+            if (result.file_provided) {
+                html += `File Content: Included`;
+                if (result.file_type && result.file_type !== 'none') {
+                    html += ` (${result.file_type.toUpperCase()})`;
+                }
+                html += `\\n`;
+            }
+            
+            if (result.is_batch_processing) {
+                html += `Batch Processing: Yes (${result.batch_size} texts)\\n`;
+            }
+            
+            // Show embedding statistics
+            if (result.embedding_stats && result.embedding_stats.length > 0) {
+                html += `\\n--- Embedding Statistics ---\\n`;
+                result.embedding_stats.forEach((stats, index) => {
+                    html += `\\nText ${index + 1}: "${stats.input_text}"\\n`;
+                    html += `- Dimension: ${stats.dimension}\\n`;
+                    html += `- Range: ${stats.embedding_range.min} to ${stats.embedding_range.max}\\n`;
+                    html += `- Mean: ${stats.embedding_range.mean}\\n`;
+                    if (stats.vector_norm) {
+                        html += `- Vector Norm: ${stats.vector_norm}\\n`;
+                    }
+                });
+            }
+            
+            // Show similarity analysis
+            if (result.similarities && result.similarities.length > 0) {
+                html += `\\n--- Similarity Analysis ---\\n`;
+                result.similarities.forEach(sim => {
+                    html += `\\n"${sim.text1_preview}" vs "${sim.text2_preview}"\\n`;
+                    html += `Similarity: ${sim.similarity} (${sim.similarity > 0.8 ? 'Very High' : sim.similarity > 0.6 ? 'High' : sim.similarity > 0.4 ? 'Medium' : sim.similarity > 0.2 ? 'Low' : 'Very Low'})\\n`;
+                });
+            }
+            
+            return html;
         }
     </script>
 </body>

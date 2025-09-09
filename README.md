@@ -86,6 +86,7 @@ helm install airia-test-pod ./helm/airia-test-pod -f my-test-values.yaml
 - **Azure OpenAI** - API connectivity, completion endpoints, embedding endpoints
 - **Azure Document Intelligence** - Document processing API validation
 - **Custom Embedding Models** - OpenAI-compatible embedding endpoints
+- **Custom AI Testing** - Send custom prompts and file uploads to OpenAI and Llama models for testing
 
 ### Infrastructure Services 🏗️
 - **Kubernetes Storage (PVC)** - Storage class availability, PVC creation permissions
@@ -139,6 +140,8 @@ config:
     apiKey: "your-openai-key"
     deploymentName: "gpt-35-turbo"
     embeddingDeployment: "text-embedding-ada-002"  # Optional
+    customPrompt: "Test custom functionality"      # Optional custom test prompt
+    customSystemMessage: "You are a helpful assistant"  # Optional system message
 
   # Additional optional services (see full example for details):
   # cassandra, documentIntelligence, ssl, kubernetes, minio, s3, embeddings
@@ -253,7 +256,8 @@ kubectl apply -f k8s/ingress.yaml
 - **WebSocket Integration** - Real-time test progress and status updates  
 - **JWT Authentication** - Secure login system
 - **Multiple Deployment Options** - Helm, Kubernetes, Docker
-- **Comprehensive Testing** - 6 different infrastructure tests
+- **Comprehensive Testing** - 7 different infrastructure tests
+- **Custom AI Testing** - Send custom prompts and files to AI models via web interface
 - **Production Ready** - RBAC, security contexts, resource limits
 
 ## 🏗️ Architecture

@@ -16,3 +16,5 @@ azure-ai-formrecognizer==3.3.0
 boto3==1.34.0
 numpy==1.24.3
 cassandra-driver==3.29.0
+pypdf2==3.0.1
+pillow==10.1.0

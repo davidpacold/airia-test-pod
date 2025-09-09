@@ -247,3 +247,91 @@ What are the key capabilities of Llama models? [/INST]"""
                 "message": f"Llama prompt test failed: {str(e)}",
                 "remediation": "Verify Llama model compatibility and prompt format"
             }
+    
+    def test_with_custom_input(self, custom_prompt: str, custom_file_content: str = None, file_type: str = None, system_message: str = None) -> Dict[str, Any]:
+        """Test with custom user input - can be called directly from API"""
+        try:
+            # Determine which configuration to use
+            use_llama_config = bool(self.llama_base_url)
+            
+            if use_llama_config:
+                client = OpenAI(
+                    api_key=self.llama_api_key,
+                    base_url=self.llama_base_url,
+                    timeout=self.request_timeout
+                )
+                model_name = self.llama_model_name
+                max_tokens = self.llama_max_tokens
+                temperature = self.llama_temperature
+            else:
+                client = OpenAI(
+                    api_key=self.openai_api_key,
+                    base_url=self.openai_base_url,
+                    timeout=self.request_timeout
+                )
+                model_name = self.openai_model_name
+                max_tokens = 150
+                temperature = 0.7
+            
+            start_time = time.time()
+            
+            # Prepare messages
+            messages = []
+            if system_message:
+                messages.append({"role": "system", "content": system_message})
+            else:
+                messages.append({"role": "system", "content": "You are a helpful AI assistant."})
+            
+            # If file content is provided, include it in the prompt based on file type
+            user_content = custom_prompt
+            if custom_file_content:
+                if file_type == 'pdf':
+                    user_content = f"Here is a PDF document to analyze:\n\n{custom_file_content}\n\nUser request: {custom_prompt}"
+                elif file_type in ['jpg', 'jpeg', 'png']:
+                    # For image files, most Llama models don't support vision
+                    user_content = f"Here is an image file (base64 encoded) to analyze. The image is a {file_type.upper()} file.\n\nUser request: {custom_prompt}\n\nNote: This Llama model may not support image analysis. Consider using a multimodal Llama variant."
+                else:
+                    # Text files
+                    user_content = f"Here is some file content to analyze:\n\n{custom_file_content}\n\nUser request: {custom_prompt}"
+            
+            messages.append({"role": "user", "content": user_content})
+            
+            response = client.chat.completions.create(
+                model=model_name,
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=temperature
+            )
+            
+            duration = time.time() - start_time
+            
+            if response.choices and response.choices[0].message.content:
+                content = response.choices[0].message.content.strip()
+                
+                return {
+                    "success": True,
+                    "message": "Custom input test successful",
+                    "model": model_name,
+                    "prompt": custom_prompt,
+                    "file_provided": bool(custom_file_content),
+                    "file_type": file_type or "none",
+                    "system_message": system_message or "You are a helpful AI assistant.",
+                    "response_text": content,
+                    "response_time_ms": round(duration * 1000, 2),
+                    "response_length": len(content),
+                    "tokens_used": getattr(response.usage, 'total_tokens', None) if hasattr(response, 'usage') else None
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": "No response content generated",
+                    "remediation": "Check model configuration and prompt format"
+                }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"Custom input test failed: {str(e)}",
+                "error": str(e),
+                "remediation": "Check API configuration and input format"
+            }

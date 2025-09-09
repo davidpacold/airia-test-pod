@@ -31,6 +31,10 @@ class OpenAITest(BaseTest):
         self.test_embedding = os.getenv("TEST_EMBEDDING", "true").lower() == "true"
         self.request_timeout = int(os.getenv("OPENAI_TIMEOUT", "30"))
         
+        # Custom test configuration
+        self.custom_test_prompt = os.getenv("OPENAI_CUSTOM_PROMPT", "")
+        self.custom_system_message = os.getenv("OPENAI_CUSTOM_SYSTEM_MESSAGE", "You are a helpful assistant.")
+        
     @property
     def test_name(self) -> str:
         return "AI Models (OpenAI/Llama)"
@@ -138,6 +142,15 @@ class OpenAITest(BaseTest):
                     all_passed = False
             else:
                 result.add_log("INFO", "Skipping embedding test - not configured or disabled")
+            
+            # Test 4: Custom prompt test (if configured)
+            if self.custom_test_prompt and completion_model:
+                custom_result = self._test_custom_prompt(client, completion_model, use_azure)
+                result.add_sub_test("Custom Prompt", custom_result)
+                if not custom_result["success"]:
+                    all_passed = False
+            else:
+                result.add_log("INFO", "Skipping custom prompt test - no custom prompt configured")
             
             if all_passed:
                 result.complete(True, "All OpenAI API tests passed successfully")
@@ -316,4 +329,139 @@ class OpenAITest(BaseTest):
                 "message": f"Embedding test failed: {str(e)}",
                 "error": str(e),
                 "remediation": "Check embedding model deployment name and API permissions"
+            }
+    
+    def _test_custom_prompt(self, client, model: str, use_azure: bool) -> Dict[str, Any]:
+        """Test custom prompt functionality"""
+        try:
+            start_time = time.time()
+            
+            # Use custom prompt
+            test_messages = [
+                {"role": "system", "content": self.custom_system_message},
+                {"role": "user", "content": self.custom_test_prompt}
+            ]
+            
+            response = client.chat.completions.create(
+                model=model,
+                messages=test_messages,
+                max_tokens=150,  # Allow more tokens for custom responses
+                temperature=0.7  # Allow some creativity
+            )
+            
+            duration = time.time() - start_time
+            
+            # Extract response details
+            choice = response.choices[0]
+            response_text = choice.message.content.strip()
+            
+            return {
+                "success": True,
+                "message": f"Custom prompt test successful",
+                "model": model,
+                "prompt": self.custom_test_prompt,
+                "system_message": self.custom_system_message,
+                "response_text": response_text,
+                "response_time_ms": round(duration * 1000, 2),
+                "tokens_used": {
+                    "prompt_tokens": response.usage.prompt_tokens,
+                    "completion_tokens": response.usage.completion_tokens,
+                    "total_tokens": response.usage.total_tokens
+                },
+                "finish_reason": choice.finish_reason
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"Custom prompt test failed: {str(e)}",
+                "error": str(e),
+                "remediation": "Check custom prompt format and model permissions"
+            }
+    
+    def test_with_custom_input(self, custom_prompt: str, custom_file_content: str = None, file_type: str = None, system_message: str = None) -> Dict[str, Any]:
+        """Test with custom user input - can be called directly from API"""
+        try:
+            # Determine which configuration to use
+            use_azure = (
+                self.azure_endpoint and 
+                self.azure_api_key and 
+                self.azure_deployment_name
+            )
+            
+            if use_azure:
+                client = AzureOpenAI(
+                    api_key=self.azure_api_key,
+                    api_version=self.azure_api_version,
+                    azure_endpoint=self.azure_endpoint,
+                    timeout=self.request_timeout
+                )
+                completion_model = self.azure_deployment_name
+            else:
+                client = OpenAI(
+                    api_key=self.openai_api_key,
+                    base_url=self.openai_base_url,
+                    timeout=self.request_timeout
+                )
+                completion_model = self.openai_model_name
+            
+            start_time = time.time()
+            
+            # Prepare messages
+            messages = []
+            if system_message:
+                messages.append({"role": "system", "content": system_message})
+            
+            # If file content is provided, include it in the prompt based on file type
+            user_content = custom_prompt
+            if custom_file_content:
+                if file_type == 'pdf':
+                    user_content = f"Here is a PDF document to analyze:\n\n{custom_file_content}\n\nUser request: {custom_prompt}"
+                elif file_type in ['jpg', 'jpeg', 'png']:
+                    # For image files, we'll need vision model support
+                    # For now, treat as base64 data with description
+                    user_content = f"Here is an image file (base64 encoded) to analyze. The image is a {file_type.upper()} file.\n\nUser request: {custom_prompt}\n\nNote: This model may not support image analysis. Consider using GPT-4V or similar vision model."
+                else:
+                    # Text files
+                    user_content = f"Here is some file content to analyze:\n\n{custom_file_content}\n\nUser request: {custom_prompt}"
+            
+            messages.append({"role": "user", "content": user_content})
+            
+            response = client.chat.completions.create(
+                model=completion_model,
+                messages=messages,
+                max_tokens=500,  # Allow more tokens for custom responses
+                temperature=0.7
+            )
+            
+            duration = time.time() - start_time
+            
+            # Extract response details
+            choice = response.choices[0]
+            response_text = choice.message.content.strip()
+            
+            return {
+                "success": True,
+                "message": "Custom input test successful",
+                "model": completion_model,
+                "prompt": custom_prompt,
+                "file_provided": bool(custom_file_content),
+                "file_type": file_type or "none",
+                "system_message": system_message or "None",
+                "response_text": response_text,
+                "response_time_ms": round(duration * 1000, 2),
+                "tokens_used": {
+                    "prompt_tokens": response.usage.prompt_tokens,
+                    "completion_tokens": response.usage.completion_tokens,
+                    "total_tokens": response.usage.total_tokens
+                },
+                "finish_reason": choice.finish_reason
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"Custom input test failed: {str(e)}",
+                "error": str(e),
+                "remediation": "Check API configuration and input format"
             }

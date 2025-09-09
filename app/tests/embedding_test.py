@@ -450,3 +450,140 @@ class EmbeddingTest(BaseTest):
                 "message": f"Similarity validation failed: {str(e)}",
                 "error": str(e)
             }
+    
+    def test_with_custom_input(self, custom_text: str, custom_file_content: str = None, file_type: str = None, batch_texts: List[str] = None) -> Dict[str, Any]:
+        """Test embedding generation with custom user input"""
+        try:
+            if not self.is_configured():
+                return {
+                    "success": False,
+                    "message": "Embedding model not configured",
+                    "remediation": self.get_configuration_help()
+                }
+            
+            client = self._get_client()
+            start_time = datetime.now()
+            
+            # Prepare input text(s)
+            input_texts = []
+            
+            # Add custom text
+            if custom_text:
+                input_texts.append(custom_text)
+            
+            # Add file content if provided
+            if custom_file_content:
+                if file_type == 'pdf':
+                    input_texts.append(f"PDF Content:\n{custom_file_content}")
+                elif file_type in ['jpg', 'jpeg', 'png']:
+                    # For images, we can't generate text embeddings directly
+                    # Instead, we'll create a description
+                    input_texts.append(f"Image file ({file_type.upper()}) - Note: This is base64 encoded image data, not suitable for text embeddings")
+                else:
+                    # Text files
+                    input_texts.append(f"File Content:\n{custom_file_content}")
+            
+            # Add batch texts if provided
+            if batch_texts:
+                input_texts.extend(batch_texts)
+            
+            # If no input provided, use default
+            if not input_texts:
+                input_texts = ["Default embedding test text"]
+            
+            # Determine if single or batch processing
+            is_batch = len(input_texts) > 1
+            embedding_input = input_texts if is_batch else input_texts[0]
+            
+            # Generate embeddings
+            response = client.embeddings.create(
+                model=self.model_name,
+                input=embedding_input,
+                encoding_format="float"
+            )
+            
+            end_time = datetime.now()
+            response_time = (end_time - start_time).total_seconds()
+            
+            # Process results
+            embeddings_data = response.data
+            embeddings = [item.embedding for item in embeddings_data]
+            
+            # Calculate embedding statistics
+            embedding_stats = []
+            for i, embedding in enumerate(embeddings):
+                stats = {
+                    "index": i,
+                    "input_text": input_texts[i][:100] + "..." if len(input_texts[i]) > 100 else input_texts[i],
+                    "dimension": len(embedding),
+                    "embedding_range": {
+                        "min": round(min(embedding), 6),
+                        "max": round(max(embedding), 6),
+                        "mean": round(sum(embedding) / len(embedding), 6)
+                    },
+                    "vector_norm": round(float(np.linalg.norm(embedding)), 6) if HAS_NUMPY else None
+                }
+                embedding_stats.append(stats)
+            
+            # Calculate similarities if multiple embeddings
+            similarities = []
+            if len(embeddings) > 1 and HAS_NUMPY:
+                def cosine_similarity(a, b):
+                    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+                
+                for i in range(len(embeddings)):
+                    for j in range(i + 1, len(embeddings)):
+                        sim = cosine_similarity(np.array(embeddings[i]), np.array(embeddings[j]))
+                        similarities.append({
+                            "text1_index": i,
+                            "text2_index": j,
+                            "similarity": round(float(sim), 4),
+                            "text1_preview": input_texts[i][:50] + "..." if len(input_texts[i]) > 50 else input_texts[i],
+                            "text2_preview": input_texts[j][:50] + "..." if len(input_texts[j]) > 50 else input_texts[j]
+                        })
+            
+            return {
+                "success": True,
+                "message": "Custom embedding generation successful",
+                "model": self.model_name,
+                "custom_text_provided": bool(custom_text),
+                "file_provided": bool(custom_file_content),
+                "file_type": file_type or "none",
+                "batch_size": len(input_texts),
+                "is_batch_processing": is_batch,
+                "response_time_ms": round(response_time * 1000, 2),
+                "embedding_stats": embedding_stats,
+                "similarities": similarities if similarities else None,
+                "total_tokens_used": getattr(response, 'usage', {}).total_tokens if hasattr(response, 'usage') else None,
+                "embeddings_generated": len(embeddings),
+                "embedding_dimension": len(embeddings[0]) if embeddings else 0
+            }
+            
+        except openai.AuthenticationError as e:
+            return {
+                "success": False,
+                "message": "Authentication failed",
+                "error": str(e),
+                "remediation": "Check EMBEDDING_API_KEY configuration"
+            }
+        except openai.NotFoundError as e:
+            return {
+                "success": False,
+                "message": f"Model '{self.model_name}' not found",
+                "error": str(e),
+                "remediation": "Check EMBEDDING_MODEL_NAME configuration"
+            }
+        except openai.RateLimitError as e:
+            return {
+                "success": False,
+                "message": "Rate limit exceeded",
+                "error": str(e),
+                "remediation": "Check API usage limits and try again later"
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"Custom embedding test failed: {str(e)}",
+                "error": str(e),
+                "remediation": "Check embedding service configuration and input format"
+            }
