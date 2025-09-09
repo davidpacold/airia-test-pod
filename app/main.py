@@ -22,6 +22,7 @@ from .utils.sanitization import (
     InputSanitizer, 
     validate_file_upload
 )
+from .utils.file_handler import FileUploadHandler
 from .exceptions import (
     setup_error_handlers,
     TestPodException,
@@ -232,10 +233,8 @@ async def test_openai_custom(
         if system_message:
             sanitized_system_message = sanitize_user_input(system_message)
         
-        # Validate file if provided
-        file_info = None
-        if file:
-            file_info = await validate_file_upload(file, max_size_mb=5)
+        # Process file upload if provided
+        processed_file = await FileUploadHandler.process_ai_model_upload(file)
         
         # Get OpenAI test instance
         from .tests.openai_test import OpenAITest
@@ -249,55 +248,11 @@ async def test_openai_custom(
                 remediation="Please configure OpenAI API key and endpoint in your environment variables"
             )
         
-        # Read file content if provided
-        file_content = None
-        file_type = None
-        if file:
-            # Check file size (limit to 25MB)
-            content = await file.read()
-            if len(content) > 25 * 1024 * 1024:  # 25MB limit
-                raise ValidationError(
-                    message="File too large (max 25MB)",
-                    error_code=ErrorCode.FILE_INVALID,
-                    field_name="file",
-                    provided_value=f"{len(content)} bytes",
-                    remediation="Please upload a file smaller than 25MB"
-                )
-            
-            # Get file extension to determine processing method
-            file_extension = file.filename.lower().split('.')[-1] if '.' in file.filename else ''
-            
-            if file_extension in ['txt', 'md', 'json', 'csv', 'log']:
-                # Text files - decode as UTF-8
-                try:
-                    file_content = content.decode('utf-8')
-                    file_type = 'text'
-                except UnicodeDecodeError:
-                    raise HTTPException(status_code=400, detail="Text file must be UTF-8 encoded")
-            elif file_extension == 'pdf':
-                # PDF files - extract text
-                try:
-                    from .utils.file_processors import process_pdf
-                    file_content = process_pdf(content)
-                    file_type = 'pdf'
-                except Exception as e:
-                    raise HTTPException(status_code=400, detail=f"Failed to process PDF: {str(e)}")
-            elif file_extension in ['jpg', 'jpeg', 'png']:
-                # Image files - encode as base64 for vision models
-                try:
-                    import base64
-                    file_content = base64.b64encode(content).decode('utf-8')
-                    file_type = file_extension
-                except Exception as e:
-                    raise HTTPException(status_code=400, detail=f"Failed to process image: {str(e)}")
-            else:
-                raise HTTPException(status_code=400, detail="Unsupported file type. Supported: txt, md, json, csv, log, pdf, jpg, jpeg, png")
-        
         # Run custom test with sanitized inputs
         result = openai_test.test_with_custom_input(
             custom_prompt=sanitized_prompt,
-            custom_file_content=file_content,
-            file_type=file_type,
+            custom_file_content=processed_file.content if processed_file else None,
+            file_type=processed_file.file_type if processed_file else None,
             system_message=sanitized_system_message
         )
         
@@ -331,72 +286,52 @@ async def test_llama_custom(
         if system_message:
             sanitized_system_message = sanitize_user_input(system_message)
         
-        # Validate file if provided
-        file_info = None
-        if file:
-            file_info = await validate_file_upload(file, max_size_mb=5)
+        # Process file upload if provided  
+        processed_file = await FileUploadHandler.process_ai_model_upload(file)
+        
         # Get Llama test instance
         from .tests.llama_test import LlamaTest
         llama_test = LlamaTest()
         
         if not llama_test.is_configured():
-            raise HTTPException(status_code=400, detail="Llama test not configured")
-        
-        # Read file content if provided
-        file_content = None
-        file_type = None
-        if file:
-            # Check file size (limit to 25MB)
-            content = await file.read()
-            if len(content) > 25 * 1024 * 1024:  # 25MB limit
-                raise HTTPException(status_code=400, detail="File too large (max 25MB)")
-            
-            # Get file extension to determine processing method
-            file_extension = file.filename.lower().split('.')[-1] if '.' in file.filename else ''
-            
-            if file_extension in ['txt', 'md', 'json', 'csv', 'log']:
-                # Text files - decode as UTF-8
-                try:
-                    file_content = content.decode('utf-8')
-                    file_type = 'text'
-                except UnicodeDecodeError:
-                    raise HTTPException(status_code=400, detail="Text file must be UTF-8 encoded")
-            elif file_extension == 'pdf':
-                # PDF files - extract text
-                try:
-                    from .utils.file_processors import process_pdf
-                    file_content = process_pdf(content)
-                    file_type = 'pdf'
-                except Exception as e:
-                    raise HTTPException(status_code=400, detail=f"Failed to process PDF: {str(e)}")
-            elif file_extension in ['jpg', 'jpeg', 'png']:
-                # Image files - encode as base64 for vision models
-                try:
-                    import base64
-                    file_content = base64.b64encode(content).decode('utf-8')
-                    file_type = file_extension
-                except Exception as e:
-                    raise HTTPException(status_code=400, detail=f"Failed to process image: {str(e)}")
-            else:
-                raise HTTPException(status_code=400, detail="Unsupported file type. Supported: txt, md, json, csv, log, pdf, jpg, jpeg, png")
+            raise ConfigurationError(
+                message="Llama test not configured",
+                error_code=ErrorCode.CONFIG_REQUIRED,
+                service_name="Llama",
+                remediation="Please configure Llama API key and endpoint in your environment variables"
+            )
         
         # Run custom test with sanitized inputs
         if hasattr(llama_test, 'test_with_custom_input'):
             result = llama_test.test_with_custom_input(
                 custom_prompt=sanitized_prompt,
-                custom_file_content=file_content,
-                file_type=file_type,
+                custom_file_content=processed_file.content if processed_file else None,
+                file_type=processed_file.file_type if processed_file else None,
                 system_message=sanitized_system_message
             )
         else:
-            raise HTTPException(status_code=501, detail="Custom input not yet implemented for Llama test")
+            raise TestExecutionError(
+                message="Custom input not yet implemented for Llama test",
+                error_code=ErrorCode.TEST_CONFIGURATION_ERROR,
+                test_id="llama_custom",
+                service_name="Llama",
+                remediation="Please contact support to enable custom input functionality for Llama"
+            )
         
         return JSONResponse(content=result)
         
-    except HTTPException:
+    except (TestPodException, HTTPException):
+        # Let our custom exceptions and HTTP exceptions pass through
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Custom Llama test failed: {str(e)}")
+        raise TestExecutionError(
+            message=f"Llama custom test failed: {str(e)}",
+            error_code=ErrorCode.TEST_FAILED,
+            test_id="llama_custom",
+            service_name="Llama",
+            details={"original_error": str(e), "error_type": type(e).__name__},
+            remediation="Please check your Llama configuration and try again. If the problem persists, check the service status."
+        )
 
 @app.post("/api/tests/docintel/custom")
 async def test_docintel_custom(
@@ -411,40 +346,46 @@ async def test_docintel_custom(
         if prompt:
             sanitized_prompt = sanitize_ai_prompt(prompt)
         
-        # Validate file
-        file_info = await validate_file_upload(file, max_size_mb=25)
+        # Process file upload (Document Intelligence requires a file)
+        processed_file = await FileUploadHandler.process_document_intel_upload(file)
+        
         # Get Document Intelligence test instance
         from .tests.document_intelligence_test import DocumentIntelligenceTest
         docintel_test = DocumentIntelligenceTest()
         
         if not docintel_test.is_configured():
-            raise HTTPException(status_code=400, detail="Document Intelligence test not configured")
+            raise ConfigurationError(
+                message="Document Intelligence test not configured",
+                error_code=ErrorCode.CONFIG_REQUIRED,
+                service_name="DocumentIntelligence",
+                remediation="Please configure Azure Document Intelligence API key and endpoint in your environment variables"
+            )
         
-        # Check file size (limit to 25MB)
+        # Read original file content for Document Intelligence API
+        await file.seek(0)  # Reset file pointer
         content = await file.read()
-        if len(content) > 25 * 1024 * 1024:  # 25MB limit
-            raise HTTPException(status_code=400, detail="File too large (max 25MB)")
-        
-        # Get file extension to determine processing method
-        file_extension = file.filename.lower().split('.')[-1] if '.' in file.filename else ''
-        
-        # Document Intelligence supports many formats: PDF, images, Office docs, etc.
-        if file_extension not in ['pdf', 'jpg', 'jpeg', 'png', 'bmp', 'tiff', 'tif', 'docx', 'xlsx', 'pptx']:
-            raise HTTPException(status_code=400, detail="Unsupported file type for Document Intelligence. Supported: PDF, images (jpg, png, bmp, tiff), Office documents (docx, xlsx, pptx)")
         
         # Run custom test with sanitized inputs
         result = docintel_test.test_with_custom_file(
             file_content=content,
-            file_type=file_extension,
+            file_type=processed_file.extension,
             custom_prompt=sanitized_prompt
         )
         
         return JSONResponse(content=result)
         
-    except HTTPException:
+    except (TestPodException, HTTPException):
+        # Let our custom exceptions and HTTP exceptions pass through
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Custom Document Intelligence test failed: {str(e)}")
+        raise TestExecutionError(
+            message=f"Document Intelligence custom test failed: {str(e)}",
+            error_code=ErrorCode.TEST_FAILED,
+            test_id="docintel_custom",
+            service_name="DocumentIntelligence",
+            details={"original_error": str(e), "error_type": type(e).__name__},
+            remediation="Please check your Document Intelligence configuration and try again. If the problem persists, check the service status."
+        )
 
 @app.post("/api/tests/embeddings/custom")
 async def test_embeddings_custom(
@@ -459,54 +400,20 @@ async def test_embeddings_custom(
         sanitized_text = sanitize_user_input(text)
         sanitized_batch_texts = InputSanitizer.sanitize_batch_texts(batch_texts)
         
-        # Validate file if provided
-        file_info = None
-        if file:
-            file_info = await validate_file_upload(file, max_size_mb=25)
+        # Process file upload if provided
+        processed_file = await FileUploadHandler.process_embedding_upload(file)
+        
         # Get Embedding test instance
         from .tests.embedding_test import EmbeddingTest
         embedding_test = EmbeddingTest()
         
         if not embedding_test.is_configured():
-            raise HTTPException(status_code=400, detail="Embedding test not configured")
-        
-        # Process file content if provided
-        file_content = None
-        file_type = None
-        if file:
-            # Check file size (limit to 25MB)
-            content = await file.read()
-            if len(content) > 25 * 1024 * 1024:  # 25MB limit
-                raise HTTPException(status_code=400, detail="File too large (max 25MB)")
-            
-            # Get file extension to determine processing method
-            file_extension = file.filename.lower().split('.')[-1] if '.' in file.filename else ''
-            
-            if file_extension in ['txt', 'md', 'json', 'csv', 'log']:
-                # Text files - decode as UTF-8
-                try:
-                    file_content = content.decode('utf-8')
-                    file_type = 'text'
-                except UnicodeDecodeError:
-                    raise HTTPException(status_code=400, detail="Text file must be UTF-8 encoded")
-            elif file_extension == 'pdf':
-                # PDF files - extract text
-                try:
-                    from .utils.file_processors import process_pdf
-                    file_content = process_pdf(content)
-                    file_type = 'pdf'
-                except Exception as e:
-                    raise HTTPException(status_code=400, detail=f"Failed to process PDF: {str(e)}")
-            elif file_extension in ['jpg', 'jpeg', 'png']:
-                # Image files - note that these aren't ideal for text embeddings
-                try:
-                    import base64
-                    file_content = base64.b64encode(content).decode('utf-8')
-                    file_type = file_extension
-                except Exception as e:
-                    raise HTTPException(status_code=400, detail=f"Failed to process image: {str(e)}")
-            else:
-                raise HTTPException(status_code=400, detail="Unsupported file type for embeddings. Supported: txt, md, json, csv, log, pdf")
+            raise ConfigurationError(
+                message="Embedding test not configured",
+                error_code=ErrorCode.CONFIG_REQUIRED,
+                service_name="Embeddings",
+                remediation="Please configure embedding API key and endpoint in your environment variables"
+            )
         
         # Use sanitized batch texts
         batch_text_list = sanitized_batch_texts if sanitized_batch_texts else None
@@ -514,17 +421,25 @@ async def test_embeddings_custom(
         # Run custom test with sanitized inputs
         result = embedding_test.test_with_custom_input(
             custom_text=sanitized_text,
-            custom_file_content=file_content,
-            file_type=file_type,
+            custom_file_content=processed_file.content if processed_file else None,
+            file_type=processed_file.file_type if processed_file else None,
             batch_texts=batch_text_list
         )
         
         return JSONResponse(content=result)
         
-    except HTTPException:
+    except (TestPodException, HTTPException):
+        # Let our custom exceptions and HTTP exceptions pass through
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Custom embedding test failed: {str(e)}")
+        raise TestExecutionError(
+            message=f"Embedding custom test failed: {str(e)}",
+            error_code=ErrorCode.TEST_FAILED,
+            test_id="embedding_custom",
+            service_name="Embeddings",
+            details={"original_error": str(e), "error_type": type(e).__name__},
+            remediation="Please check your embedding configuration and try again. If the problem persists, check the service status."
+        )
 
 # Legacy endpoint for backward compatibility
 @app.post("/api/tests/postgres")
