@@ -166,7 +166,7 @@ jobs:
         echo "✅ Updated template fallback versions"
         
         # Set outputs for next steps
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "docker_version=$VERSION" >> $GITHUB_OUTPUT
         echo "trigger_docker_build=true" >> $GITHUB_OUTPUT
 
     - name: Post-update version consistency validation
