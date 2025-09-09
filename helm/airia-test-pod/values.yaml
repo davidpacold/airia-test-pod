@@ -6,8 +6,8 @@ replicaCount: 1
 
 image:
   repository: ghcr.io/davidpacold/airia-test-pod
-  pullPolicy: IfNotPresent
-  tag: "latest"
+  pullPolicy: Always
+  # tag defaults to .Chart.AppVersion if not specified
 
 imagePullSecrets: []
 nameOverride: ""
