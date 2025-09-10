@@ -91,19 +91,46 @@ class PVCTest(BaseTest):
                 # Test 5: Cleanup - Delete test PVC
                 self._test_pvc_deletion(v1, test_pvc_name, result)
 
-            # Determine overall status
-            failed_tests = [
-                name
-                for name, test_result in result.sub_tests.items()
-                if not test_result.get("success", False)
-            ]
+            # Determine overall status - focus on essential PVC operations
+            # Storage class listing and namespace access may fail with limited RBAC (this is OK)
+            # The critical tests are PVC creation, status, and cleanup
+            essential_tests = ["PVC Creation", "PVC Status", "PVC Cleanup"]
+            auxiliary_tests = ["List Storage Classes", "Namespace Access"]
+            
+            failed_essential_tests = []
+            failed_auxiliary_tests = []
+            limited_permissions_detected = False
+            
+            for name, test_result in result.sub_tests.items():
+                if not test_result.get("success", False):
+                    if name in essential_tests:
+                        failed_essential_tests.append(name)
+                    else:
+                        failed_auxiliary_tests.append(name)
+                elif test_result.get("limited_permissions", False):
+                    limited_permissions_detected = True
 
-            if not failed_tests:
-                result.complete(True, "All PVC tests passed successfully")
+            if not failed_essential_tests:
+                if limited_permissions_detected:
+                    success_message = "PVC tests completed successfully (using least-privilege RBAC policy)"
+                    additional_info = {
+                        "namespace": self.namespace,
+                        "storage_class": self.storage_class,
+                        "security_note": "Using namespace-scoped permissions - recommended configuration",
+                    }
+                else:
+                    success_message = "All PVC tests passed successfully"
+                    additional_info = {
+                        "namespace": self.namespace,
+                        "storage_class": self.storage_class,
+                    }
+                
+                result.complete(True, success_message, additional_info)
             else:
+                # Only fail if essential PVC operations don't work
                 result.fail(
-                    f"Failed sub-tests: {', '.join(failed_tests)}",
-                    remediation="Check RBAC permissions, storage classes, and cluster configuration",
+                    f"Essential PVC operations failed: {', '.join(failed_essential_tests)}",
+                    remediation="Check RBAC permissions for PVC operations and storage class availability",
                 )
 
         except Exception as e:
@@ -158,14 +185,30 @@ class PVCTest(BaseTest):
             )
 
         except ApiException as e:
-            result.add_sub_test(
-                "List Storage Classes",
-                {
-                    "success": False,
-                    "message": f"Failed to list storage classes: {e.reason}",
-                    "remediation": "Check RBAC permissions for storage class access",
-                },
-            )
+            # Handle RBAC permission limitations gracefully
+            if e.status == 403:  # Forbidden - RBAC limitation
+                result.add_sub_test(
+                    "List Storage Classes",
+                    {
+                        "success": True,
+                        "message": "Skipped: Limited RBAC permissions (security best practice)",
+                        "details": {
+                            "note": "Using namespace-scoped permissions instead of cluster-wide access",
+                            "recommendation": "This is a recommended secure RBAC configuration",
+                            "configured_class": self.storage_class,
+                        },
+                        "limited_permissions": True,
+                    },
+                )
+            else:
+                result.add_sub_test(
+                    "List Storage Classes",
+                    {
+                        "success": False,
+                        "message": f"Failed to list storage classes: {e.reason}",
+                        "remediation": "Check cluster configuration and storage class availability",
+                    },
+                )
 
     def _test_namespace_access(self, v1: client.CoreV1Api, result: TestResult):
         """Test namespace access"""
@@ -182,14 +225,29 @@ class PVCTest(BaseTest):
             )
 
         except ApiException as e:
-            result.add_sub_test(
-                "Namespace Access",
-                {
-                    "success": False,
-                    "message": f"Failed to access namespace '{self.namespace}': {e.reason}",
-                    "remediation": f"Ensure namespace '{self.namespace}' exists and pod has access",
-                },
-            )
+            # Handle RBAC permission limitations gracefully
+            if e.status == 403:  # Forbidden - may still have PVC permissions within namespace
+                result.add_sub_test(
+                    "Namespace Access",
+                    {
+                        "success": True,
+                        "message": f"Limited namespace read permissions (proceeding with PVC test)",
+                        "details": {
+                            "note": f"Cannot read namespace '{self.namespace}' metadata but may still have PVC permissions",
+                            "recommendation": "This is acceptable for namespace-scoped RBAC policies",
+                        },
+                        "limited_permissions": True,
+                    },
+                )
+            else:
+                result.add_sub_test(
+                    "Namespace Access",
+                    {
+                        "success": False,
+                        "message": f"Failed to access namespace '{self.namespace}': {e.reason}",
+                        "remediation": f"Ensure namespace '{self.namespace}' exists and pod has access",
+                    },
+                )
 
     def _test_pvc_creation(
         self, v1: client.CoreV1Api, pvc_name: str, result: TestResult

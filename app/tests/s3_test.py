@@ -101,37 +101,56 @@ class S3Test(BaseTest):
             versioning_result = self._test_bucket_versioning()
             result.add_sub_test("versioning_check", versioning_result)
 
-            # Determine overall success
-            critical_tests_passed = (
-                connection_result["success"]
-                and list_buckets_result["success"]
-                and bucket_access_result["success"]
+            # Determine overall success - focus on bucket-specific operations
+            # Connection and list_buckets may fail with limited permissions (this is OK)
+            # The critical test is bucket_access - can we work with the specified bucket?
+            bucket_operations_work = bucket_access_result["success"]
+            
+            # Check if we're using limited permissions (security best practice)
+            using_limited_permissions = (
+                connection_result.get("limited_permissions", False) or
+                list_buckets_result.get("limited_permissions", False)
             )
 
-            if critical_tests_passed:
-                result.complete(
-                    True,
-                    "Amazon S3 storage tests completed successfully",
-                    {
+            if bucket_operations_work:
+                if using_limited_permissions:
+                    success_message = "Amazon S3 storage tests completed successfully (using least-privilege IAM policy)"
+                    additional_info = {
                         "region": self.aws_region,
                         "bucket": self.bucket_name,
                         "endpoint": self.endpoint_url
                         or f"https://s3.{self.aws_region}.amazonaws.com",
-                    },
-                )
+                        "security_note": "Using bucket-scoped permissions - recommended configuration",
+                    }
+                else:
+                    success_message = "Amazon S3 storage tests completed successfully"
+                    additional_info = {
+                        "region": self.aws_region,
+                        "bucket": self.bucket_name,
+                        "endpoint": self.endpoint_url
+                        or f"https://s3.{self.aws_region}.amazonaws.com",
+                    }
+                
+                result.complete(True, success_message, additional_info)
             else:
+                # Only fail if bucket-specific operations don't work
                 failed_tests = []
-                if not connection_result["success"]:
+                if not connection_result["success"] and not connection_result.get("limited_permissions", False):
                     failed_tests.append("connection")
-                if not list_buckets_result["success"]:
-                    failed_tests.append("list_buckets")
                 if not bucket_access_result["success"]:
                     failed_tests.append("bucket_access")
 
-                result.fail(
-                    f"Amazon S3 storage tests failed: {', '.join(failed_tests)}",
-                    remediation="Check AWS credentials, region, and IAM permissions",
-                )
+                if failed_tests:
+                    result.fail(
+                        f"Amazon S3 storage tests failed: {', '.join(failed_tests)}",
+                        remediation="Check AWS credentials, region, bucket name, and IAM permissions for bucket access",
+                    )
+                else:
+                    # This shouldn't happen, but handle gracefully
+                    result.fail(
+                        "Amazon S3 storage tests failed: Unable to access specified bucket",
+                        remediation="Check bucket name and IAM permissions for bucket access",
+                    )
 
         except Exception as e:
             result.fail(
@@ -204,6 +223,18 @@ class S3Test(BaseTest):
             }
         except ClientError as e:
             error_code = e.response["Error"]["Code"]
+            if error_code == "AccessDenied":
+                return {
+                    "success": True,
+                    "message": "Using bucket-scoped permissions (secure configuration)",
+                    "details": {
+                        "region": self.aws_region,
+                        "endpoint": self.endpoint_url
+                        or f"https://s3.{self.aws_region}.amazonaws.com",
+                        "note": "Limited IAM permissions detected - this is a security best practice",
+                    },
+                    "limited_permissions": True,
+                }
             return {
                 "success": False,
                 "message": f"AWS S3 connection failed: {error_code}",
@@ -251,10 +282,13 @@ class S3Test(BaseTest):
             error_code = e.response["Error"]["Code"]
             if error_code == "AccessDenied":
                 return {
-                    "success": False,
-                    "message": "Access denied to list buckets",
-                    "error": str(e),
-                    "remediation": "Check IAM permissions for s3:ListAllMyBuckets",
+                    "success": True,
+                    "message": "Skipped: Limited IAM permissions (security best practice)",
+                    "details": {
+                        "note": "Using bucket-scoped permissions instead of account-wide access",
+                        "recommendation": "This is the recommended secure configuration",
+                    },
+                    "limited_permissions": True,
                 }
             return {
                 "success": False,
