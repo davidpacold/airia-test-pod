@@ -86,7 +86,7 @@ class CassandraTest(BaseTest):
 
         try:
             # Test 1: Connection
-            connection_result, cluster, session = self._test_connection()
+            connection_result = self._test_connection()
             result.add_sub_test("connection", connection_result)
 
             if not connection_result["success"]:
@@ -95,6 +95,9 @@ class CassandraTest(BaseTest):
                     remediation="Check hosts, credentials, SSL settings, and network connectivity",
                 )
                 return result
+
+            cluster = connection_result.get("cluster")
+            session = connection_result.get("session")
 
             # Test 2: Cluster health
             health_result = self._test_cluster_health(cluster)
@@ -156,7 +159,7 @@ class CassandraTest(BaseTest):
 
         return result
 
-    def _test_connection(self):
+    def _test_connection(self) -> Dict[str, Any]:
         """Test basic connection to Cassandra"""
         try:
             result = {"success": False, "message": "", "details": {}}
@@ -168,23 +171,27 @@ class CassandraTest(BaseTest):
 
             cluster = Cluster(**cluster_config)
 
-            # Connect to cluster
-            session = cluster.connect()
+            # Set connection timeout
+            cluster.connect_timeout = 10
+
+            # Connect to cluster with timeout handling
+            session = cluster.connect(timeout=15)
 
             result["success"] = True
             result["message"] = "Successfully connected to Cassandra cluster"
+            result["cluster"] = cluster
+            result["session"] = session
 
             self.logger.info("Cassandra connection successful")
-            return result, cluster, session
+            return result
 
         except Exception as e:
             self.logger.error(f"Cassandra connection failed: {str(e)}")
-            error_result = {
+            return {
                 "success": False,
                 "message": f"Connection failed: {str(e)}",
                 "error": str(e),
             }
-            return error_result, None, None
 
     def _test_cluster_health(self, cluster) -> Dict[str, Any]:
         """Test cluster health and node status"""
@@ -346,15 +353,21 @@ class CassandraTest(BaseTest):
         """Get Cassandra-specific error remediation"""
         error_msg = str(error).lower()
 
-        if "authentication" in error_msg:
-            return "Verify CASSANDRA_USERNAME and CASSANDRA_PASSWORD are correct"
-        elif "connection" in error_msg or "cannot connect" in error_msg:
-            return "Check CASSANDRA_HOSTS are reachable, port is correct, and firewall rules allow connection"
-        elif "ssl" in error_msg or "tls" in error_msg:
-            return "Verify CASSANDRA_USE_SSL setting matches your cluster configuration"
-        elif "keyspace" in error_msg:
-            return "Ensure the keyspace exists or remove CASSANDRA_KEYSPACE environment variable"
+        if "authentication" in error_msg or "credentials" in error_msg:
+            return "Verify CASSANDRA_USERNAME and CASSANDRA_PASSWORD are correct. Check if authentication is enabled on the cluster."
+        elif "connection refused" in error_msg or "cannot connect" in error_msg:
+            return "Check CASSANDRA_HOSTS are reachable and CASSANDRA_PORT is correct. Verify Cassandra service is running and accessible."
         elif "timeout" in error_msg:
-            return "Increase timeout or check network latency to Cassandra cluster"
+            return "Connection timed out. Check network connectivity, firewall rules, and Cassandra service health."
+        elif "ssl" in error_msg or "tls" in error_msg:
+            return "Verify CASSANDRA_USE_SSL setting matches your cluster configuration. Check SSL certificates and trust store."
+        elif "keyspace" in error_msg and "not found" in error_msg:
+            return "Ensure the keyspace exists or remove CASSANDRA_KEYSPACE environment variable to test without keyspace selection."
+        elif "no hosts available" in error_msg:
+            return "All contact points are unreachable. Verify CASSANDRA_HOSTS contains valid, accessible Cassandra node addresses."
+        elif "datacenter" in error_msg:
+            return "Check CASSANDRA_DATACENTER setting matches your cluster's datacenter name."
+        elif "module" in error_msg and "cassandra" in error_msg:
+            return "Install the Cassandra driver: pip install cassandra-driver"
         else:
-            return "Check Cassandra cluster status and configuration"
+            return f"Check Cassandra cluster status and configuration. Error details: {str(error)[:100]}"

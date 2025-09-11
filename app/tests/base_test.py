@@ -27,6 +27,11 @@ class TestResult:
         self.remediation = None
         self.logs = []
 
+    @property
+    def success(self) -> bool:
+        """Convenience property to check if test passed"""
+        return self.status == TestStatus.PASSED
+
     def start(self):
         """Mark test as started"""
         self.start_time = datetime.now(timezone.utc)
