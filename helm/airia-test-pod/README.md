@@ -24,9 +24,7 @@ This Helm chart deploys the Airia Infrastructure Test Pod, a comprehensive solut
 
 - Kubernetes 1.18+
 - Helm 3.0+
-- Ingress Controller (choose one):
-  - NGINX Ingress Controller
-  - Azure Application Gateway Ingress Controller (AGIC)
+- NGINX Ingress Controller
 - Appropriate RBAC permissions
 
 ## Installation
@@ -84,16 +82,11 @@ config:
 
 # Configure ingress hostnames
 ingress:
-  className: "nginx"  # Use "azure-application-gateway" for Azure App Gateway
+  className: "nginx"
   annotations:
-    # For NGINX Ingress Controller (default)
+    # NGINX Ingress Controller annotations
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
     nginx.ingress.kubernetes.io/proxy-body-size: "10m"
-    
-    # For Azure Application Gateway (uncomment if using AGIC)
-    # kubernetes.io/ingress.class: azure/application-gateway
-    # appgw.ingress.kubernetes.io/ssl-redirect: "false"
-    # appgw.ingress.kubernetes.io/request-timeout: "30"
   hosts:
     - host: test-pod.yourdomain.com
       paths:
@@ -199,7 +192,7 @@ kubectl get ingress -n airia-preprod
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `ingress.enabled` | Enable ingress | `true` |
-| `ingress.className` | Ingress class name (`nginx`, `azure-application-gateway`) | `nginx` |
+| `ingress.className` | Ingress class name | `nginx` |
 | `ingress.hosts` | List of hostnames | See values.yaml |
 | `service.type` | Service type (`ClusterIP`, `NodePort`, `LoadBalancer`) | `ClusterIP` |
 | `resources.requests.cpu` | CPU request | `100m` |

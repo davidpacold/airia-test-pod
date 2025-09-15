@@ -18,16 +18,15 @@
 .github/
 *.yml
 *.yaml
-CI_CD_IMPROVEMENT_PLAN.md
-
-# Documentation & README files  
+# Documentation & README files
 *.md
+!README.md
+!DEPLOYMENT_GUIDE.md
 README*
 CHANGELOG*
 LICENSE*
 docs/
 documentation/
-IMPROVEMENT_RECOMMENDATIONS.md
 
 # Python Development & Cache
 __pycache__/

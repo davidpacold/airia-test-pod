@@ -106,7 +106,7 @@ ingress:
 # Alternative: If using ingress controller (not recommended for SSL)
 # ingress:
 #   enabled: true
-#   className: nginx  # or "azure-application-gateway", "alb", etc.
+#   className: nginx
 #   annotations:
 #     nginx.ingress.kubernetes.io/ssl-redirect: "false"  # SSL handled externally
 #     nginx.ingress.kubernetes.io/proxy-body-size: "10m"
@@ -487,10 +487,6 @@ ingress:
   annotations:                                         # Ingress annotations
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
     nginx.ingress.kubernetes.io/proxy-body-size: "10m"
-    # Azure Application Gateway annotations (uncomment for AGIC)
-    # kubernetes.io/ingress.class: azure/application-gateway
-    # appgw.ingress.kubernetes.io/ssl-redirect: "false"
-    # appgw.ingress.kubernetes.io/request-timeout: "30"
   hosts:
     - host: test.example.com                           # Example hostnames (up to 5 supported)
       paths:
@@ -661,50 +657,6 @@ ingress:
         - airia-test.yourdomain.com
 ```
 
-#### Azure Application Gateway Ingress Controller (AGIC)
-
-**AGIC Configuration:**
-```yaml
-ingress:
-  enabled: true
-  className: "azure-application-gateway"
-  annotations:
-    kubernetes.io/ingress.class: azure/application-gateway
-    appgw.ingress.kubernetes.io/ssl-redirect: "false"
-    appgw.ingress.kubernetes.io/backend-protocol: "http"
-    appgw.ingress.kubernetes.io/request-timeout: "300"
-    # For WebSocket support
-    appgw.ingress.kubernetes.io/connection-draining: "true"
-    appgw.ingress.kubernetes.io/connection-draining-timeout: "30"
-  hosts:
-    - host: airia-test.yourdomain.com
-      paths:
-        - path: /
-          pathType: Prefix
-  tls:
-    - secretName: airia-test-appgw-tls
-      hosts:
-        - airia-test.yourdomain.com
-```
-
-**AGIC with Azure Key Vault Integration:**
-```yaml
-ingress:
-  enabled: true
-  className: "azure-application-gateway"
-  annotations:
-    kubernetes.io/ingress.class: azure/application-gateway
-    appgw.ingress.kubernetes.io/ssl-redirect: "false"
-    appgw.ingress.kubernetes.io/backend-protocol: "http"
-    # Reference certificate from Azure Key Vault
-    appgw.ingress.kubernetes.io/appgw-ssl-certificate: "airia-test-cert"
-  hosts:
-    - host: airia-test.yourdomain.com
-      paths:
-        - path: /
-          pathType: Prefix
-  # No tls section needed when using Key Vault certificates
-```
 
 #### AWS Application Load Balancer (ALB) Ingress
 
@@ -889,7 +841,7 @@ ingress:
 
 **RECOMMENDED: External SSL Termination (Outside Kubernetes)**
 
-Having SSL handled by external infrastructure (Azure Application Gateway, AWS ALB, CloudFlare, etc.) is generally **better and simpler**:
+Having SSL handled by external infrastructure (AWS ALB, CloudFlare, cloud load balancers, etc.) is generally **better and simpler**:
 
 **Benefits:**
 - ✅ **Simpler Configuration**: No certificate management in Kubernetes
@@ -899,7 +851,7 @@ Having SSL handled by external infrastructure (Azure Application Gateway, AWS AL
 - ✅ **Less Complexity**: No secrets, cert-manager, or ingress TLS config
 - ✅ **Security**: Certificates stay in cloud key vaults/certificate stores
 
-**Example: Azure Application Gateway with External SSL**
+**Example: External Load Balancer with SSL**
 ```yaml
 # Simplified configuration - no TLS management needed
 service:
@@ -910,20 +862,19 @@ service:
 ingress:
   enabled: false  # Not needed when using external load balancer
 
-# Alternative: Simple ingress without TLS (if still using ingress controller internally)
+# Alternative: Simple ingress without TLS (if using nginx internally)
 ingress:
   enabled: true
-  className: "azure-application-gateway"
+  className: "nginx"
   annotations:
-    kubernetes.io/ingress.class: azure/application-gateway
-    appgw.ingress.kubernetes.io/ssl-redirect: "false"  # SSL handled externally
-    appgw.ingress.kubernetes.io/backend-protocol: "http"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"  # SSL handled externally
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
   hosts:
     - host: airia-test.yourdomain.com
       paths:
         - path: /
           pathType: Prefix
-  # No tls section - handled by Azure Application Gateway
+  # No tls section - handled by external load balancer
 ```
 
 **Example: AWS ALB with ACM Certificates**
