@@ -66,6 +66,9 @@ data:
   # Azure Document Intelligence configuration
   azure-doc-intel-endpoint: {{ .Values.config.documentIntelligence.endpoint | quote }}
   azure-doc-intel-model: {{ .Values.config.documentIntelligence.model | quote }}
+  {{- if .Values.config.documentIntelligence.testUrl }}
+  azure-doc-intel-test-url: {{ .Values.config.documentIntelligence.testUrl | quote }}
+  {{- end }}
   doc-intel-timeout: {{ .Values.config.documentIntelligence.timeout | default 60 | quote }}
   {{- end }}
   

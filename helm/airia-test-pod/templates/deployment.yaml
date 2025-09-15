@@ -260,6 +260,13 @@ spec:
                 configMapKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-config
                   key: azure-doc-intel-model
+            {{- if .Values.config.documentIntelligence.testUrl }}
+            - name: AZURE_DOC_INTEL_TEST_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: azure-doc-intel-test-url
+            {{- end }}
             - name: AZURE_DOC_INTEL_API_KEY
               valueFrom:
                 secretKeyRef:

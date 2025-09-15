@@ -410,7 +410,7 @@ async def test_docintel_custom(
             )
 
         # Read original file content for Document Intelligence API
-        await file.seek(0, 0)  # Reset file pointer to beginning (fixed seek parameters)
+        await file.seek(0)  # Reset file pointer to beginning
         content = await file.read()
 
         # Run custom test with sanitized inputs

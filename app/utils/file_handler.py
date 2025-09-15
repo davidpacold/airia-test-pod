@@ -6,12 +6,16 @@ duplication across endpoints and ensure consistent file handling.
 """
 
 import base64
+import logging
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import UploadFile
 
 from ..exceptions import ErrorCode, ValidationError
+
+# Initialize logger
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -54,12 +58,12 @@ class FileUploadHandler:
         return filename.lower().split(".")[-1]
 
     @staticmethod
-    async def validate_file_size(file: UploadFile, max_size_mb: int = 25) -> int:
+    async def validate_file_size(content: bytes, max_size_mb: int = 25) -> int:
         """
         Validate file size and return size in bytes.
 
         Args:
-            file: The uploaded file
+            content: The file content as bytes
             max_size_mb: Maximum allowed size in megabytes
 
         Returns:
@@ -68,12 +72,9 @@ class FileUploadHandler:
         Raises:
             ValidationError: If file exceeds size limit
         """
-        # Get file size
-        await file.seek(0, 2)  # Seek to end
-        file_size = await file.tell()
-        await file.seek(0, 0)  # Reset to beginning
-
+        file_size = len(content)
         max_size_bytes = max_size_mb * 1024 * 1024
+
         if file_size > max_size_bytes:
             raise ValidationError(
                 message=f"File too large (max {max_size_mb}MB)",
@@ -124,8 +125,10 @@ class FileUploadHandler:
         """
         try:
             text_content = content.decode("utf-8")
+            logger.debug(f"Successfully decoded text file: {len(text_content)} characters")
             return text_content, "text"
-        except UnicodeDecodeError:
+        except UnicodeDecodeError as e:
+            logger.error(f"Failed to decode text file as UTF-8: {str(e)}")
             raise ValidationError(
                 message="Text file must be UTF-8 encoded",
                 error_code=ErrorCode.FILE_INVALID,
@@ -151,8 +154,10 @@ class FileUploadHandler:
             from ..utils.file_processors import process_pdf
 
             text_content = process_pdf(content)
+            logger.debug(f"Successfully processed PDF: {len(text_content)} characters extracted")
             return text_content, "pdf"
         except Exception as e:
+            logger.error(f"Failed to process PDF: {str(e)}")
             raise ValidationError(
                 message=f"Failed to process PDF: {str(e)}",
                 error_code=ErrorCode.FILE_INVALID,
@@ -177,8 +182,10 @@ class FileUploadHandler:
         """
         try:
             base64_content = base64.b64encode(content).decode("utf-8")
+            logger.debug(f"Successfully encoded image as base64: {len(base64_content)} characters")
             return base64_content, extension
         except Exception as e:
+            logger.error(f"Failed to process image: {str(e)}")
             raise ValidationError(
                 message=f"Failed to process image: {str(e)}",
                 error_code=ErrorCode.FILE_INVALID,
@@ -205,6 +212,7 @@ class FileUploadHandler:
             ValidationError: If file validation or processing fails
         """
         if not file:
+            logger.error("No file provided to process_upload")
             raise ValidationError(
                 message="No file provided",
                 error_code=ErrorCode.FILE_INVALID,
@@ -214,16 +222,28 @@ class FileUploadHandler:
 
         # Extract file extension
         extension = cls.get_file_extension(file.filename or "")
+        logger.debug(f"Processing file: {file.filename}, extension: {extension}")
 
         # Validate file type
         cls.validate_file_type(extension, allowed_types)
 
-        # Validate file size
-        file_size = await cls.validate_file_size(file, max_size_mb)
+        # Read file content once
+        try:
+            content = await file.read()
+            await file.seek(0)  # Reset for potential future reads
+            logger.debug(f"Read {len(content)} bytes from file")
+        except Exception as e:
+            logger.error(f"Failed to read file content: {str(e)}")
+            raise ValidationError(
+                message=f"Failed to read file: {str(e)}",
+                error_code=ErrorCode.FILE_INVALID,
+                field_name="file",
+                remediation="Please ensure the file is not corrupted and try again",
+            )
 
-        # Read file content
-        content = await file.read()
-        await file.seek(0, 0)  # Reset for potential future reads
+        # Validate file size using the content we already read
+        file_size = await cls.validate_file_size(content, max_size_mb)
+        logger.debug(f"File size validated: {file_size} bytes")
 
         # Process based on file type
         processed_content = None

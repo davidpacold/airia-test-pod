@@ -161,13 +161,13 @@ class InputSanitizer:
 
         # Read first chunk to check file signature
         file_content = await file.read(1024)  # Read first 1KB
-        await file.seek(0, 0)  # Reset file pointer
+        await file.seek(0)  # Reset file pointer
 
-        # Check file size
-        file_size = 0
-        await file.seek(0, 2)  # Seek to end
-        file_size = await file.tell()
-        await file.seek(0, 0)  # Reset to beginning
+        # Check file size - read all content to get size
+        # (FastAPI UploadFile doesn't support seek with whence parameter)
+        all_content = await file.read()
+        file_size = len(all_content)
+        await file.seek(0)  # Reset to beginning
 
         max_size_bytes = max_size_mb * 1024 * 1024
         if file_size > max_size_bytes:
