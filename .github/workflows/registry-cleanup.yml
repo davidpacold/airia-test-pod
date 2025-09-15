@@ -64,12 +64,20 @@ jobs:
           
           # Get package versions (images) from GitHub API
           echo "🔍 Fetching image inventory..."
+
+          # Try to fetch from organization or user namespace
           gh api --paginate "orgs/${{ github.repository_owner }}/packages/container/${{ github.event.repository.name }}/versions" \
-            --jq '.[] | {id, name, created_at, updated_at, metadata: {container: {tags}}}' > all_images.json || \
+            --jq '.[] | {id, name, created_at, updated_at, metadata: {container: {tags}}}' > all_images.json 2>/dev/null || \
           gh api --paginate "users/${{ github.repository_owner }}/packages/container/${{ github.event.repository.name }}/versions" \
-            --jq '.[] | {id, name, created_at, updated_at, metadata: {container: {tags}}}' > all_images.json || \
+            --jq '.[] | {id, name, created_at, updated_at, metadata: {container: {tags}}}' > all_images.json 2>/dev/null || \
           echo "[]" > all_images.json
-          
+
+          # Validate that all_images.json contains valid JSON array
+          if ! jq -e 'type == "array"' all_images.json >/dev/null 2>&1; then
+            echo "⚠️ API response is not a valid JSON array, using empty array"
+            echo "[]" > all_images.json
+          fi
+
           TOTAL_IMAGES=$(cat all_images.json | jq length)
           echo "total_count=$TOTAL_IMAGES" >> $GITHUB_OUTPUT
           
