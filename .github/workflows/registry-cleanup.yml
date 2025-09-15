@@ -80,14 +80,14 @@ jobs:
             # Create mock inventory
             cat > all_images.json << EOF
           [
-            {"id": "1", "name": "sha256:abc123", "created_at": "$(date -u -d '45 days ago' +%Y-%m-%dT%H:%M:%SZ)", "tags": []},
-            {"id": "2", "name": "sha256:def456", "created_at": "$(date -u -d '35 days ago' +%Y-%m-%dT%H:%M:%SZ)", "tags": []},
-            {"id": "3", "name": "sha256:ghi789", "created_at": "$(date -u -d '20 days ago' +%Y-%m-%dT%H:%M:%SZ)", "tags": ["latest", "v1.2.3"]},
-            {"id": "4", "name": "sha256:jkl012", "created_at": "$(date -u -d '15 days ago' +%Y-%m-%dT%H:%M:%SZ)", "tags": ["v1.2.4"]},
-            {"id": "5", "name": "sha256:mno345", "created_at": "$(date -u -d '10 days ago' +%Y-%m-%dT%H:%M:%SZ)", "tags": ["dev-branch-123"]},
-            {"id": "6", "name": "sha256:pqr678", "created_at": "$(date -u -d '5 days ago' +%Y-%m-%dT%H:%M:%SZ)", "tags": ["dev-branch-456"]},
-            {"id": "7", "name": "sha256:stu901", "created_at": "$(date -u -d '2 days ago' +%Y-%m-%dT%H:%M:%SZ)", "tags": ["main-abc123"]},
-            {"id": "8", "name": "sha256:vwx234", "created_at": "$(date -u -d '1 day ago' +%Y-%m-%dT%H:%M:%SZ)", "tags": ["v1.2.5", "latest"]}
+            {"id": "1", "name": "sha256:abc123", "created_at": "$(date -u -d '45 days ago' +%Y-%m-%dT%H:%M:%SZ)", "metadata": {"container": {"tags": []}}},
+            {"id": "2", "name": "sha256:def456", "created_at": "$(date -u -d '35 days ago' +%Y-%m-%dT%H:%M:%SZ)", "metadata": {"container": {"tags": []}}},
+            {"id": "3", "name": "sha256:ghi789", "created_at": "$(date -u -d '20 days ago' +%Y-%m-%dT%H:%M:%SZ)", "metadata": {"container": {"tags": ["latest", "v1.2.3"]}}},
+            {"id": "4", "name": "sha256:jkl012", "created_at": "$(date -u -d '15 days ago' +%Y-%m-%dT%H:%M:%SZ)", "metadata": {"container": {"tags": ["v1.2.4"]}}},
+            {"id": "5", "name": "sha256:mno345", "created_at": "$(date -u -d '10 days ago' +%Y-%m-%dT%H:%M:%SZ)", "metadata": {"container": {"tags": ["dev-branch-123"]}}},
+            {"id": "6", "name": "sha256:pqr678", "created_at": "$(date -u -d '5 days ago' +%Y-%m-%dT%H:%M:%SZ)", "metadata": {"container": {"tags": ["dev-branch-456"]}}},
+            {"id": "7", "name": "sha256:stu901", "created_at": "$(date -u -d '2 days ago' +%Y-%m-%dT%H:%M:%SZ)", "metadata": {"container": {"tags": ["main-abc123"]}}},
+            {"id": "8", "name": "sha256:vwx234", "created_at": "$(date -u -d '1 day ago' +%Y-%m-%dT%H:%M:%SZ)", "metadata": {"container": {"tags": ["v1.2.5", "latest"]}}}
           ]
           EOF
             
@@ -99,7 +99,7 @@ jobs:
           echo "🔍 Categorizing images..."
           
           # Count untagged images (no tags or empty tag array)
-          UNTAGGED_COUNT=$(cat all_images.json | jq '[.[] | select(.tags == [] or .tags == null)] | length')
+          UNTAGGED_COUNT=$(cat all_images.json | jq '[.[] | select(.metadata.container.tags == [] or .metadata.container.tags == null)] | length')
           echo "untagged_count=$UNTAGGED_COUNT" >> $GITHUB_OUTPUT
           
           # Count old images (created before cutoff date)
@@ -107,11 +107,11 @@ jobs:
           echo "old_count=$OLD_COUNT" >> $GITHUB_OUTPUT
           
           # Count release images (semantic version tags)
-          RELEASE_COUNT=$(cat all_images.json | jq '[.[] | select(.tags[]? | test("^v?[0-9]+\\.[0-9]+\\.[0-9]+"))] | length')
+          RELEASE_COUNT=$(cat all_images.json | jq '[.[] | select(.metadata.container.tags[]? | test("^v?[0-9]+\\.[0-9]+\\.[0-9]+"))] | length')
           echo "release_count=$RELEASE_COUNT" >> $GITHUB_OUTPUT
           
           # Count development images
-          DEV_COUNT=$(cat all_images.json | jq '[.[] | select(.tags[]? | test("^(dev|main|feature|fix)-"))] | length')
+          DEV_COUNT=$(cat all_images.json | jq '[.[] | select(.metadata.container.tags[]? | test("^(dev|main|feature|fix)-"))] | length')
           echo "dev_count=$DEV_COUNT" >> $GITHUB_OUTPUT
           
           # Determine if cleanup is recommended
