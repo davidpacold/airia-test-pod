@@ -90,12 +90,24 @@ async def readiness_check():
 
 @app.get("/version")
 async def get_version():
-    return {"version": get_settings().version}
+    import os
+    return {
+        "version": get_settings().version,
+        "image_tag": os.getenv("IMAGE_TAG", "unknown"),
+        "build_timestamp": os.getenv("BUILD_TIMESTAMP", "unknown"),
+        "deployment_time": os.getenv("BUILD_TIMESTAMP", "unknown")
+    }
 
 
 @app.get("/api/version")
 async def get_api_version():
-    return {"version": get_settings().version}
+    import os
+    return {
+        "version": get_settings().version,
+        "image_tag": os.getenv("IMAGE_TAG", "unknown"),
+        "build_timestamp": os.getenv("BUILD_TIMESTAMP", "unknown"),
+        "deployment_time": os.getenv("BUILD_TIMESTAMP", "unknown")
+    }
 
 
 @app.get("/", response_class=HTMLResponse)
