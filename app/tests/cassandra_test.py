@@ -65,11 +65,13 @@ class CassandraTest(BaseTest):
             pass
 
         # Add datacenter-aware load balancing if datacenter is specified
-        if self.settings.cassandra_datacenter:
+        # NOTE: For Azure Cosmos DB Cassandra API, we should NOT use datacenter-aware policies
+        # as Cosmos DB handles routing internally and may not match expected datacenter names
+        if self.settings.cassandra_datacenter and not is_cosmos_db:
             config["load_balancing_policy"] = DCAwareRoundRobinPolicy(
                 local_dc=self.settings.cassandra_datacenter
             )
-        # Otherwise, use the default RoundRobinPolicy (will be set automatically)
+        # For Cosmos DB or when no datacenter specified, use default RoundRobinPolicy
 
         # Add authentication if configured
         if self.settings.cassandra_username:
