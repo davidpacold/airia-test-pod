@@ -111,7 +111,15 @@ class CassandraTest(BaseTest):
         try:
             # Test 1: Connection
             connection_result = self._test_connection()
-            result.add_sub_test("connection", connection_result)
+
+            # Extract cluster and session objects before adding to result
+            cluster = connection_result.get("cluster")
+            session = connection_result.get("session")
+
+            # Create a clean result without the objects for serialization
+            clean_connection_result = {k: v for k, v in connection_result.items()
+                                     if k not in ["cluster", "session"]}
+            result.add_sub_test("connection", clean_connection_result)
 
             if not connection_result["success"]:
                 result.fail(
@@ -119,9 +127,6 @@ class CassandraTest(BaseTest):
                     remediation="Check hosts, credentials, SSL settings, and network connectivity",
                 )
                 return result
-
-            cluster = connection_result.get("cluster")
-            session = connection_result.get("session")
 
             # Test 2: Cluster health
             health_result = self._test_cluster_health(cluster)
@@ -218,6 +223,7 @@ class CassandraTest(BaseTest):
 
             result["success"] = True
             result["message"] = "Successfully connected to Cassandra cluster"
+            # Store objects for internal use but don't include in serialized result
             result["cluster"] = cluster
             result["session"] = session
 
