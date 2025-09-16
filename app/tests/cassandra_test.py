@@ -172,10 +172,10 @@ class CassandraTest(BaseTest):
             cluster = Cluster(**cluster_config)
 
             # Set connection timeout
-            cluster.connect_timeout = 10
+            cluster.connect_timeout = 15
 
-            # Connect to cluster with timeout handling
-            session = cluster.connect(timeout=15)
+            # Connect to cluster
+            session = cluster.connect()
 
             result["success"] = True
             result["message"] = "Successfully connected to Cassandra cluster"
