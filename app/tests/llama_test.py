@@ -372,18 +372,36 @@ What are the key capabilities of Llama models? [/INST]"""
                 )
 
             # If file content is provided, include it in the prompt based on file type
-            user_content = custom_prompt
             if custom_file_content:
                 if file_type == "pdf":
                     user_content = f"Here is a PDF document to analyze:\n\n{custom_file_content}\n\nUser request: {custom_prompt}"
+                    messages.append({"role": "user", "content": user_content})
                 elif file_type in ["jpg", "jpeg", "png"]:
-                    # For image files, most Llama models don't support vision
-                    user_content = f"Here is an image file (base64 encoded) to analyze. The image is a {file_type.upper()} file.\n\nUser request: {custom_prompt}\n\nNote: This Llama model may not support image analysis. Consider using a multimodal Llama variant."
+                    # For image files, try to send as vision input first
+                    try:
+                        # Try vision-compatible format (for models like Llama-3.2-Vision)
+                        messages.append({
+                            "role": "user",
+                            "content": [
+                                {"type": "text", "text": custom_prompt},
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": f"data:image/{file_type};base64,{custom_file_content}"
+                                    }
+                                }
+                            ]
+                        })
+                    except Exception:
+                        # Fallback: include base64 in text for models without vision API support
+                        user_content = f"Here is an image file (base64 encoded {file_type.upper()}) to analyze:\n\n{custom_file_content}\n\nUser request: {custom_prompt}"
+                        messages.append({"role": "user", "content": user_content})
                 else:
                     # Text files
                     user_content = f"Here is some file content to analyze:\n\n{custom_file_content}\n\nUser request: {custom_prompt}"
-
-            messages.append({"role": "user", "content": user_content})
+                    messages.append({"role": "user", "content": user_content})
+            else:
+                messages.append({"role": "user", "content": custom_prompt})
 
             response = client.chat.completions.create(
                 model=model_name,
