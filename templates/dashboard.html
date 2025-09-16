@@ -766,11 +766,6 @@
                                 <textarea id="embeddings-batch" name="batch_texts" placeholder="Enter additional texts separated by commas for similarity comparison..." rows="2"></textarea>
                                 <small>Separate multiple texts with commas for batch processing and similarity analysis</small>
                             </div>
-                            <div class="form-group">
-                                <label for="embeddings-file">Upload File (optional):</label>
-                                <input type="file" id="embeddings-file" name="file" accept=".txt,.md,.json,.csv,.log,.pdf">
-                                <small>Max 25MB, supports: text files, PDF (images not recommended for text embeddings)</small>
-                            </div>
                             <button type="submit" class="test-button">Generate Embeddings</button>
                         </form>
                         <div class="test-details" id="custom-embeddings-results"></div>
@@ -1555,16 +1550,12 @@
                 // Prepare form data
                 const formData = new FormData();
                 formData.append('text', form.text.value);
-                
+
                 if (form.batch_texts.value.trim()) {
                     formData.append('batch_texts', form.batch_texts.value);
                 }
-                
-                if (form.file.files[0]) {
-                    formData.append('file', form.file.files[0]);
-                }
-                
-                // Send request
+
+                // Send request (no file upload needed for embeddings)
                 const response = await axios.post('/api/tests/embeddings/custom', formData, {
                     headers: {
                         'Content-Type': 'multipart/form-data'

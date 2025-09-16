@@ -452,17 +452,13 @@ async def test_docintel_custom(
 async def test_embeddings_custom(
     text: str = Form(...),
     batch_texts: Optional[str] = Form(None),  # Comma-separated additional texts
-    file: Optional[UploadFile] = File(None),
     current_user: str = Depends(require_auth),
 ):
-    """Test embedding generation with custom text input and optional file"""
+    """Test embedding generation with custom text input"""
     try:
         # Sanitize inputs
         sanitized_text = sanitize_user_input(text)
         sanitized_batch_texts = InputSanitizer.sanitize_batch_texts(batch_texts)
-
-        # Process file upload if provided
-        processed_file = await FileUploadHandler.process_embedding_upload(file)
 
         # Get Embedding test instance
         from .tests.embedding_test import EmbeddingTest
@@ -480,11 +476,11 @@ async def test_embeddings_custom(
         # Use sanitized batch texts
         batch_text_list = sanitized_batch_texts if sanitized_batch_texts else None
 
-        # Run custom test with sanitized inputs
+        # Run custom test with sanitized inputs (no file support)
         result = embedding_test.test_with_custom_input(
             custom_text=sanitized_text,
-            custom_file_content=processed_file.content if processed_file else None,
-            file_type=processed_file.file_type if processed_file else None,
+            custom_file_content=None,
+            file_type=None,
             batch_texts=batch_text_list,
         )
 
