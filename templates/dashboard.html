@@ -456,6 +456,92 @@
             margin: 0.5rem 0;
             font-style: italic;
         }
+
+        /* Document Intelligence specific styles */
+        .document-structure {
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background-color: #e7f3ff;
+            border-radius: 0.375rem;
+            border: 1px solid #b3d9ff;
+        }
+
+        .document-structure h5 {
+            color: #0066cc;
+            margin-bottom: 0.75rem;
+            font-size: 1rem;
+        }
+
+        .structure-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.5rem;
+        }
+
+        .structure-item {
+            padding: 0.25rem 0;
+            font-size: 0.9rem;
+        }
+
+        .analysis-request, .analysis-response {
+            margin: 1rem 0;
+            padding: 1rem;
+            background-color: #f0f8ff;
+            border-radius: 0.375rem;
+            border: 1px solid #cce7ff;
+        }
+
+        .analysis-request h5, .analysis-response h5 {
+            color: #0066cc;
+            margin-bottom: 0.75rem;
+            font-size: 1rem;
+        }
+
+        .request-content, .response-content {
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .extracted-content {
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background-color: #f8f9fa;
+            border-radius: 0.375rem;
+            border: 1px solid #e9ecef;
+        }
+
+        .extracted-content h5 {
+            color: #495057;
+            margin-bottom: 0.75rem;
+            font-size: 1rem;
+        }
+
+        .content-preview, .content-full, .content-display {
+            background-color: white;
+            border: 1px solid #e9ecef;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .content-text {
+            background: none;
+            border: none;
+            padding: 0;
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .content-meta {
+            color: #6c757d;
+            font-size: 0.8rem;
+            margin: 0.5rem 0;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
@@ -1189,6 +1275,12 @@
         }
         
         function formatCustomTestResult(result) {
+            // Check if this is a Document Intelligence result
+            if (result.model_used && result.document_info && result.content_preview !== undefined) {
+                return formatDocumentIntelligenceResult(result);
+            }
+
+            // Default Llama/AI model result formatting
             const responseText = result.response_text || '';
             const isLongResponse = responseText.length > 800;
             const responseId = 'response-' + Date.now();
@@ -1245,8 +1337,97 @@
             return html;
         }
 
+        function formatDocumentIntelligenceResult(result) {
+            const responseId = 'docintel-response-' + Date.now();
+            const contentPreview = result.content_preview || '';
+            const isLongContent = contentPreview.length > 500;
+
+            let html = `<div class="custom-test-success">`;
+            html += `<h4>✅ Document Analysis Successful!</h4>`;
+
+            // File and processing details
+            html += `<div class="test-details-grid">`;
+            html += `<div class="detail-item"><strong>📄 File Type:</strong> ${result.file_type?.toUpperCase() || 'Unknown'}</div>`;
+            html += `<div class="detail-item"><strong>🤖 Model:</strong> ${result.model_used}</div>`;
+            html += `<div class="detail-item"><strong>⏱️ Processing Time:</strong> ${result.processing_time_ms}ms</div>`;
+            html += `<div class="detail-item"><strong>📊 Content Length:</strong> ${result.content_length} characters</div>`;
+            html += `</div>`;
+
+            // Document structure information
+            if (result.document_info) {
+                html += `<div class="document-structure">`;
+                html += `<h5>📋 Document Structure:</h5>`;
+                html += `<div class="structure-grid">`;
+                html += `<div class="structure-item"><strong>📑 Pages:</strong> ${result.document_info.pages || 0}</div>`;
+                html += `<div class="structure-item"><strong>📊 Tables:</strong> ${result.document_info.tables || 0}</div>`;
+                html += `<div class="structure-item"><strong>📝 Paragraphs:</strong> ${result.document_info.paragraphs || 0}</div>`;
+                html += `<div class="structure-item"><strong>🔑 Key-Value Pairs:</strong> ${result.document_info.key_value_pairs || 0}</div>`;
+                html += `</div>`;
+                html += `</div>`;
+            }
+
+            // Custom prompt and response if provided
+            if (result.custom_prompt) {
+                html += `<div class="analysis-request">`;
+                html += `<h5>💬 Analysis Request:</h5>`;
+                html += `<div class="request-content">${result.custom_prompt}</div>`;
+                html += `</div>`;
+
+                if (result.prompt_response) {
+                    html += `<div class="analysis-response">`;
+                    html += `<h5>🔍 Analysis Response:</h5>`;
+                    html += `<div class="response-content">${result.prompt_response}</div>`;
+                    html += `</div>`;
+                }
+            }
+
+            // Extracted content section
+            if (contentPreview) {
+                html += `<div class="extracted-content">`;
+                html += `<h5>📄 Extracted Content:</h5>`;
+
+                if (isLongContent) {
+                    const preview = contentPreview.substring(0, 300);
+                    html += `<div class="content-preview" id="${responseId}-preview">`;
+                    html += `<pre class="content-text">${preview}...</pre>`;
+                    html += `<div class="content-meta">Showing first 300 of ${contentPreview.length} characters</div>`;
+                    html += `<button type="button" class="btn btn-sm btn-outline-primary" onclick="toggleDocumentContent('${responseId}')">View Full Content</button>`;
+                    html += `</div>`;
+
+                    html += `<div class="content-full" id="${responseId}-full" style="display: none;">`;
+                    html += `<pre class="content-text">${contentPreview}</pre>`;
+                    html += `<button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleDocumentContent('${responseId}')">Show Preview Only</button>`;
+                    html += `</div>`;
+                } else {
+                    html += `<div class="content-display">`;
+                    html += `<pre class="content-text">${contentPreview}</pre>`;
+                    html += `</div>`;
+                }
+
+                html += `</div>`;
+            }
+
+            html += `</div>`;
+
+            return html;
+        }
+
         // Function to toggle between preview and full response
         function toggleFullResponse(responseId) {
+            const preview = document.getElementById(responseId + '-preview');
+            const full = document.getElementById(responseId + '-full');
+
+            if (preview.style.display !== 'none') {
+                preview.style.display = 'none';
+                full.style.display = 'block';
+            } else {
+                preview.style.display = 'block';
+                full.style.display = 'none';
+            }
+        }
+
+        // Function to toggle document content for Document Intelligence results
+        function toggleDocumentContent(responseId) {
             const preview = document.getElementById(responseId + '-preview');
             const full = document.getElementById(responseId + '-full');
 
