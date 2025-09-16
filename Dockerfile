@@ -30,9 +30,17 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
     pip check
 
 # -----------------------------------------------------------------------------
-# RUNTIME STAGE - Minimal production environment  
+# RUNTIME STAGE - Minimal production environment
 # -----------------------------------------------------------------------------
 FROM python:3.11-slim as runtime
+
+# Accept build arguments for version information
+ARG APP_VERSION
+ARG BUILD_TIMESTAMP
+
+# Set environment variables from build args (these get baked into the image)
+ENV APP_VERSION=${APP_VERSION}
+ENV BUILD_TIMESTAMP=${BUILD_TIMESTAMP}
 
 # Install runtime system dependencies (minimal set including health check tools)
 RUN apt-get update && apt-get install -y \

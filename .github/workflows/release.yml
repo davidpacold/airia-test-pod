@@ -355,10 +355,14 @@ jobs:
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
+        # Ensure container has correct version at build time
+        build-args: |
+          APP_VERSION=${{ needs.build-and-push-release.outputs.docker_version }}
+          BUILD_TIMESTAMP=${{ github.run_id }}
         # Optimized caching strategy
         cache-from: type=gha
         cache-to: type=gha,mode=max
-        # Build optimizations  
+        # Build optimizations
         pull: false  # Don't pull base image if cached
         provenance: false  # Skip provenance generation for faster builds
         sbom: false  # Skip SBOM generation for faster builds

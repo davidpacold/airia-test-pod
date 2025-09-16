@@ -202,13 +202,13 @@ class EmbeddingTest(BaseTest):
                     },
                     "usage": {
                         "prompt_tokens": (
-                            getattr(response, "usage", {}).prompt_tokens
-                            if hasattr(response, "usage")
+                            response.usage.prompt_tokens
+                            if hasattr(response, "usage") and response.usage is not None
                             else None
                         ),
                         "total_tokens": (
-                            getattr(response, "usage", {}).total_tokens
-                            if hasattr(response, "usage")
+                            response.usage.total_tokens
+                            if hasattr(response, "usage") and response.usage is not None
                             else None
                         ),
                     },
@@ -292,13 +292,13 @@ class EmbeddingTest(BaseTest):
                     ),
                     "usage": {
                         "prompt_tokens": (
-                            getattr(response, "usage", {}).prompt_tokens
-                            if hasattr(response, "usage")
+                            response.usage.prompt_tokens
+                            if hasattr(response, "usage") and response.usage is not None
                             else None
                         ),
                         "total_tokens": (
-                            getattr(response, "usage", {}).total_tokens
-                            if hasattr(response, "usage")
+                            response.usage.total_tokens
+                            if hasattr(response, "usage") and response.usage is not None
                             else None
                         ),
                     },
@@ -374,13 +374,13 @@ class EmbeddingTest(BaseTest):
                     "response_time_seconds": round(response_time, 3),
                     "usage": {
                         "prompt_tokens": (
-                            getattr(response, "usage", {}).prompt_tokens
-                            if hasattr(response, "usage")
+                            response.usage.prompt_tokens
+                            if hasattr(response, "usage") and response.usage is not None
                             else None
                         ),
                         "total_tokens": (
-                            getattr(response, "usage", {}).total_tokens
-                            if hasattr(response, "usage")
+                            response.usage.total_tokens
+                            if hasattr(response, "usage") and response.usage is not None
                             else None
                         ),
                     },
@@ -592,8 +592,8 @@ class EmbeddingTest(BaseTest):
                 "embedding_stats": embedding_stats,
                 "similarities": similarities if similarities else None,
                 "total_tokens_used": (
-                    getattr(response, "usage", {}).total_tokens
-                    if hasattr(response, "usage")
+                    response.usage.total_tokens
+                    if hasattr(response, "usage") and response.usage is not None
                     else None
                 ),
                 "embeddings_generated": len(embeddings),
