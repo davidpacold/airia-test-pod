@@ -394,7 +394,6 @@ startxref
             poller = client.begin_analyze_document(
                 model_id=self.model_id,
                 document=file_content,
-                content_type="application/octet-stream",
             )
 
             # Wait for analysis to complete
