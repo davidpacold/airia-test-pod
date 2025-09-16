@@ -1273,6 +1273,12 @@
         .llama-result .result-header.warning {
             background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
         }
+        .embedding-result .result-header.success {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        }
+        .embedding-result .result-header.warning {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+        }
 
         /* Responsive design for enhanced results */
         @media (max-width: 768px) {
@@ -2092,10 +2098,36 @@
 
         function formatEmbeddingResult(result) {
             const responseId = 'embedding-' + Date.now();
-            let html = `<div class="embedding-test-success">`;
+            let html = `<div class="test-result-enhanced embedding-result">`;
 
-            // Header
-            html += `<h4>✅ Embedding Generation Successful!</h4>`;
+            // Header with status
+            let statusIcon, statusClass;
+            if (result.status === 'passed') {
+                statusIcon = '✅';
+                statusClass = 'success';
+            } else if (result.status === 'skipped') {
+                statusIcon = '⚠️';
+                statusClass = 'warning';
+            } else {
+                statusIcon = '❌';
+                statusClass = 'error';
+            }
+
+            html += `<div class="result-header ${statusClass}">`;
+            html += `<h4>${statusIcon} Embedding Models Test</h4>`;
+            html += `<div class="test-meta">`;
+            html += `<span class="duration">⏱️ ${result.duration_seconds?.toFixed(2) || 'N/A'}s</span>`;
+            html += `<span class="status">Status: ${result.status}</span>`;
+            html += `</div>`;
+            html += `</div>`;
+
+            // Main message
+            html += `<div class="result-message">`;
+            html += `<p><strong>📊 Result:</strong> ${result.message}</p>`;
+            html += `</div>`;
+
+            // Only show detailed results if test passed
+            if (result.status === 'passed') {
 
             // Primary metrics section
             html += `<div class="embedding-summary">`;
@@ -2159,11 +2191,12 @@
                 html += `</div>`;
             }
 
-            // Usage information
-            if (result.total_tokens_used) {
-                html += `<div class="usage-info">`;
-                html += `<span class="usage-item"><strong>🎯 Tokens Used:</strong> ${result.total_tokens_used}</span>`;
-                html += `</div>`;
+                // Usage information
+                if (result.total_tokens_used) {
+                    html += `<div class="usage-info">`;
+                    html += `<span class="usage-item"><strong>🎯 Tokens Used:</strong> ${result.total_tokens_used}</span>`;
+                    html += `</div>`;
+                }
             }
 
             html += `</div>`;
