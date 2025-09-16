@@ -52,6 +52,18 @@ class CassandraTest(BaseTest):
             "port": self.settings.cassandra_port,
         }
 
+        # Detect if this is Azure Cosmos DB Cassandra API
+        is_cosmos_db = self._is_cosmos_db_cassandra()
+
+        # Set protocol version based on environment
+        if is_cosmos_db:
+            # Azure Cosmos DB supports protocol version 4
+            config["protocol_version"] = 4
+        else:
+            # Let vanilla Cassandra auto-negotiate protocol version
+            # Don't set protocol_version to allow auto-detection
+            pass
+
         # Add datacenter-aware load balancing if datacenter is specified
         if self.settings.cassandra_datacenter:
             config["load_balancing_policy"] = DCAwareRoundRobinPolicy(
@@ -75,6 +87,16 @@ class CassandraTest(BaseTest):
             config["ssl_context"] = ssl_context
 
         return config
+
+    def _is_cosmos_db_cassandra(self) -> bool:
+        """Detect if this is Azure Cosmos DB Cassandra API"""
+        # Check if host contains cosmos.azure.com or cassandra.cosmos.azure.com
+        hosts = self.settings.cassandra_hosts.lower()
+        return (
+            "cosmos.azure.com" in hosts
+            or "cassandra.cosmos.azure.com" in hosts
+            or self.settings.cassandra_port == 10350  # Standard Cosmos DB Cassandra port
+        )
 
     def run_test(self) -> TestResult:
         """Run the Cassandra test"""
@@ -169,10 +191,25 @@ class CassandraTest(BaseTest):
             result["details"]["hosts"] = cluster_config["contact_points"]
             result["details"]["port"] = cluster_config["port"]
 
+            # Add protocol version to details if set
+            if "protocol_version" in cluster_config:
+                result["details"]["protocol_version"] = cluster_config["protocol_version"]
+
+            # Detect environment type
+            is_cosmos_db = self._is_cosmos_db_cassandra()
+            result["details"]["environment"] = "Azure Cosmos DB" if is_cosmos_db else "Vanilla Cassandra"
+
             cluster = Cluster(**cluster_config)
 
-            # Set connection timeout
-            cluster.connect_timeout = 15
+            # Set connection timeouts based on environment
+            if is_cosmos_db:
+                # Longer timeouts for Cosmos DB (cloud service)
+                cluster.connect_timeout = 25
+                cluster.control_connection_timeout = 25
+            else:
+                # Standard timeouts for vanilla Cassandra
+                cluster.connect_timeout = 15
+                cluster.control_connection_timeout = 15
 
             # Connect to cluster
             session = cluster.connect()
@@ -187,10 +224,38 @@ class CassandraTest(BaseTest):
 
         except Exception as e:
             self.logger.error(f"Cassandra connection failed: {str(e)}")
+
+            # Environment-specific error messaging
+            is_cosmos_db = self._is_cosmos_db_cassandra()
+            error_msg = str(e)
+
+            if is_cosmos_db:
+                # Azure Cosmos DB specific remediation
+                if "Unable to connect to any servers" in error_msg:
+                    remediation = "Check network connectivity, SSL settings, and ensure Cosmos DB Cassandra API is enabled"
+                elif "authentication" in error_msg.lower():
+                    remediation = "Verify username and password for Cosmos DB Cassandra API"
+                elif "protocol" in error_msg.lower():
+                    remediation = "Cosmos DB Cassandra API supports protocol version 4"
+                else:
+                    remediation = "Check Cosmos DB Cassandra configuration and network settings"
+            else:
+                # Vanilla Cassandra specific remediation
+                if "Unable to connect to any servers" in error_msg:
+                    remediation = "Check network connectivity and Cassandra cluster status"
+                elif "authentication" in error_msg.lower():
+                    remediation = "Verify Cassandra username and password configuration"
+                elif "protocol" in error_msg.lower():
+                    remediation = "Check Cassandra cluster protocol version compatibility"
+                else:
+                    remediation = "Check Cassandra cluster configuration and network settings"
+
             return {
                 "success": False,
                 "message": f"Connection failed: {str(e)}",
                 "error": str(e),
+                "remediation": remediation,
+                "environment": "Azure Cosmos DB" if is_cosmos_db else "Vanilla Cassandra",
             }
 
     def _test_cluster_health(self, cluster) -> Dict[str, Any]:
