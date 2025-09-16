@@ -1948,7 +1948,7 @@
                 // Display results
                 if (result.success) {
                     resultsElement.className = 'test-details show custom-test-results success';
-                    resultsElement.innerHTML = formatDocIntelResult(result);
+                    resultsElement.innerHTML = formatDocumentIntelligenceResult(result);
                 } else {
                     resultsElement.className = 'test-details show custom-test-results error';
                     resultsElement.innerHTML = `❌ Analysis Failed: ${result.message}\\n\\n${result.remediation || ''}`;
@@ -1966,38 +1966,6 @@
             }
         }
         
-        function formatDocIntelResult(result) {
-            let html = `✅ Document Analysis Successful!\\n\\n`;
-            html += `File Type: ${result.file_type.toUpperCase()}\\n`;
-            html += `Model Used: ${result.model_used}\\n`;
-            html += `Processing Time: ${result.processing_time_ms}ms\\n`;
-            
-            if (result.document_info) {
-                html += `\\nDocument Structure:\\n`;
-                html += `- Pages: ${result.document_info.pages}\\n`;
-                html += `- Tables: ${result.document_info.tables}\\n`;
-                html += `- Paragraphs: ${result.document_info.paragraphs}\\n`;
-                html += `- Key-Value Pairs: ${result.document_info.key_value_pairs}\\n`;
-            }
-            
-            if (result.content_length) {
-                html += `\\nContent Length: ${result.content_length} characters\\n`;
-            }
-            
-            if (result.custom_prompt) {
-                html += `\\n--- Analysis Request ---\\n${result.custom_prompt}\\n`;
-            }
-            
-            if (result.prompt_response) {
-                html += `\\n--- Analysis Response ---\\n${result.prompt_response}\\n`;
-            }
-            
-            if (result.content_preview) {
-                html += `\\n--- Extracted Content Preview ---\\n${result.content_preview}`;
-            }
-            
-            return html;
-        }
         
         async function handleCustomEmbeddingsTest(form) {
             const resultsElement = document.getElementById('custom-embeddings-results');

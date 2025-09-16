@@ -63,7 +63,9 @@ class EmbeddingTest(BaseTest):
 
     def is_configured(self) -> bool:
         """Check if embedding service is configured"""
-        return bool(self.api_key and self.base_url and self.model_name)
+        # For internal services, API key might be empty or a placeholder
+        # We need at least base_url and model_name
+        return bool(self.base_url and self.model_name)
 
     def get_configuration_help(self) -> str:
         return (
@@ -146,7 +148,9 @@ class EmbeddingTest(BaseTest):
 
     def _get_client(self):
         """Create OpenAI client for embedding service"""
-        client_params = {"api_key": self.api_key, "base_url": self.base_url}
+        # Use placeholder API key for internal services if none provided
+        api_key = self.api_key if self.api_key else "placeholder-key"
+        client_params = {"api_key": api_key, "base_url": self.base_url}
 
         # Add custom headers if provided
         if self.custom_headers:
