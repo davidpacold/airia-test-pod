@@ -930,6 +930,336 @@
                 width: 100%;
             }
         }
+
+        /* Enhanced Test Result Formatting Styles */
+        .test-result-enhanced {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .result-header {
+            padding: 1rem;
+            border-bottom: 1px solid #dee2e6;
+            position: relative;
+        }
+
+        .result-header.success {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            border-bottom-color: #c3e6cb;
+        }
+
+        .result-header.error {
+            background: linear-gradient(135deg, #f8d7da 0%, #f1c2c7 100%);
+            border-bottom-color: #f1c2c7;
+        }
+
+        .result-header h4 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .test-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.875rem;
+            color: #6c757d;
+        }
+
+        .test-meta span {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .result-message {
+            padding: 1rem;
+            background: white;
+        }
+
+        .result-message p {
+            margin: 0;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        .sub-tests-section {
+            padding: 1rem;
+            background: #ffffff;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .sub-tests-section h5 {
+            margin: 0 0 1rem 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .sub-tests-grid {
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .sub-test-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 0.75rem;
+            transition: all 0.2s ease;
+        }
+
+        .sub-test-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .sub-test-item.sub-test-success {
+            border-left: 4px solid #28a745;
+            background: linear-gradient(135deg, #f8fff9 0%, #f0fff4 100%);
+        }
+
+        .sub-test-item.sub-test-error {
+            border-left: 4px solid #dc3545;
+            background: linear-gradient(135deg, #fff8f8 0%, #fff0f0 100%);
+        }
+
+        .sub-test-header {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #495057;
+        }
+
+        .sub-test-message {
+            color: #6c757d;
+            line-height: 1.4;
+            margin-bottom: 0.5rem;
+        }
+
+        .database-list, .extensions-section {
+            margin-top: 0.75rem;
+            padding: 0.5rem 0;
+        }
+
+        .database-list h6, .extensions-section h6 {
+            margin: 0 0 0.5rem 0;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .database-item, .extension-item {
+            padding: 0.25rem 0;
+            color: #6c757d;
+            font-size: 0.875rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .database-item .size, .extension-item .version {
+            color: #007bff;
+            font-weight: 500;
+        }
+
+        .certificate-analysis {
+            margin-top: 0.75rem;
+            padding: 0.75rem;
+            background: #f1f3f4;
+            border-radius: 6px;
+            border: 1px solid #e1e5e9;
+        }
+
+        .certificate-analysis h6 {
+            margin: 0 0 0.5rem 0;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .chain-details {
+            margin-bottom: 0.75rem;
+        }
+
+        .chain-item {
+            padding: 0.25rem 0;
+            color: #6c757d;
+            font-size: 0.875rem;
+        }
+
+        .certificate-list {
+            margin-top: 0.5rem;
+        }
+
+        .certificate-item {
+            padding: 0.5rem;
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+
+        .cert-position {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 0.25rem;
+        }
+
+        .cert-detail {
+            font-size: 0.875rem;
+            color: #6c757d;
+            margin-bottom: 0.25rem;
+        }
+
+        .chain-analysis {
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            background: #e3f2fd;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            color: #1565c0;
+        }
+
+        .troubleshooting {
+            margin-top: 0.5rem;
+        }
+
+        .troubleshooting h6 {
+            margin: 0 0 0.5rem 0;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .troubleshooting-tip {
+            padding: 0.25rem 0;
+            color: #856404;
+            font-size: 0.875rem;
+            background: #fff3cd;
+            padding: 0.5rem;
+            border-radius: 4px;
+            margin-bottom: 0.25rem;
+            border-left: 3px solid #ffc107;
+        }
+
+        .remediation {
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            background: #e7f3ff;
+            border-left: 3px solid #007bff;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            color: #004085;
+        }
+
+        .remediation-section {
+            padding: 1rem;
+            background: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .remediation-section h5 {
+            margin: 0 0 0.75rem 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .remediation-content {
+            background: #e7f3ff;
+            border-left: 4px solid #007bff;
+            padding: 0.75rem;
+            border-radius: 4px;
+            color: #004085;
+            line-height: 1.5;
+        }
+
+        .logs-section {
+            padding: 1rem;
+            background: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .logs-section h5 {
+            margin: 0 0 0.75rem 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .logs-content {
+            background: #f1f3f4;
+            padding: 0.75rem;
+            border-radius: 6px;
+            border: 1px solid #e1e5e9;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            padding: 0.25rem 0;
+            color: #495057;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        /* Test-specific color themes */
+        .postgresql-result .result-header.success {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+        }
+
+        .blob-result .result-header.success {
+            background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%);
+        }
+
+        .cassandra-result .result-header.success {
+            background: linear-gradient(135deg, #fff3e0 0%, #ffcc02 100%);
+        }
+
+        .ssl-result .result-header.success {
+            background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+        }
+
+        .k8s-result .result-header.success {
+            background: linear-gradient(135deg, #e0f2f1 0%, #b2dfdb 100%);
+        }
+
+        .llama-result .result-header.success {
+            background: linear-gradient(135deg, #fce4ec 0%, #f8bbd9 100%);
+        }
+
+        /* Responsive design for enhanced results */
+        @media (max-width: 768px) {
+            .test-meta {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .sub-tests-grid {
+                gap: 0.5rem;
+            }
+
+            .certificate-item {
+                padding: 0.5rem;
+            }
+
+            .database-item, .extension-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.25rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1390,7 +1720,7 @@
                 }
                 
                 // Show details
-                detailsElement.innerHTML = formatTestDetails(testResult);
+                detailsElement.innerHTML = formatTestDetails(testResult, testName);
                 detailsElement.classList.add('show');
                 
             } catch (error) {
@@ -1436,7 +1766,7 @@
                         }
                         
                         if (detailsElement) {
-                            detailsElement.innerHTML = formatTestDetails(result);
+                            detailsElement.innerHTML = formatTestDetails(result, testId);
                             detailsElement.classList.add('show');
                         }
                     }
@@ -1457,90 +1787,90 @@
             }
         }
         
-        function formatTestDetails(result) {
-            let html = `<strong>Duration:</strong> ${result.duration_seconds?.toFixed(2) || 'N/A'} seconds<br>`;
-            html += `<strong>Status:</strong> ${result.status}<br>`;
-            html += `<strong>Message:</strong> ${result.message}<br>`;
-            
-            if (result.remediation) {
-                html += `<br><strong>Remediation:</strong><br><em>${result.remediation}</em><br>`;
-            }
-            
-            if (result.sub_tests) {
-                html += '<br><strong>Sub-tests:</strong><br>';
-                for (const [testName, testResult] of Object.entries(result.sub_tests)) {
-                    const icon = testResult.success ? '✅' : '❌';
-                    html += `${icon} <strong>${testName}:</strong> ${testResult.message}<br>`;
-                    
-                    // Show database details
-                    if (testName === 'databases' && testResult.databases) {
-                        html += '&nbsp;&nbsp;<em>Databases:</em><br>';
-                        testResult.databases.forEach(db => {
-                            html += `&nbsp;&nbsp;&nbsp;&nbsp;• ${db.name} (${db.size_human})<br>`;
-                        });
-                    }
-                    
-                    // Show extension details
-                    if (testName === 'extensions' && testResult.installed_extensions) {
-                        html += '&nbsp;&nbsp;<em>Installed Extensions:</em><br>';
-                        testResult.installed_extensions.forEach(ext => {
-                            html += `&nbsp;&nbsp;&nbsp;&nbsp;• ${ext.name} v${ext.version}<br>`;
-                        });
-                        if (testResult.available_extensions && testResult.available_extensions.length > 0) {
-                            html += '&nbsp;&nbsp;<em>Available Extensions:</em><br>';
-                            testResult.available_extensions.forEach(ext => {
-                                const status = ext.installed ? ' (installed)' : '';
-                                html += `&nbsp;&nbsp;&nbsp;&nbsp;• ${ext.name} v${ext.version}${status}<br>`;
-                            });
-                        }
-                    }
-                    
-                    // Show SSL certificate details
-                    if (testName.includes('SSL Check:') && testResult.certificate_chain_analysis) {
-                        const chainInfo = testResult.certificate_chain_analysis;
-                        html += `&nbsp;&nbsp;<em>Certificate Chain Analysis:</em><br>`;
-                        html += `&nbsp;&nbsp;&nbsp;&nbsp;• Method: ${chainInfo.retrieval_method}<br>`;
-                        html += `&nbsp;&nbsp;&nbsp;&nbsp;• Certificates Found: ${chainInfo.certificates_found}<br>`;
-                        
-                        if (chainInfo.certificates && chainInfo.certificates.length > 0) {
-                            html += '&nbsp;&nbsp;&nbsp;&nbsp;• Certificate Details:<br>';
-                            chainInfo.certificates.forEach(cert => {
-                                html += `&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${cert.position}. ${cert.type}<br>`;
-                                if (cert.subject_parsed && cert.subject_parsed['Common Name']) {
-                                    html += `&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Subject: ${cert.subject_parsed['Common Name']}<br>`;
-                                }
-                                if (cert.issuer_parsed) {
-                                    const issuer = cert.issuer_parsed['Common Name'] || cert.issuer_parsed['Organization'] || 'Unknown';
-                                    html += `&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Issuer: ${issuer}<br>`;
-                                }
-                            });
-                        }
-                        
-                        if (chainInfo.analysis) {
-                            html += `&nbsp;&nbsp;&nbsp;&nbsp;• Analysis: ${chainInfo.analysis}<br>`;
-                        }
-                        
-                        if (chainInfo.troubleshooting && chainInfo.troubleshooting.length > 0) {
-                            html += '&nbsp;&nbsp;&nbsp;&nbsp;• Troubleshooting:<br>';
-                            chainInfo.troubleshooting.forEach(tip => {
-                                html += `&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ ${tip}<br>`;
-                            });
-                        }
-                    }
-                    
-                    if (testResult.remediation) {
-                        html += `&nbsp;&nbsp;<em>→ ${testResult.remediation}</em><br>`;
-                    }
+        function formatTestDetails(result, testId) {
+            // Use enhanced formatting based on test type
+            if (testId) {
+                if (testId === 'postgresql') {
+                    return formatPostgreSQLResult(result);
+                } else if (testId === 'blob_storage') {
+                    return formatBlobStorageResult(result);
+                } else if (testId === 'cassandra') {
+                    return formatCassandraResult(result);
+                } else if (testId === 'ssl') {
+                    return formatSSLResult(result);
+                } else if (testId === 'kubernetes_pvc') {
+                    return formatKubernetesPVCResult(result);
+                } else if (testId === 'llama') {
+                    return formatLlamaResult(result);
+                } else if (testId === 'embeddings') {
+                    return formatEmbeddingResult(result);
                 }
             }
-            
-            if (result.logs && result.logs.length > 0) {
-                html += '<br><strong>Logs:</strong><br>';
-                result.logs.forEach(log => {
-                    html += `[${log.level}] ${log.message}<br>`;
-                });
+
+            // Fallback to enhanced generic formatter
+            const responseId = 'generic-' + Date.now();
+            let html = `<div class="test-result-enhanced generic-result">`;
+
+            // Header
+            const statusIcon = result.status === 'passed' ? '✅' : '❌';
+            const statusClass = result.status === 'passed' ? 'success' : 'error';
+            html += `<div class="result-header ${statusClass}">`;
+            html += `<h4>${statusIcon} Test Result</h4>`;
+            html += `<div class="test-meta">`;
+            html += `<span class="duration">⏱️ ${result.duration_seconds?.toFixed(2) || 'N/A'}s</span>`;
+            html += `<span class="status">Status: ${result.status}</span>`;
+            html += `</div>`;
+            html += `</div>`;
+
+            html += `<div class="result-message">`;
+            html += `<p><strong>📊 Result:</strong> ${result.message}</p>`;
+            html += `</div>`;
+
+            // Sub-tests
+            if (result.sub_tests) {
+                html += `<div class="sub-tests-section">`;
+                html += `<h5>🔍 Test Details:</h5>`;
+                html += `<div class="sub-tests-grid">`;
+
+                for (const [testName, testResult] of Object.entries(result.sub_tests)) {
+                    const icon = testResult.success ? '✅' : '❌';
+                    const itemClass = testResult.success ? 'sub-test-success' : 'sub-test-error';
+
+                    html += `<div class="sub-test-item ${itemClass}">`;
+                    html += `<div class="sub-test-header">${icon} <strong>${testName}</strong></div>`;
+                    html += `<div class="sub-test-message">${testResult.message}</div>`;
+
+                    if (testResult.remediation) {
+                        html += `<div class="remediation">💡 <em>${testResult.remediation}</em></div>`;
+                    }
+
+                    html += `</div>`;
+                }
+
+                html += `</div>`;
+                html += `</div>`;
             }
-            
+
+            // Logs
+            if (result.logs && result.logs.length > 0) {
+                html += `<div class="logs-section">`;
+                html += `<h5>📝 Logs:</h5>`;
+                html += `<div class="logs-content">`;
+                result.logs.forEach(log => {
+                    html += `<div class="log-entry">[${log.level}] ${log.message}</div>`;
+                });
+                html += `</div>`;
+                html += `</div>`;
+            }
+
+            if (result.remediation) {
+                html += `<div class="remediation-section">`;
+                html += `<h5>💡 Remediation:</h5>`;
+                html += `<div class="remediation-content">${result.remediation}</div>`;
+                html += `</div>`;
+            }
+
+            html += `</div>`;
             return html;
         }
         
@@ -1966,7 +2296,412 @@
             }
         }
         
-        
+
+        // Enhanced formatting functions for all test types
+        function formatPostgreSQLResult(result) {
+            const responseId = 'postgres-' + Date.now();
+            let html = `<div class="test-result-enhanced postgresql-result">`;
+
+            // Header with status
+            const statusIcon = result.status === 'passed' ? '✅' : '❌';
+            const statusClass = result.status === 'passed' ? 'success' : 'error';
+            html += `<div class="result-header ${statusClass}">`;
+            html += `<h4>${statusIcon} PostgreSQL Database Test</h4>`;
+            html += `<div class="test-meta">`;
+            html += `<span class="duration">⏱️ ${result.duration_seconds?.toFixed(2) || 'N/A'}s</span>`;
+            html += `<span class="status">Status: ${result.status}</span>`;
+            html += `</div>`;
+            html += `</div>`;
+
+            // Main message
+            html += `<div class="result-message">`;
+            html += `<p><strong>📊 Result:</strong> ${result.message}</p>`;
+            html += `</div>`;
+
+            // Sub-tests if available
+            if (result.sub_tests) {
+                html += `<div class="sub-tests-section">`;
+                html += `<h5>🔍 Detailed Test Results:</h5>`;
+                html += `<div class="sub-tests-grid">`;
+
+                for (const [testName, testResult] of Object.entries(result.sub_tests)) {
+                    const icon = testResult.success ? '✅' : '❌';
+                    const itemClass = testResult.success ? 'sub-test-success' : 'sub-test-error';
+
+                    html += `<div class="sub-test-item ${itemClass}">`;
+                    html += `<div class="sub-test-header">${icon} <strong>${testName}</strong></div>`;
+                    html += `<div class="sub-test-message">${testResult.message}</div>`;
+
+                    // Show database details
+                    if (testName === 'databases' && testResult.databases) {
+                        html += `<div class="database-list">`;
+                        html += `<h6>📚 Databases Found:</h6>`;
+                        testResult.databases.forEach(db => {
+                            html += `<div class="database-item">• ${db.name} <span class="size">(${db.size_human})</span></div>`;
+                        });
+                        html += `</div>`;
+                    }
+
+                    // Show extension details
+                    if (testName === 'extensions' && testResult.installed_extensions) {
+                        html += `<div class="extensions-section">`;
+                        html += `<h6>🔧 Installed Extensions:</h6>`;
+                        testResult.installed_extensions.forEach(ext => {
+                            html += `<div class="extension-item">• ${ext.name} <span class="version">v${ext.version}</span></div>`;
+                        });
+
+                        if (testResult.available_extensions && testResult.available_extensions.length > 0) {
+                            html += `<h6>📦 Available Extensions:</h6>`;
+                            testResult.available_extensions.forEach(ext => {
+                                const status = ext.installed ? ' ✓' : '';
+                                html += `<div class="extension-item">• ${ext.name} <span class="version">v${ext.version}${status}</span></div>`;
+                            });
+                        }
+                        html += `</div>`;
+                    }
+
+                    if (testResult.remediation) {
+                        html += `<div class="remediation">💡 <em>${testResult.remediation}</em></div>`;
+                    }
+
+                    html += `</div>`;
+                }
+
+                html += `</div>`;
+                html += `</div>`;
+            }
+
+            // Remediation section
+            if (result.remediation) {
+                html += `<div class="remediation-section">`;
+                html += `<h5>💡 Remediation:</h5>`;
+                html += `<div class="remediation-content">${result.remediation}</div>`;
+                html += `</div>`;
+            }
+
+            html += `</div>`;
+            return html;
+        }
+
+        function formatBlobStorageResult(result) {
+            const responseId = 'blob-' + Date.now();
+            let html = `<div class="test-result-enhanced blob-result">`;
+
+            // Header
+            const statusIcon = result.status === 'passed' ? '✅' : '❌';
+            const statusClass = result.status === 'passed' ? 'success' : 'error';
+            html += `<div class="result-header ${statusClass}">`;
+            html += `<h4>${statusIcon} Azure Blob Storage Test</h4>`;
+            html += `<div class="test-meta">`;
+            html += `<span class="duration">⏱️ ${result.duration_seconds?.toFixed(2) || 'N/A'}s</span>`;
+            html += `<span class="status">Status: ${result.status}</span>`;
+            html += `</div>`;
+            html += `</div>`;
+
+            html += `<div class="result-message">`;
+            html += `<p><strong>☁️ Result:</strong> ${result.message}</p>`;
+            html += `</div>`;
+
+            // Sub-tests
+            if (result.sub_tests) {
+                html += `<div class="sub-tests-section">`;
+                html += `<h5>🔍 Storage Operations:</h5>`;
+                html += `<div class="sub-tests-grid">`;
+
+                for (const [testName, testResult] of Object.entries(result.sub_tests)) {
+                    const icon = testResult.success ? '✅' : '❌';
+                    const itemClass = testResult.success ? 'sub-test-success' : 'sub-test-error';
+
+                    html += `<div class="sub-test-item ${itemClass}">`;
+                    html += `<div class="sub-test-header">${icon} <strong>${testName}</strong></div>`;
+                    html += `<div class="sub-test-message">${testResult.message}</div>`;
+
+                    if (testResult.remediation) {
+                        html += `<div class="remediation">💡 <em>${testResult.remediation}</em></div>`;
+                    }
+
+                    html += `</div>`;
+                }
+
+                html += `</div>`;
+                html += `</div>`;
+            }
+
+            if (result.remediation) {
+                html += `<div class="remediation-section">`;
+                html += `<h5>💡 Remediation:</h5>`;
+                html += `<div class="remediation-content">${result.remediation}</div>`;
+                html += `</div>`;
+            }
+
+            html += `</div>`;
+            return html;
+        }
+
+        function formatCassandraResult(result) {
+            const responseId = 'cassandra-' + Date.now();
+            let html = `<div class="test-result-enhanced cassandra-result">`;
+
+            // Header
+            const statusIcon = result.status === 'passed' ? '✅' : '❌';
+            const statusClass = result.status === 'passed' ? 'success' : 'error';
+            html += `<div class="result-header ${statusClass}">`;
+            html += `<h4>${statusIcon} Apache Cassandra Test</h4>`;
+            html += `<div class="test-meta">`;
+            html += `<span class="duration">⏱️ ${result.duration_seconds?.toFixed(2) || 'N/A'}s</span>`;
+            html += `<span class="status">Status: ${result.status}</span>`;
+            html += `</div>`;
+            html += `</div>`;
+
+            html += `<div class="result-message">`;
+            html += `<p><strong>🗃️ Result:</strong> ${result.message}</p>`;
+            html += `</div>`;
+
+            // Sub-tests
+            if (result.sub_tests) {
+                html += `<div class="sub-tests-section">`;
+                html += `<h5>🔍 Cluster Operations:</h5>`;
+                html += `<div class="sub-tests-grid">`;
+
+                for (const [testName, testResult] of Object.entries(result.sub_tests)) {
+                    const icon = testResult.success ? '✅' : '❌';
+                    const itemClass = testResult.success ? 'sub-test-success' : 'sub-test-error';
+
+                    html += `<div class="sub-test-item ${itemClass}">`;
+                    html += `<div class="sub-test-header">${icon} <strong>${testName}</strong></div>`;
+                    html += `<div class="sub-test-message">${testResult.message}</div>`;
+
+                    if (testResult.remediation) {
+                        html += `<div class="remediation">💡 <em>${testResult.remediation}</em></div>`;
+                    }
+
+                    html += `</div>`;
+                }
+
+                html += `</div>`;
+                html += `</div>`;
+            }
+
+            if (result.remediation) {
+                html += `<div class="remediation-section">`;
+                html += `<h5>💡 Remediation:</h5>`;
+                html += `<div class="remediation-content">${result.remediation}</div>`;
+                html += `</div>`;
+            }
+
+            html += `</div>`;
+            return html;
+        }
+
+        function formatSSLResult(result) {
+            const responseId = 'ssl-' + Date.now();
+            let html = `<div class="test-result-enhanced ssl-result">`;
+
+            // Header
+            const statusIcon = result.status === 'passed' ? '✅' : '❌';
+            const statusClass = result.status === 'passed' ? 'success' : 'error';
+            html += `<div class="result-header ${statusClass}">`;
+            html += `<h4>${statusIcon} SSL Certificate Test</h4>`;
+            html += `<div class="test-meta">`;
+            html += `<span class="duration">⏱️ ${result.duration_seconds?.toFixed(2) || 'N/A'}s</span>`;
+            html += `<span class="status">Status: ${result.status}</span>`;
+            html += `</div>`;
+            html += `</div>`;
+
+            html += `<div class="result-message">`;
+            html += `<p><strong>🔒 Result:</strong> ${result.message}</p>`;
+            html += `</div>`;
+
+            // Sub-tests with SSL-specific details
+            if (result.sub_tests) {
+                html += `<div class="sub-tests-section">`;
+                html += `<h5>🔍 Certificate Analysis:</h5>`;
+                html += `<div class="sub-tests-grid">`;
+
+                for (const [testName, testResult] of Object.entries(result.sub_tests)) {
+                    const icon = testResult.success ? '✅' : '❌';
+                    const itemClass = testResult.success ? 'sub-test-success' : 'sub-test-error';
+
+                    html += `<div class="sub-test-item ${itemClass}">`;
+                    html += `<div class="sub-test-header">${icon} <strong>${testName}</strong></div>`;
+                    html += `<div class="sub-test-message">${testResult.message}</div>`;
+
+                    // Show SSL certificate details
+                    if (testName.includes('SSL Check:') && testResult.certificate_chain_analysis) {
+                        const chainInfo = testResult.certificate_chain_analysis;
+                        html += `<div class="certificate-analysis">`;
+                        html += `<h6>📜 Certificate Chain Analysis:</h6>`;
+                        html += `<div class="chain-details">`;
+                        html += `<div class="chain-item"><strong>Method:</strong> ${chainInfo.retrieval_method}</div>`;
+                        html += `<div class="chain-item"><strong>Certificates Found:</strong> ${chainInfo.certificates_found}</div>`;
+
+                        if (chainInfo.certificates && chainInfo.certificates.length > 0) {
+                            html += `<div class="certificate-list">`;
+                            html += `<h6>🏷️ Certificate Details:</h6>`;
+                            chainInfo.certificates.forEach(cert => {
+                                html += `<div class="certificate-item">`;
+                                html += `<div class="cert-position">${cert.position}. ${cert.type}</div>`;
+                                if (cert.subject_parsed && cert.subject_parsed['Common Name']) {
+                                    html += `<div class="cert-detail"><strong>Subject:</strong> ${cert.subject_parsed['Common Name']}</div>`;
+                                }
+                                if (cert.issuer_parsed) {
+                                    const issuer = cert.issuer_parsed['Common Name'] || cert.issuer_parsed['Organization'] || 'Unknown';
+                                    html += `<div class="cert-detail"><strong>Issuer:</strong> ${issuer}</div>`;
+                                }
+                                html += `</div>`;
+                            });
+                            html += `</div>`;
+                        }
+
+                        if (chainInfo.analysis) {
+                            html += `<div class="chain-analysis"><strong>Analysis:</strong> ${chainInfo.analysis}</div>`;
+                        }
+
+                        if (chainInfo.troubleshooting && chainInfo.troubleshooting.length > 0) {
+                            html += `<div class="troubleshooting">`;
+                            html += `<h6>🔧 Troubleshooting:</h6>`;
+                            chainInfo.troubleshooting.forEach(tip => {
+                                html += `<div class="troubleshooting-tip">→ ${tip}</div>`;
+                            });
+                            html += `</div>`;
+                        }
+
+                        html += `</div>`;
+                        html += `</div>`;
+                    }
+
+                    if (testResult.remediation) {
+                        html += `<div class="remediation">💡 <em>${testResult.remediation}</em></div>`;
+                    }
+
+                    html += `</div>`;
+                }
+
+                html += `</div>`;
+                html += `</div>`;
+            }
+
+            if (result.remediation) {
+                html += `<div class="remediation-section">`;
+                html += `<h5>💡 Remediation:</h5>`;
+                html += `<div class="remediation-content">${result.remediation}</div>`;
+                html += `</div>`;
+            }
+
+            html += `</div>`;
+            return html;
+        }
+
+        function formatKubernetesPVCResult(result) {
+            const responseId = 'k8s-pvc-' + Date.now();
+            let html = `<div class="test-result-enhanced k8s-result">`;
+
+            // Header
+            const statusIcon = result.status === 'passed' ? '✅' : '❌';
+            const statusClass = result.status === 'passed' ? 'success' : 'error';
+            html += `<div class="result-header ${statusClass}">`;
+            html += `<h4>${statusIcon} Kubernetes PVC Test</h4>`;
+            html += `<div class="test-meta">`;
+            html += `<span class="duration">⏱️ ${result.duration_seconds?.toFixed(2) || 'N/A'}s</span>`;
+            html += `<span class="status">Status: ${result.status}</span>`;
+            html += `</div>`;
+            html += `</div>`;
+
+            html += `<div class="result-message">`;
+            html += `<p><strong>☸️ Result:</strong> ${result.message}</p>`;
+            html += `</div>`;
+
+            // Sub-tests
+            if (result.sub_tests) {
+                html += `<div class="sub-tests-section">`;
+                html += `<h5>🔍 Storage Operations:</h5>`;
+                html += `<div class="sub-tests-grid">`;
+
+                for (const [testName, testResult] of Object.entries(result.sub_tests)) {
+                    const icon = testResult.success ? '✅' : '❌';
+                    const itemClass = testResult.success ? 'sub-test-success' : 'sub-test-error';
+
+                    html += `<div class="sub-test-item ${itemClass}">`;
+                    html += `<div class="sub-test-header">${icon} <strong>${testName}</strong></div>`;
+                    html += `<div class="sub-test-message">${testResult.message}</div>`;
+
+                    if (testResult.remediation) {
+                        html += `<div class="remediation">💡 <em>${testResult.remediation}</em></div>`;
+                    }
+
+                    html += `</div>`;
+                }
+
+                html += `</div>`;
+                html += `</div>`;
+            }
+
+            if (result.remediation) {
+                html += `<div class="remediation-section">`;
+                html += `<h5>💡 Remediation:</h5>`;
+                html += `<div class="remediation-content">${result.remediation}</div>`;
+                html += `</div>`;
+            }
+
+            html += `</div>`;
+            return html;
+        }
+
+        function formatLlamaResult(result) {
+            const responseId = 'llama-' + Date.now();
+            let html = `<div class="test-result-enhanced llama-result">`;
+
+            // Header
+            const statusIcon = result.status === 'passed' ? '✅' : '❌';
+            const statusClass = result.status === 'passed' ? 'success' : 'error';
+            html += `<div class="result-header ${statusClass}">`;
+            html += `<h4>${statusIcon} Llama Model Test</h4>`;
+            html += `<div class="test-meta">`;
+            html += `<span class="duration">⏱️ ${result.duration_seconds?.toFixed(2) || 'N/A'}s</span>`;
+            html += `<span class="status">Status: ${result.status}</span>`;
+            html += `</div>`;
+            html += `</div>`;
+
+            html += `<div class="result-message">`;
+            html += `<p><strong>🦙 Result:</strong> ${result.message}</p>`;
+            html += `</div>`;
+
+            // Sub-tests
+            if (result.sub_tests) {
+                html += `<div class="sub-tests-section">`;
+                html += `<h5>🔍 Model Operations:</h5>`;
+                html += `<div class="sub-tests-grid">`;
+
+                for (const [testName, testResult] of Object.entries(result.sub_tests)) {
+                    const icon = testResult.success ? '✅' : '❌';
+                    const itemClass = testResult.success ? 'sub-test-success' : 'sub-test-error';
+
+                    html += `<div class="sub-test-item ${itemClass}">`;
+                    html += `<div class="sub-test-header">${icon} <strong>${testName}</strong></div>`;
+                    html += `<div class="sub-test-message">${testResult.message}</div>`;
+
+                    if (testResult.remediation) {
+                        html += `<div class="remediation">💡 <em>${testResult.remediation}</em></div>`;
+                    }
+
+                    html += `</div>`;
+                }
+
+                html += `</div>`;
+                html += `</div>`;
+            }
+
+            if (result.remediation) {
+                html += `<div class="remediation-section">`;
+                html += `<h5>💡 Remediation:</h5>`;
+                html += `<div class="remediation-content">${result.remediation}</div>`;
+                html += `</div>`;
+            }
+
+            html += `</div>`;
+            return html;
+        }
+
         async function handleCustomEmbeddingsTest(form) {
             const resultsElement = document.getElementById('custom-embeddings-results');
             const submitButton = form.querySelector('button[type="submit"]');
