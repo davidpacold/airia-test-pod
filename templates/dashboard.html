@@ -542,6 +542,394 @@
             margin: 0.5rem 0;
             font-style: italic;
         }
+
+        /* Embedding Test Results Styles */
+        .embedding-test-success {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: 1px solid #dee2e6;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .embedding-summary {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .embedding-header-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-item {
+            background: #f8f9fa;
+            padding: 0.75rem;
+            border-radius: 6px;
+            border-left: 3px solid #007bff;
+            font-size: 0.9rem;
+        }
+
+        .embedding-details {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .embedding-stat-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .stat-header {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .stat-details {
+            font-size: 0.9rem;
+        }
+
+        .stat-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-weight: 500;
+            color: #6c757d;
+            min-width: 80px;
+        }
+
+        .stat-value {
+            font-family: 'Courier New', monospace;
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.85rem;
+        }
+
+        .similarity-analysis {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .similarity-grid {
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .similarity-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .similarity-item.high-similarity {
+            border-left: 4px solid #28a745;
+            background: linear-gradient(90deg, #d4edda 0%, #f8f9fa 100%);
+        }
+
+        .similarity-item.medium-similarity {
+            border-left: 4px solid #ffc107;
+            background: linear-gradient(90deg, #fff3cd 0%, #f8f9fa 100%);
+        }
+
+        .similarity-item.low-similarity {
+            border-left: 4px solid #6c757d;
+            background: linear-gradient(90deg, #e2e3e5 0%, #f8f9fa 100%);
+        }
+
+        .similarity-texts {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex: 1;
+        }
+
+        .text-preview {
+            background: white;
+            padding: 0.5rem;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+            font-size: 0.85rem;
+            font-style: italic;
+            color: #495057;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .similarity-arrow {
+            font-size: 1.2rem;
+            color: #6c757d;
+            font-weight: bold;
+        }
+
+        .similarity-score {
+            background: #007bff;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .usage-info {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 6px;
+            padding: 0.75rem;
+            text-align: center;
+        }
+
+        .usage-item {
+            color: #1976d2;
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            .embedding-header-stats {
+                grid-template-columns: 1fr;
+            }
+
+            .similarity-texts {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .text-preview {
+                max-width: none;
+                width: 100%;
+            }
+
+            .similarity-item {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+
+        /* Document Intelligence Test Results Styles */
+        .document-intelligence-success {
+            background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
+            border: 1px solid #b3d9ff;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .document-summary {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .document-header-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .document-structure-section {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .structure-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 0.75rem;
+        }
+
+        .structure-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: all 0.2s ease;
+        }
+
+        .structure-item.has-content {
+            background: linear-gradient(135deg, #d4edda 0%, #f8f9fa 100%);
+            border-color: #28a745;
+            border-left: 4px solid #28a745;
+        }
+
+        .structure-item.no-content {
+            background: linear-gradient(135deg, #f8d7da 0%, #f8f9fa 100%);
+            border-color: #6c757d;
+            border-left: 4px solid #6c757d;
+        }
+
+        .structure-icon {
+            font-size: 1.5rem;
+            min-width: 30px;
+            text-align: center;
+        }
+
+        .structure-info {
+            flex: 1;
+        }
+
+        .structure-label {
+            font-size: 0.85rem;
+            color: #6c757d;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .structure-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #495057;
+            font-family: 'Courier New', monospace;
+        }
+
+        .analysis-section {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .analysis-request-box, .analysis-response-box {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            margin-bottom: 0.75rem;
+            overflow: hidden;
+        }
+
+        .analysis-request-box {
+            border-left: 4px solid #17a2b8;
+        }
+
+        .analysis-response-box {
+            border-left: 4px solid #28a745;
+        }
+
+        .analysis-header {
+            background: #e9ecef;
+            padding: 0.5rem 1rem;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .analysis-label {
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.9rem;
+        }
+
+        .analysis-content {
+            padding: 1rem;
+            color: #495057;
+            line-height: 1.5;
+            font-style: italic;
+        }
+
+        .extracted-content-section {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .content-preview-box, .content-full-box {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .content-display {
+            background: #ffffff;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .content-text {
+            padding: 1rem;
+            margin: 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            line-height: 1.4;
+            color: #495057;
+            background: transparent;
+            border: none;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .content-meta {
+            padding: 0.75rem 1rem;
+            background: #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .content-stats {
+            font-size: 0.8rem;
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        .btn-icon {
+            margin-right: 0.25rem;
+        }
+
+        @media (max-width: 768px) {
+            .document-header-stats, .structure-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .content-meta {
+                flex-direction: column;
+                gap: 0.5rem;
+                align-items: stretch;
+            }
+
+            .content-meta button {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1275,6 +1663,11 @@
                 return formatDocumentIntelligenceResult(result);
             }
 
+            // Check if this is an Embedding result
+            if (result.embedding_stats || result.embeddings_generated || result.embedding_dimension) {
+                return formatEmbeddingResult(result);
+            }
+
             // Default Llama/AI model result formatting
             const responseText = result.response_text || '';
             const isLongResponse = responseText.length > 800;
@@ -1329,6 +1722,86 @@
 
             html += `</div></div>`;
 
+            return html;
+        }
+
+        function formatEmbeddingResult(result) {
+            const responseId = 'embedding-' + Date.now();
+            let html = `<div class="embedding-test-success">`;
+
+            // Header
+            html += `<h4>✅ Embedding Generation Successful!</h4>`;
+
+            // Primary metrics section
+            html += `<div class="embedding-summary">`;
+            html += `<div class="embedding-header-stats">`;
+            html += `<span class="stat-item"><strong>📊 Model:</strong> ${result.model || 'N/A'}</span>`;
+            html += `<span class="stat-item"><strong>⏱️ Processing Time:</strong> ${result.response_time_ms || 'N/A'}ms</span>`;
+            html += `<span class="stat-item"><strong>🔢 Embeddings Generated:</strong> ${result.embeddings_generated || 'N/A'}</span>`;
+            html += `<span class="stat-item"><strong>📐 Embedding Dimension:</strong> ${result.embedding_dimension || 'N/A'}</span>`;
+            html += `</div>`;
+            html += `</div>`;
+
+            // Detailed statistics section
+            if (result.embedding_stats && result.embedding_stats.length > 0) {
+                html += `<div class="embedding-details">`;
+                html += `<h5>📈 Embedding Statistics</h5>`;
+
+                result.embedding_stats.forEach((stat, index) => {
+                    const textPreview = stat.input_text.length > 50 ? stat.input_text.substring(0, 50) + '...' : stat.input_text;
+                    html += `<div class="embedding-stat-item">`;
+                    html += `<div class="stat-header">`;
+                    html += `<strong>Text ${index + 1}:</strong> "${textPreview}"`;
+                    html += `</div>`;
+                    html += `<div class="stat-details">`;
+                    html += `<div class="stat-row">`;
+                    html += `<span class="stat-label">📐 Dimension:</span> <span class="stat-value">${stat.dimension}</span>`;
+                    html += `<span class="stat-label">📊 Range:</span> <span class="stat-value">${stat.embedding_range.min} to ${stat.embedding_range.max}</span>`;
+                    html += `</div>`;
+                    html += `<div class="stat-row">`;
+                    html += `<span class="stat-label">📈 Mean:</span> <span class="stat-value">${stat.embedding_range.mean}</span>`;
+                    if (stat.vector_norm) {
+                        html += `<span class="stat-label">🔢 Vector Norm:</span> <span class="stat-value">${stat.vector_norm}</span>`;
+                    }
+                    html += `</div>`;
+                    html += `</div>`;
+                    html += `</div>`;
+                });
+                html += `</div>`;
+            }
+
+            // Similarity analysis section
+            if (result.similarities && result.similarities.length > 0) {
+                html += `<div class="similarity-analysis">`;
+                html += `<h5>🔗 Similarity Analysis</h5>`;
+                html += `<div class="similarity-grid">`;
+
+                result.similarities.forEach(sim => {
+                    const similarityPercentage = Math.round(sim.similarity * 100);
+                    const similarityClass = sim.similarity > 0.8 ? 'high-similarity' : sim.similarity > 0.5 ? 'medium-similarity' : 'low-similarity';
+
+                    html += `<div class="similarity-item ${similarityClass}">`;
+                    html += `<div class="similarity-texts">`;
+                    html += `<div class="text-preview">"${sim.text1_preview}"</div>`;
+                    html += `<div class="similarity-arrow">↔</div>`;
+                    html += `<div class="text-preview">"${sim.text2_preview}"</div>`;
+                    html += `</div>`;
+                    html += `<div class="similarity-score">${similarityPercentage}% similar</div>`;
+                    html += `</div>`;
+                });
+
+                html += `</div>`;
+                html += `</div>`;
+            }
+
+            // Usage information
+            if (result.total_tokens_used) {
+                html += `<div class="usage-info">`;
+                html += `<span class="usage-item"><strong>🎯 Tokens Used:</strong> ${result.total_tokens_used}</span>`;
+                html += `</div>`;
+            }
+
+            html += `</div>`;
             return html;
         }
 
