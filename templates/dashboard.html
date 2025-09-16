@@ -265,6 +265,11 @@
             background-color: #fff3cd;
             color: #856404;
         }
+
+        .test-status.skipped {
+            background-color: #fff3cd;
+            color: #856404;
+        }
         
         .test-button {
             background-color: #0d6efd;
@@ -957,6 +962,11 @@
             border-bottom-color: #f1c2c7;
         }
 
+        .result-header.warning {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            border-bottom-color: #ffeaa7;
+        }
+
         .result-header h4 {
             margin: 0 0 0.5rem 0;
             font-size: 1.25rem;
@@ -1237,6 +1247,31 @@
 
         .llama-result .result-header.success {
             background: linear-gradient(135deg, #fce4ec 0%, #f8bbd9 100%);
+        }
+
+        /* Warning styles for skipped tests */
+        .postgresql-result .result-header.warning {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+        }
+
+        .blob-result .result-header.warning {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+        }
+
+        .cassandra-result .result-header.warning {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+        }
+
+        .ssl-result .result-header.warning {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+        }
+
+        .k8s-result .result-header.warning {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+        }
+
+        .llama-result .result-header.warning {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
         }
 
         /* Responsive design for enhanced results */
@@ -1762,7 +1797,7 @@
                             statusElement.className = 'test-status failed';
                         } else if (result.status === 'skipped') {
                             statusElement.textContent = 'Skipped';
-                            statusElement.className = 'test-status pending';
+                            statusElement.className = 'test-status skipped';
                         }
                         
                         if (detailsElement) {
@@ -2303,8 +2338,17 @@
             let html = `<div class="test-result-enhanced postgresql-result">`;
 
             // Header with status
-            const statusIcon = result.status === 'passed' ? '✅' : '❌';
-            const statusClass = result.status === 'passed' ? 'success' : 'error';
+            let statusIcon, statusClass;
+            if (result.status === 'passed') {
+                statusIcon = '✅';
+                statusClass = 'success';
+            } else if (result.status === 'skipped') {
+                statusIcon = '⚠️';
+                statusClass = 'warning';
+            } else {
+                statusIcon = '❌';
+                statusClass = 'error';
+            }
             html += `<div class="result-header ${statusClass}">`;
             html += `<h4>${statusIcon} PostgreSQL Database Test</h4>`;
             html += `<div class="test-meta">`;
@@ -2387,9 +2431,18 @@
             const responseId = 'blob-' + Date.now();
             let html = `<div class="test-result-enhanced blob-result">`;
 
-            // Header
-            const statusIcon = result.status === 'passed' ? '✅' : '❌';
-            const statusClass = result.status === 'passed' ? 'success' : 'error';
+            // Header with status
+            let statusIcon, statusClass;
+            if (result.status === 'passed') {
+                statusIcon = '✅';
+                statusClass = 'success';
+            } else if (result.status === 'skipped') {
+                statusIcon = '⚠️';
+                statusClass = 'warning';
+            } else {
+                statusIcon = '❌';
+                statusClass = 'error';
+            }
             html += `<div class="result-header ${statusClass}">`;
             html += `<h4>${statusIcon} Azure Blob Storage Test</h4>`;
             html += `<div class="test-meta">`;
@@ -2442,9 +2495,18 @@
             const responseId = 'cassandra-' + Date.now();
             let html = `<div class="test-result-enhanced cassandra-result">`;
 
-            // Header
-            const statusIcon = result.status === 'passed' ? '✅' : '❌';
-            const statusClass = result.status === 'passed' ? 'success' : 'error';
+            // Header with status
+            let statusIcon, statusClass;
+            if (result.status === 'passed') {
+                statusIcon = '✅';
+                statusClass = 'success';
+            } else if (result.status === 'skipped') {
+                statusIcon = '⚠️';
+                statusClass = 'warning';
+            } else {
+                statusIcon = '❌';
+                statusClass = 'error';
+            }
             html += `<div class="result-header ${statusClass}">`;
             html += `<h4>${statusIcon} Apache Cassandra Test</h4>`;
             html += `<div class="test-meta">`;
@@ -2497,9 +2559,18 @@
             const responseId = 'ssl-' + Date.now();
             let html = `<div class="test-result-enhanced ssl-result">`;
 
-            // Header
-            const statusIcon = result.status === 'passed' ? '✅' : '❌';
-            const statusClass = result.status === 'passed' ? 'success' : 'error';
+            // Header with status
+            let statusIcon, statusClass;
+            if (result.status === 'passed') {
+                statusIcon = '✅';
+                statusClass = 'success';
+            } else if (result.status === 'skipped') {
+                statusIcon = '⚠️';
+                statusClass = 'warning';
+            } else {
+                statusIcon = '❌';
+                statusClass = 'error';
+            }
             html += `<div class="result-header ${statusClass}">`;
             html += `<h4>${statusIcon} SSL Certificate Test</h4>`;
             html += `<div class="test-meta">`;
@@ -2596,9 +2667,18 @@
             const responseId = 'k8s-pvc-' + Date.now();
             let html = `<div class="test-result-enhanced k8s-result">`;
 
-            // Header
-            const statusIcon = result.status === 'passed' ? '✅' : '❌';
-            const statusClass = result.status === 'passed' ? 'success' : 'error';
+            // Header with status
+            let statusIcon, statusClass;
+            if (result.status === 'passed') {
+                statusIcon = '✅';
+                statusClass = 'success';
+            } else if (result.status === 'skipped') {
+                statusIcon = '⚠️';
+                statusClass = 'warning';
+            } else {
+                statusIcon = '❌';
+                statusClass = 'error';
+            }
             html += `<div class="result-header ${statusClass}">`;
             html += `<h4>${statusIcon} Kubernetes PVC Test</h4>`;
             html += `<div class="test-meta">`;
@@ -2651,9 +2731,18 @@
             const responseId = 'llama-' + Date.now();
             let html = `<div class="test-result-enhanced llama-result">`;
 
-            // Header
-            const statusIcon = result.status === 'passed' ? '✅' : '❌';
-            const statusClass = result.status === 'passed' ? 'success' : 'error';
+            // Header with status
+            let statusIcon, statusClass;
+            if (result.status === 'passed') {
+                statusIcon = '✅';
+                statusClass = 'success';
+            } else if (result.status === 'skipped') {
+                statusIcon = '⚠️';
+                statusClass = 'warning';
+            } else {
+                statusIcon = '❌';
+                statusClass = 'error';
+            }
             html += `<div class="result-header ${statusClass}">`;
             html += `<h4>${statusIcon} Llama Model Test</h4>`;
             html += `<div class="test-meta">`;
