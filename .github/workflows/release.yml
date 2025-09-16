@@ -307,7 +307,7 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Extract metadata for version tag with comprehensive tagging
+    - name: Extract metadata for version tag with latest
       id: meta
       uses: docker/metadata-action@v5
       with:
@@ -315,12 +315,8 @@ jobs:
         tags: |
           # Latest tag - always points to newest release
           type=raw,value=latest
-          # Full semantic version tags
+          # Current version number tag for specific deployment
           type=raw,value=v${{ needs.build-and-push-release.outputs.docker_version }}
-          type=raw,value=${{ needs.build-and-push-release.outputs.docker_version }}
-          # Major and minor version tags for flexible pinning
-          type=semver,pattern=v{{major}}.{{minor}},value=v${{ needs.build-and-push-release.outputs.docker_version }}
-          type=semver,pattern=v{{major}},value=v${{ needs.build-and-push-release.outputs.docker_version }}
 
     - name: Build and push Docker image for version
       uses: docker/build-push-action@v5
