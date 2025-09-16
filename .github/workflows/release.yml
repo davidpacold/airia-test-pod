@@ -155,8 +155,9 @@ jobs:
         sed -i "s/^appVersion:.*/appVersion: \"$VERSION\"/" helm/airia-test-pod/Chart.yaml
         echo "✅ Updated Helm Chart versions"
         
-        # Update application version references (config.py now uses environment variable)
+        # Update application version references
         sed -i "s/FastAPI(title=\"Airia Infrastructure Test Pod\", version=\"[^\"]*\")/FastAPI(title=\"Airia Infrastructure Test Pod\", version=\"$VERSION\")/" app/main.py
+        sed -i "s/version: str = os.getenv(\"APP_VERSION\", \"[^\"]*\")/version: str = os.getenv(\"APP_VERSION\", \"$VERSION\")/" app/config.py
         echo "✅ Updated application version references"
         
         # Update template fallback versions
@@ -168,6 +169,29 @@ jobs:
         echo "docker_version=$VERSION" >> $GITHUB_OUTPUT
         echo "trigger_docker_build=true" >> $GITHUB_OUTPUT
 
+    - name: Commit version updates
+      run: |
+        VERSION="${{ steps.calc_version.outputs.version }}"
+
+        echo "📤 COMMITTING VERSION UPDATES"
+        echo "=============================="
+
+        # Configure git for automated commits
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+
+        # Add version-updated files
+        git add app/main.py app/config.py helm/airia-test-pod/Chart.yaml templates/dashboard.html templates/index.html
+
+        # Check if there are changes to commit
+        if git diff --staged --quiet; then
+          echo "ℹ️  No version changes to commit"
+        else
+          git commit -m "Update version references to $VERSION [skip ci]"
+          git push
+          echo "✅ Version updates committed and pushed"
+        fi
+
     - name: Post-update version consistency validation
       run: |
         VERSION="${{ steps.calc_version.outputs.version }}"
@@ -175,36 +199,40 @@ jobs:
         echo "🔍 VALIDATING VERSION CONSISTENCY AFTER UPDATE"
         echo "=============================================="
         
-        # Extract updated versions from all key files (config.py now uses environment variable)
+        # Extract updated versions from all key files
         HELM_VERSION=$(grep '^version:' helm/airia-test-pod/Chart.yaml | cut -d' ' -f2)
         HELM_APP_VERSION=$(grep '^appVersion:' helm/airia-test-pod/Chart.yaml | cut -d'"' -f2)
         APP_MAIN_VERSION=$(grep -o 'version="[^"]*"' app/main.py | cut -d'"' -f2)
+        APP_CONFIG_VERSION=$(grep -o 'APP_VERSION", "[^"]*"' app/config.py | cut -d'"' -f3)
         DASHBOARD_VERSION=$(grep 'textContent.*v[0-9]' templates/dashboard.html | grep -o "v[0-9][^']*" | cut -c2-)
         INDEX_VERSION=$(grep 'textContent.*v[0-9]' templates/index.html | grep -o "v[0-9][^']*" | cut -c2-)
-        
+
         echo "📋 UPDATED VERSION REFERENCES:"
         echo "- Helm Chart version: $HELM_VERSION"
-        echo "- Helm appVersion: $HELM_APP_VERSION" 
-        echo "- App config.py: uses environment variable (APP_VERSION=$VERSION)"
+        echo "- Helm appVersion: $HELM_APP_VERSION"
+        echo "- App config.py fallback: $APP_CONFIG_VERSION (environment variable APP_VERSION takes precedence)"
         echo "- App main.py: $APP_MAIN_VERSION"
         echo "- Dashboard template: $DASHBOARD_VERSION"
         echo "- Index template: $INDEX_VERSION"
         echo ""
-        
+
         # Validate all versions now match the target
         VALIDATION_FAILED=false
-        
+
         if [ "$HELM_VERSION" != "$VERSION" ]; then
           echo "❌ ERROR: Helm Chart version mismatch: expected $VERSION, got $HELM_VERSION"
           VALIDATION_FAILED=true
         fi
-        
+
         if [ "$HELM_APP_VERSION" != "$VERSION" ]; then
           echo "❌ ERROR: Helm appVersion mismatch: expected $VERSION, got $HELM_APP_VERSION"
           VALIDATION_FAILED=true
         fi
-        
-        # App config.py validation skipped - uses environment variable
+
+        if [ "$APP_CONFIG_VERSION" != "$VERSION" ]; then
+          echo "❌ ERROR: App config fallback version mismatch: expected $VERSION, got $APP_CONFIG_VERSION"
+          VALIDATION_FAILED=true
+        fi
         
         if [ "$APP_MAIN_VERSION" != "$VERSION" ]; then
           echo "❌ ERROR: App main version mismatch: expected $VERSION, got $APP_MAIN_VERSION"
