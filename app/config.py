@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     # Application settings
     app_name: str = "Airia Infrastructure Test Pod"
-    version: str = os.getenv("APP_VERSION", "1.0.155")
+    version: str = os.getenv("APP_VERSION", "1.0.156")
 
     # Authentication settings  
     auth_username: str = os.getenv("AUTH_USERNAME") or "admin"
