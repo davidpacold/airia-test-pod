@@ -276,14 +276,6 @@ jobs:
         # Use the version calculated in the previous step
         echo "version=${{ steps.calc_version.outputs.version }}" >> $GITHUB_OUTPUT
 
-    - name: Upload Helm chart to release
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: v${{ steps.version.outputs.version }}
-        name: v${{ steps.version.outputs.version }}
-        files: ./helm-packages/*.tgz
-        generate_release_notes: true
-
     - name: Setup Helm repository files
       if: success()
       run: |
@@ -309,6 +301,14 @@ jobs:
         echo "✅ GitHub Pages deployment triggered successfully"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Create GitHub Release with Helm chart
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ steps.version.outputs.version }}
+        name: v${{ steps.version.outputs.version }}
+        files: ./helm-packages/*.tgz
+        generate_release_notes: true
 
   # Build and publish Docker image for the version tag
   build-version-docker:
