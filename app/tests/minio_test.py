@@ -228,36 +228,47 @@ class MinioTest(BaseTest):
             }
 
     def _test_bucket_access(self) -> Dict[str, Any]:
-        """Test access to the specified bucket"""
+        """Test access to the specified bucket, create if doesn't exist"""
         try:
             s3_client = self._get_s3_client()
 
             # Check if bucket exists
+            bucket_exists = False
+            bucket_created = False
             try:
                 s3_client.head_bucket(Bucket=self.bucket_name)
                 bucket_exists = True
             except ClientError as e:
                 if e.response["Error"]["Code"] == "404":
-                    bucket_exists = False
+                    # Bucket doesn't exist, try to create it
+                    try:
+                        s3_client.create_bucket(Bucket=self.bucket_name)
+                        bucket_created = True
+                        bucket_exists = True
+                    except ClientError as create_error:
+                        return {
+                            "success": False,
+                            "message": f"Failed to create bucket '{self.bucket_name}'",
+                            "error": str(create_error),
+                            "remediation": "Check permissions to create buckets or manually create the bucket",
+                        }
                 else:
                     raise e
-
-            if not bucket_exists:
-                return {
-                    "success": False,
-                    "message": f"Bucket '{self.bucket_name}' does not exist",
-                    "remediation": f"Create bucket '{self.bucket_name}' or update MINIO_BUCKET_NAME configuration",
-                }
 
             # Try to list objects in the bucket (test read access)
             response = s3_client.list_objects_v2(Bucket=self.bucket_name, MaxKeys=1)
             object_count = response.get("KeyCount", 0)
 
+            message = f"Successfully accessed bucket '{self.bucket_name}'"
+            if bucket_created:
+                message = f"Created and accessed bucket '{self.bucket_name}'"
+
             return {
                 "success": True,
-                "message": f"Successfully accessed bucket '{self.bucket_name}'",
+                "message": message,
                 "details": {
                     "bucket_name": self.bucket_name,
+                    "bucket_created": bucket_created,
                     "object_count": object_count,
                     "can_list": True,
                 },
