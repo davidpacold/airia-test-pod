@@ -46,6 +46,11 @@ class Settings(BaseSettings):
     cassandra_datacenter: str = os.getenv("CASSANDRA_DATACENTER", "datacenter1")
     cassandra_use_ssl: bool = (os.getenv("CASSANDRA_USE_SSL", "false") or "false").lower() in ("true", "1", "yes", "on")
 
+    # GPU settings
+    gpu_required: bool = os.getenv("GPU_REQUIRED", "false").lower() == "true"
+    gpu_min_memory_gb: int = int(os.getenv("GPU_MIN_MEMORY_GB", "0"))
+    gpu_max_temp_celsius: int = int(os.getenv("GPU_MAX_TEMP_CELSIUS", "85"))
+
     class Config:
         env_file = ".env"
 

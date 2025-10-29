@@ -107,6 +107,14 @@ class HealthChecker:
         )
 
         self.register_check(
+            "gpu_availability",
+            self._check_gpu_availability,
+            critical=False,
+            timeout=10,
+            description="Check GPU availability and status if available",
+        )
+
+        self.register_check(
             "database_connectivity",
             self._check_database_connectivity,
             critical=False,
@@ -400,6 +408,135 @@ class HealthChecker:
             return {
                 "status": HealthStatus.UNKNOWN.value,
                 "error": f"Could not check disk space: {str(e)}",
+            }
+
+    async def _check_gpu_availability(self) -> Dict[str, Any]:
+        """Check GPU availability and status."""
+        try:
+            import subprocess
+
+            # Check if nvidia-smi is available
+            try:
+                result = subprocess.run(
+                    ["which", "nvidia-smi"],
+                    capture_output=True,
+                    timeout=5,
+                )
+                if result.returncode != 0:
+                    return {
+                        "status": HealthStatus.HEALTHY.value,
+                        "message": "No GPU detected (nvidia-smi not available)",
+                        "gpu_available": False,
+                        "skipped": True,
+                    }
+            except (FileNotFoundError, subprocess.TimeoutExpired):
+                return {
+                    "status": HealthStatus.HEALTHY.value,
+                    "message": "No GPU detected",
+                    "gpu_available": False,
+                    "skipped": True,
+                }
+
+            # Get GPU information
+            result = subprocess.run(
+                [
+                    "nvidia-smi",
+                    "--query-gpu=count,name,memory.total,memory.used,temperature.gpu,utilization.gpu",
+                    "--format=csv,noheader,nounits",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+
+            if result.returncode != 0:
+                return {
+                    "status": HealthStatus.DEGRADED.value,
+                    "message": "GPU detected but query failed",
+                    "gpu_available": True,
+                    "error": result.stderr.strip(),
+                }
+
+            # Parse GPU information
+            lines = result.stdout.strip().split("\n")
+            gpu_count = len(lines)
+
+            if gpu_count == 0:
+                return {
+                    "status": HealthStatus.HEALTHY.value,
+                    "message": "No GPUs detected",
+                    "gpu_available": False,
+                    "skipped": True,
+                }
+
+            # Get info for first GPU (if multiple, show aggregate)
+            gpus = []
+            max_temp = 0
+            total_memory_used_percent = 0
+
+            for line in lines:
+                if not line.strip():
+                    continue
+                parts = [p.strip() for p in line.split(",")]
+                if len(parts) >= 6:
+                    memory_total = float(parts[2]) if parts[2] != "[N/A]" else 0
+                    memory_used = float(parts[3]) if parts[3] != "[N/A]" else 0
+                    temp = int(parts[4]) if parts[4] != "[N/A]" else 0
+                    util = parts[5] if parts[5] != "[N/A]" else "0"
+
+                    memory_used_percent = (
+                        (memory_used / memory_total * 100) if memory_total > 0 else 0
+                    )
+                    total_memory_used_percent += memory_used_percent
+                    max_temp = max(max_temp, temp)
+
+                    gpus.append(
+                        {
+                            "name": parts[1],
+                            "memory_total_mb": round(memory_total, 2),
+                            "memory_used_mb": round(memory_used, 2),
+                            "memory_used_percent": round(memory_used_percent, 2),
+                            "temperature_celsius": temp,
+                            "utilization_percent": util,
+                        }
+                    )
+
+            avg_memory_used_percent = (
+                total_memory_used_percent / gpu_count if gpu_count > 0 else 0
+            )
+
+            # Determine health status based on temperature and memory
+            status = HealthStatus.HEALTHY.value
+            warnings = []
+
+            if max_temp > 85:
+                status = HealthStatus.DEGRADED.value
+                warnings.append(f"High GPU temperature: {max_temp}°C")
+            elif max_temp > 80:
+                warnings.append(f"Elevated GPU temperature: {max_temp}°C")
+
+            if avg_memory_used_percent > 95:
+                status = HealthStatus.DEGRADED.value
+                warnings.append(
+                    f"High GPU memory usage: {round(avg_memory_used_percent, 1)}%"
+                )
+
+            return {
+                "status": status,
+                "message": f"{gpu_count} GPU(s) available"
+                + (f" - {', '.join(warnings)}" if warnings else ""),
+                "gpu_available": True,
+                "gpu_count": gpu_count,
+                "gpus": gpus,
+                "max_temperature_celsius": max_temp,
+                "warnings": warnings if warnings else None,
+            }
+
+        except Exception as e:
+            return {
+                "status": HealthStatus.UNKNOWN.value,
+                "error": f"Could not check GPU availability: {str(e)}",
+                "gpu_available": False,
             }
 
     async def _check_database_connectivity(self) -> Dict[str, Any]:

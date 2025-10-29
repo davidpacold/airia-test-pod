@@ -8,6 +8,7 @@ from .blob_storage_test import BlobStorageTest
 from .cassandra_test import CassandraTest
 from .document_intelligence_test import DocumentIntelligenceTest
 from .embedding_test import EmbeddingTest
+from .gpu_test import GPUTest
 from .llama_test import LlamaTest
 from .minio_test import MinioTest
 from .openai_test import OpenAITest
@@ -47,6 +48,10 @@ class TestRunner:
         # Register SSL test
         ssl_test = SSLTest()
         test_suite.register_test(ssl_test)
+
+        # Register GPU test
+        gpu_test = GPUTest()
+        test_suite.register_test(gpu_test)
 
         # Register OpenAI test
         openai_test = OpenAITest()
