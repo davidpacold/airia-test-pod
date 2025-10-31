@@ -83,9 +83,13 @@ resources:
   limits:
     cpu: 500m
     memory: 512Mi
+    # Uncomment to request GPU allocation (requires GPU-enabled node)
+    # nvidia.com/gpu: 1
   requests:
     cpu: 100m
     memory: 256Mi
+    # Uncomment to request GPU allocation (requires GPU-enabled node)
+    # nvidia.com/gpu: 1
 
 autoscaling:
   enabled: false
@@ -162,7 +166,12 @@ config:
   kubernetes:
     storageClass: "default"
     testPvcSize: "1Gi"
-  
+
+  # GPU detection (optional)
+  gpu:
+    enabled: false
+    required: false  # Set to true to require GPU presence
+
   # Minio S3-compatible storage configuration (optional)
   minio:
     enabled: false
@@ -210,12 +219,10 @@ namespace:
 versionCheck:
   # Enable version checking during helm upgrade
   enabled: true
-  # Use OCI registry for version checks (recommended)
+  # Use OCI registry for version checks
   useOCI: true
   # OCI repository URL
   ociRepo: "oci://ghcr.io/davidpacold/airia-test-pod/charts"
-  # Traditional Helm repository URL (used if useOCI is false)
-  repoUrl: "https://davidpacold.github.io/airia-test-pod/"
   # Strict mode - block upgrades if not using latest version
   # Set to true to enforce always using the latest version
   # Set to false to show warnings but allow older versions

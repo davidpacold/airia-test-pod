@@ -422,6 +422,13 @@ spec:
                   key: api-key
             {{- end }}
             {{- end }}
+            {{- if .Values.config.gpu.enabled }}
+            - name: GPU_REQUIRED
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: gpu-required
+            {{- end }}
             - name: STORAGE_CLASS
               valueFrom:
                 configMapKeyRef:

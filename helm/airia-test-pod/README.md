@@ -184,6 +184,12 @@ kubectl get ingress -n airia-preprod
 | `config.ssl.enabled` | Enable SSL testing | `false` |
 | `config.ssl.testUrls` | Comma-separated URLs to test | `""` |
 
+#### GPU Detection Testing
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `config.gpu.enabled` | Enable GPU detection testing | `false` |
+| `config.gpu.required` | Require GPU presence (fail test if not found) | `false` |
+
 ### Infrastructure Configuration
 
 | Parameter | Description | Default |
