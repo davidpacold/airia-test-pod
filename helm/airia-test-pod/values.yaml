@@ -169,7 +169,7 @@ config:
 
   # GPU detection (optional)
   gpu:
-    enabled: false
+    enabled: true
     required: false  # Set to true to require GPU presence
 
   # Minio S3-compatible storage configuration (optional)
