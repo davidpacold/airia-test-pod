@@ -204,3 +204,19 @@ config:
 namespace:
   create: false
   name: "airia-preprod"
+
+# Version checking configuration
+# Helps ensure users are deploying the latest version
+versionCheck:
+  # Enable version checking during helm upgrade
+  enabled: true
+  # Use OCI registry for version checks (recommended)
+  useOCI: true
+  # OCI repository URL
+  ociRepo: "oci://ghcr.io/davidpacold/airia-test-pod/charts"
+  # Traditional Helm repository URL (used if useOCI is false)
+  repoUrl: "https://davidpacold.github.io/airia-test-pod/"
+  # Strict mode - block upgrades if not using latest version
+  # Set to true to enforce always using the latest version
+  # Set to false to show warnings but allow older versions
+  strict: false

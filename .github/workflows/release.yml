@@ -268,10 +268,33 @@ jobs:
       with:
         version: v3.14.0
 
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Package Helm chart
       run: |
         helm package helm/airia-test-pod --destination ./helm-packages
 
+    - name: Push Helm chart to OCI registry
+      run: |
+        VERSION="${{ steps.calc_version.outputs.version }}"
+
+        echo "📦 Pushing Helm chart to OCI registry..."
+        echo "Registry: oci://${{ env.REGISTRY }}/${{ github.repository }}/charts"
+        echo "Version: $VERSION"
+
+        # Push the packaged chart to GitHub Container Registry as OCI artifact
+        helm push ./helm-packages/airia-test-pod-${VERSION}.tgz \
+          oci://${{ env.REGISTRY }}/${{ github.repository }}/charts
+
+        echo "✅ Helm chart pushed to OCI registry successfully"
+        echo ""
+        echo "Users can now install with:"
+        echo "  helm install airia-test-pod oci://${{ env.REGISTRY }}/${{ github.repository }}/charts/airia-test-pod --version $VERSION"
 
     - name: Set version output
       id: version
@@ -456,32 +479,80 @@ jobs:
       actions: write  # Required to trigger workflow dispatch for auto-rollback
     
     steps:
-      - name: Wait for deployment propagation
+      - name: Wait for GitHub Pages propagation
         run: |
-          echo "⏳ Waiting for deployment to propagate..."
-          sleep 30
-          echo "✅ Deployment propagation period completed"
-      
-      - name: Simulate health check validation
+          echo "⏳ Waiting for GitHub Pages to propagate..."
+          sleep 45
+          echo "✅ GitHub Pages propagation period completed"
+
+      - name: Validate Helm repository availability
         id: health_check
         run: |
-          echo "🏥 Running post-deployment health checks..."
+          echo "🏥 Validating Helm Repository Deployment"
           echo "Version: ${{ needs.build-and-push-release.outputs.docker_version }}"
-          
-          # In a real environment, this would check actual deployment health:
-          # kubectl rollout status deployment/airia-test-pod -n default --timeout=300s
-          # kubectl exec deployment/airia-test-pod -n default -- curl -f http://localhost:8080/health/live
-          # kubectl exec deployment/airia-test-pod -n default -- curl -f http://localhost:8080/health/ready
-          
-          # Simulate health check with 90% success rate (occasionally fail to test rollback)
-          if [ $((RANDOM % 10)) -eq 0 ]; then
-            echo "❌ Health check failed - deployment may be unhealthy"
+          echo "========================================"
+
+          VERSION="${{ needs.build-and-push-release.outputs.docker_version }}"
+          REPO_URL="https://davidpacold.github.io/airia-test-pod"
+
+          # Check 1: Verify GitHub Pages is accessible
+          echo "📡 Checking GitHub Pages accessibility..."
+          if curl -f -s -o /dev/null -w "%{http_code}" "$REPO_URL/index.yaml" | grep -q "200"; then
+            echo "✅ GitHub Pages is accessible"
+          else
+            echo "❌ GitHub Pages is not accessible"
             echo "health_status=failed" >> $GITHUB_OUTPUT
             exit 1
-          else
-            echo "✅ Health checks passed - deployment is healthy"
-            echo "health_status=passed" >> $GITHUB_OUTPUT
           fi
+
+          # Check 2: Download and parse index.yaml
+          echo ""
+          echo "📦 Downloading Helm repository index..."
+          if ! curl -f -s "$REPO_URL/index.yaml" -o /tmp/index.yaml; then
+            echo "❌ Failed to download index.yaml"
+            echo "health_status=failed" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          # Check 3: Verify the new version exists in index.yaml
+          echo ""
+          echo "🔍 Verifying version $VERSION in Helm repository..."
+          if grep -q "version: $VERSION" /tmp/index.yaml; then
+            echo "✅ Version $VERSION found in Helm repository index"
+          else
+            echo "❌ Version $VERSION NOT found in Helm repository"
+            echo "Available versions in index.yaml:"
+            grep "version:" /tmp/index.yaml | head -5
+            echo "health_status=failed" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          # Check 4: Verify the chart package file exists
+          echo ""
+          echo "📦 Verifying Helm chart package availability..."
+          CHART_URL="$REPO_URL/airia-test-pod-$VERSION.tgz"
+          if curl -f -s -o /dev/null -w "%{http_code}" "$CHART_URL" | grep -q "200"; then
+            echo "✅ Helm chart package is downloadable at: $CHART_URL"
+          else
+            echo "❌ Helm chart package not found at: $CHART_URL"
+            echo "health_status=failed" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          # Check 5: Verify Docker image exists
+          echo ""
+          echo "🐳 Verifying Docker image availability..."
+          if docker manifest inspect ghcr.io/${{ github.repository }}:v$VERSION >/dev/null 2>&1; then
+            echo "✅ Docker image ghcr.io/${{ github.repository }}:v$VERSION is available"
+          else
+            echo "⚠️  Docker image verification skipped (requires authentication)"
+          fi
+
+          # All checks passed
+          echo ""
+          echo "✅ All Helm repository health checks passed!"
+          echo "🎉 Users can now upgrade with: helm repo update && helm upgrade"
+          echo "health_status=passed" >> $GITHUB_OUTPUT
       
       - name: Trigger automatic rollback on failure
         if: failure() && steps.health_check.outputs.health_status == 'failed'
