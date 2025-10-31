@@ -2,10 +2,13 @@
 name: 📦 Deploy Helm Repository to Pages
 
 on:
-  # Runs on pushes targeting the default branch (when Helm files are updated)
+  # Triggered automatically when docs/** is pushed to main
   push:
     branches: ["main"]
     paths: ["docs/**"]
+
+  # Can be called by other workflows (e.g., release.yml)
+  workflow_call:
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:

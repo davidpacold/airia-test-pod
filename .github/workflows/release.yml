@@ -169,27 +169,30 @@ jobs:
         echo "docker_version=$VERSION" >> $GITHUB_OUTPUT
         echo "trigger_docker_build=true" >> $GITHUB_OUTPUT
 
-    - name: Commit version updates
+    - name: Commit all updates atomically
       run: |
         VERSION="${{ steps.calc_version.outputs.version }}"
 
-        echo "📤 COMMITTING VERSION UPDATES"
-        echo "=============================="
+        echo "📤 COMMITTING ALL VERSION AND HELM UPDATES ATOMICALLY"
+        echo "====================================================="
 
         # Configure git for automated commits
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
 
-        # Add version-updated files
-        git add app/main.py app/config.py helm/airia-test-pod/Chart.yaml templates/dashboard.html templates/index.html
+        # Add all updated files in one atomic commit
+        git add app/main.py app/config.py helm/airia-test-pod/Chart.yaml \
+                templates/dashboard.html templates/index.html docs/
 
         # Check if there are changes to commit
         if git diff --staged --quiet; then
-          echo "ℹ️  No version changes to commit"
+          echo "ℹ️  No changes to commit"
         else
-          git commit -m "Update version references to $VERSION [skip ci]"
+          git commit -m "Release v$VERSION: Update versions and Helm repository [skip ci]"
           git push
-          echo "✅ Version updates committed and pushed"
+          echo "✅ All updates committed and pushed atomically"
+          echo "   - Version references updated to $VERSION"
+          echo "   - Helm repository updated with packaged chart"
         fi
 
     - name: Post-update version consistency validation
@@ -282,25 +285,11 @@ jobs:
         # Create docs directory for Helm repository
         mkdir -p docs
         cp ./helm-packages/*.tgz docs/
-        
+
         # Generate index.yaml for Helm repository
         helm repo index docs --url https://davidpacold.github.io/airia-test-pod/
-        
-        # Configure git with [skip ci] to prevent infinite loops
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add docs/
-        git commit -m "Update Helm repository with v${{ steps.version.outputs.version }} [skip ci]" || exit 0
-        git push origin main
 
-    - name: Trigger GitHub Pages deployment
-      if: success()
-      run: |
-        echo "🚀 Triggering GitHub Pages deployment..."
-        gh workflow run "📦 Deploy Helm Repository to Pages" --ref main
-        echo "✅ GitHub Pages deployment triggered successfully"
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        echo "✅ Helm repository files prepared (will be committed with version updates)"
 
     - name: Create GitHub Release with Helm chart
       uses: softprops/action-gh-release@v1
@@ -309,6 +298,15 @@ jobs:
         name: v${{ steps.version.outputs.version }}
         files: ./helm-packages/*.tgz
         generate_release_notes: true
+
+  # Deploy Helm repository to GitHub Pages
+  deploy-helm-pages:
+    needs: build-and-push-release
+    uses: ./.github/workflows/static.yml
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
 
   # Build and publish Docker image for the version tag
   build-version-docker:
