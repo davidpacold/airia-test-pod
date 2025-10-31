@@ -88,28 +88,27 @@ curl -sSL https://raw.githubusercontent.com/davidpacold/airia-test-pod/main/scri
 
 ### 5. Improved CI/CD Pipeline 🔄
 
-#### Workflow Chaining Improvements
-- **Consolidated version commits** into one atomic operation
-- **Removed race conditions** between release.yml and static.yml
-- **Added explicit workflow_call** pattern for better control
+#### OCI-Only Simplification
+- **Removed traditional Helm repository** (GitHub Pages)
+- **Removed static.yml workflow** - No longer needed
+- **Simplified to OCI registry only** - Faster and more reliable
 - **Location:** [.github/workflows/release.yml](/.github/workflows/release.yml)
 
 **Changes:**
-1. ✅ Single atomic commit for version updates + Helm repository
-2. ✅ Explicit dependency chain using `needs:`
-3. ✅ No more duplicate workflow runs
+1. ✅ Single atomic commit for all version updates
+2. ✅ OCI registry publishing only
+3. ✅ No GitHub Pages deployment
 4. ✅ Cleaner git history
+5. ✅ Faster releases
 
-#### Real Helm Repository Health Validation
-- **Location:** [.github/workflows/release.yml](/.github/workflows/release.yml#L467-L534)
-- **Replaces simulated health checks with real validation**
+#### Real OCI Registry Health Validation
+- **Location:** [.github/workflows/release.yml](/.github/workflows/release.yml#L460-L535)
+- **Validates actual OCI registry deployment**
 
 **Validates:**
-1. ✅ GitHub Pages is accessible
-2. ✅ `index.yaml` exists and is downloadable
-3. ✅ New version is in `index.yaml`
-4. ✅ Chart package (`.tgz`) is downloadable
-5. ✅ Docker image is available
+1. ✅ OCI chart is pullable
+2. ✅ Chart version matches expected version
+3. ✅ Docker image is available
 
 **If checks fail:** Automatic rollback is triggered!
 
@@ -118,15 +117,15 @@ curl -sSL https://raw.githubusercontent.com/davidpacold/airia-test-pod/main/scri
 ## 📚 Documentation Updates
 
 ### New Documents
-1. **[DEPLOYMENT.md](DEPLOYMENT.md)** - Comprehensive deployment guide
+1. **[DEPLOYMENT.md](DEPLOYMENT.md)** - OCI-only deployment guide
    - OCI registry usage
-   - Traditional Helm repository
    - Automated upgrade script
+   - Version management
    - Troubleshooting guide
 
 2. **[VERSION_MANAGEMENT.md](VERSION_MANAGEMENT.md)** - Version management guide
-   - Comparison of all version management methods
-   - Migration guide from traditional to OCI
+   - OCI registry version management
+   - Automated upgrade script
    - CI/CD integration examples
    - Troubleshooting version issues
 
@@ -134,10 +133,11 @@ curl -sSL https://raw.githubusercontent.com/davidpacold/airia-test-pod/main/scri
 
 ### Updated Documents
 1. **[README.md](README.md)**
-   - Added OCI registry as recommended installation method
+   - Simplified to OCI registry only
+   - Removed traditional Helm repository references
    - Added version management section
    - Added GPU test to infrastructure tests list
-   - Updated all Helm commands to show OCI method
+   - Updated all Helm commands to use OCI method
    - Added badges for Helm chart
 
 ---
@@ -151,7 +151,6 @@ versionCheck:
   enabled: true
   useOCI: true
   ociRepo: "oci://ghcr.io/davidpacold/airia-test-pod/charts"
-  repoUrl: "https://davidpacold.github.io/airia-test-pod/"
   strict: false
 ```
 
@@ -180,34 +179,25 @@ GPU_MAX_TEMP_CELSIUS: "85"
 7. Simulate health check (not real)
 ```
 
-**After:**
+**After (OCI-Only):**
 ```
 1. Calculate version
 2. Update version files
 3. Package Helm chart
-4. Create docs
-5. Commit everything atomically → Single commit
-6. Push to OCI registry
-7. Explicit Pages deployment via workflow_call
-8. Build Docker image
-9. Real health validation (checks actual deployment)
-10. Auto-rollback if validation fails
+4. Commit everything atomically → Single commit
+5. Push to OCI registry
+6. Build Docker image
+7. Real health validation (checks OCI registry)
+8. Auto-rollback if validation fails
 ```
 
 ---
 
-## 🚀 Migration Guide
+## 🚀 Deployment Guide
 
-### For End Users
+### Quick Start
 
-**Old way (Traditional Helm):**
-```bash
-helm repo add airia-test-pod https://davidpacold.github.io/airia-test-pod/
-helm repo update airia-test-pod  # ⚠️ Easy to forget!
-helm upgrade airia-test-pod airia-test-pod/airia-test-pod -f config.yaml
-```
-
-**New way (OCI Registry - Recommended):**
+**OCI Registry (Only Method):**
 ```bash
 # No repo add needed! Always latest version!
 helm upgrade airia-test-pod \
@@ -236,29 +226,30 @@ helm upgrade airia-test-pod \
 
 ### What's New
 - ✅ GPU detection test added
-- ✅ OCI registry support for Helm charts
+- ✅ OCI registry as the only deployment method
 - ✅ Automatic version checking
 - ✅ Automated upgrade script
-- ✅ Improved CI/CD pipeline with real validation
+- ✅ Simplified CI/CD pipeline with real validation
 - ✅ Comprehensive documentation
 
 ### Benefits
-- 🚀 Faster deployments (OCI registry)
+- 🚀 Faster deployments (OCI registry only)
 - 🔒 Always use latest version (version checking)
 - 🤖 Automated upgrades (upgrade script)
-- ✅ Validated releases (CI/CD health checks)
+- ✅ Validated releases (OCI health checks)
 - 📚 Better documentation (3 new guides)
+- 🧹 Cleaner codebase (removed traditional Helm repo)
 
 ### Breaking Changes
-- ⚠️ None! All changes are backward compatible
-- 📦 Traditional Helm repository still works
-- 🔄 No migration required (but recommended)
+- ⚠️ Traditional Helm repository removed
+- 📦 OCI registry is now the only deployment method
+- 🔄 Users must switch to OCI registry URLs
 
 ---
 
 ## 📝 Next Steps
 
-1. **Try the OCI registry method:**
+1. **Use the OCI registry (only method):**
    ```bash
    helm upgrade airia-test-pod \
      oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
@@ -280,6 +271,11 @@ helm upgrade airia-test-pod \
 4. **Test GPU detection** (if you have GPUs):
    - Check the Infrastructure Tests section in the web UI
    - Look for "GPU Detection" test card
+
+5. **Remove old Helm repository (if previously added):**
+   ```bash
+   helm repo remove airia-test-pod
+   ```
 
 ---
 

@@ -1,91 +1,45 @@
 # Airia Test Pod - Deployment Guide
 
-## 🚀 Recommended: OCI Registry (No Repo Updates Needed!)
+## 🚀 OCI Registry Deployment
 
-The **easiest and most reliable** method is using OCI registry. This eliminates the need for `helm repo update`!
+The Airia Test Pod uses **OCI registry** for Helm chart distribution. No `helm repo add` or `helm repo update` needed!
 
-### Deploy with OCI Registry
+### Quick Start
 
 ```bash
-# Always pulls the latest version automatically!
+# Deploy with OCI registry - always gets latest version!
 helm upgrade airia-test-pod \
   oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
-  -f aws-pre-install-config.yaml \
+  -f your-config.yaml \
   --namespace default \
   --install
 ```
 
-### Install Specific Version with OCI
+### Install Specific Version
 
 ```bash
 helm upgrade airia-test-pod \
   oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
   --version 1.0.159 \
-  -f aws-pre-install-config.yaml \
+  -f your-config.yaml \
   --namespace default \
   --install
 ```
 
 ### Automated Upgrade Script
 
-Use the provided script for an even easier experience:
+Use our automated upgrade script for the easiest experience:
 
 ```bash
 # From the airia-test-pod repository
-./scripts/upgrade.sh --oci -f /path/to/aws-pre-install-config.yaml
+./scripts/upgrade.sh --oci -f /path/to/your-config.yaml
 
-# Or from your configs directory
+# Or remotely
 curl -sSL https://raw.githubusercontent.com/davidpacold/airia-test-pod/main/scripts/upgrade.sh | \
-  bash -s -- --oci -f aws-pre-install-config.yaml
+  bash -s -- --oci -f your-config.yaml
 ```
 
 ---
-
-## 📦 Alternative: Traditional Helm Repository
-
-If you prefer the traditional Helm repository method:
-
-### First Time Setup
-
-1. **Add the Helm repository:**
-   ```bash
-   helm repo add airia-test-pod https://davidpacold.github.io/airia-test-pod/
-   ```
-
-2. **Verify the repository was added:**
-   ```bash
-   helm repo list
-   ```
-
-### Deploying the Latest Version
-
-**IMPORTANT:** Always update your local Helm repository before upgrading!
-
-```bash
-# Step 1: Update your local Helm repository cache
-helm repo update airia-test-pod
-
-# Step 2: Check available versions
-helm search repo airia-test-pod/airia-test-pod --versions
-
-# Step 3: Upgrade to the latest version
-helm upgrade airia-test-pod airia-test-pod/airia-test-pod \
-  -f aws-pre-install-config.yaml \
-  --namespace default \
-  --install
-```
-
-### Complete Deployment Command (One-liner)
-
-From your `Airia-Configs/AWS` directory:
-
-```bash
-helm repo update airia-test-pod && \
-helm upgrade airia-test-pod airia-test-pod/airia-test-pod \
-  -f aws-pre-install-config.yaml \
-  --namespace default \
-  --install
-```
 
 ## Version Management
 
@@ -95,17 +49,17 @@ helm upgrade airia-test-pod airia-test-pod/airia-test-pod \
 helm list -n default
 ```
 
-### Check What Version Will Be Installed
+### Check Available Versions
 
 ```bash
-helm search repo airia-test-pod/airia-test-pod
+helm show chart oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod
 ```
 
-### Install a Specific Version
+### Install Specific Version
 
 ```bash
-helm upgrade airia-test-pod airia-test-pod/airia-test-pod \
-  -f aws-pre-install-config.yaml \
+helm upgrade airia-test-pod \
+  oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
   --version 1.0.159 \
   --namespace default
 ```
@@ -128,7 +82,7 @@ In your `values.yaml` or config file:
 ```yaml
 versionCheck:
   enabled: true          # Enable/disable version checking
-  useOCI: true          # Use OCI registry for checks (recommended)
+  useOCI: true          # Use OCI registry for checks
   strict: false         # Set to true to block upgrades of older versions
 ```
 
@@ -139,7 +93,7 @@ To **enforce** always using the latest version:
 ```bash
 helm upgrade airia-test-pod \
   oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
-  -f aws-pre-install-config.yaml \
+  -f your-config.yaml \
   --set versionCheck.strict=true
 ```
 
@@ -153,55 +107,46 @@ When code is pushed to `main`, the following happens automatically:
 
 1. ✅ **Version Calculation** - Next version is calculated from GitHub releases
 2. ✅ **Version Updates** - All files updated atomically with new version
-3. ✅ **Helm Chart Packaging** - Chart packaged and added to repository
-4. ✅ **OCI Registry Publish** - Chart published to GitHub Container Registry (OCI)
+3. ✅ **Helm Chart Packaging** - Chart packaged
+4. ✅ **OCI Registry Publish** - Chart published to GitHub Container Registry
 5. ✅ **Docker Image Build** - Image built and tagged as `latest` + version
-6. ✅ **GitHub Pages Deploy** - Helm repository updated at https://davidpacold.github.io/airia-test-pod/
-7. ✅ **Health Validation** - Verifies:
-   - GitHub Pages is accessible
-   - `index.yaml` contains the new version
-   - Chart package (`.tgz`) is downloadable
+6. ✅ **Health Validation** - Verifies:
+   - OCI chart is pullable
+   - Chart version matches expected version
    - Docker image is available
-8. ✅ **GitHub Release** - Release created with chart and release notes
+7. ✅ **GitHub Release** - Release created with chart and release notes
+
+---
 
 ## Troubleshooting
 
-### Problem: "Error: failed to download" when upgrading
+### Problem: "Error: failed to download chart"
 
-**Cause:** Your local Helm repository cache is outdated.
+**Cause:** Authentication or network issue with OCI registry.
 
 **Solution:**
 ```bash
-helm repo update airia-test-pod
-helm search repo airia-test-pod/airia-test-pod --versions
+# Login to GitHub Container Registry
+echo $GITHUB_TOKEN | helm registry login ghcr.io -u USERNAME --password-stdin
+
+# Or use Docker credentials
+docker login ghcr.io
 ```
 
-### Problem: Upgrade shows old version
-
-**Cause:** Repository cache not updated before upgrade.
+### Problem: Want to verify chart before installing
 
 **Solution:**
 ```bash
-# Remove the cached repository
-helm repo remove airia-test-pod
+# Show chart metadata
+helm show chart oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod
 
-# Re-add it fresh
-helm repo add airia-test-pod https://davidpacold.github.io/airia-test-pod/
+# Show all chart details
+helm show all oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod
 
-# Update
-helm repo update
-
-# Now upgrade
-helm upgrade airia-test-pod airia-test-pod/airia-test-pod -f aws-pre-install-config.yaml
-```
-
-### Problem: Want to verify what will change before upgrading
-
-**Solution:**
-```bash
 # Dry-run to see what will change
-helm upgrade airia-test-pod airia-test-pod/airia-test-pod \
-  -f aws-pre-install-config.yaml \
+helm upgrade airia-test-pod \
+  oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
+  -f your-config.yaml \
   --dry-run --debug
 ```
 
@@ -219,26 +164,29 @@ helm rollback airia-test-pod -n default
 helm rollback airia-test-pod 11 -n default
 ```
 
+---
+
 ## Recommended Workflow
 
 ```bash
 # 1. Navigate to your configs directory
-cd /Users/davidpacold/Documents/Github/Airia-Configs/AWS
+cd /Users/your-username/configs
 
 # 2. Check current version
 helm list -n default | grep airia-test-pod
 
-# 3. Update repository and check for new versions
-helm repo update airia-test-pod
-helm search repo airia-test-pod/airia-test-pod --versions | head -5
+# 3. Check for new versions (optional)
+helm show chart oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod
 
 # 4. Review what will change (optional but recommended)
-helm diff upgrade airia-test-pod airia-test-pod/airia-test-pod \
-  -f aws-pre-install-config.yaml
+helm diff upgrade airia-test-pod \
+  oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
+  -f your-config.yaml
 
 # 5. Perform the upgrade
-helm upgrade airia-test-pod airia-test-pod/airia-test-pod \
-  -f aws-pre-install-config.yaml \
+helm upgrade airia-test-pod \
+  oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
+  -f your-config.yaml \
   --namespace default
 
 # 6. Verify the upgrade
@@ -264,16 +212,18 @@ curl http://localhost:8080/health/ready
 curl http://localhost:8080/version
 ```
 
-## CI/CD Integration
+---
 
-The release workflow automatically:
-- Increments patch version (1.0.158 → 1.0.159)
-- Updates all version references in code
-- Builds and publishes Docker image
-- Packages and publishes Helm chart
-- Validates deployment availability
-- Creates GitHub release with notes
+## Why OCI Registry?
+
+**Benefits:**
+- ✅ No `helm repo add` or `helm repo update` needed
+- ✅ Always pulls latest version by default
+- ✅ Better authentication and security
+- ✅ Same infrastructure as Docker images
+- ✅ Faster and more reliable than traditional Helm repos
+- ✅ No caching issues
 
 **GitHub Repository:** https://github.com/davidpacold/airia-test-pod
-**Helm Repository:** https://davidpacold.github.io/airia-test-pod/
+**OCI Registry:** oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod
 **Docker Registry:** ghcr.io/davidpacold/airia-test-pod

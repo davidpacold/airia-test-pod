@@ -4,20 +4,21 @@ This document explains the comprehensive version management system for the Airia
 
 ## 🎯 Problem Solved
 
-Users no longer need to remember to run `helm repo update` before upgrading! We've implemented multiple layers of version management to ensure you always get the latest version.
+Users no longer need to remember to run `helm repo update` before upgrading! We use **OCI registry** which always pulls the latest version automatically.
 
 ## 🚀 Solutions Implemented
 
-### 1. OCI Registry (Recommended) ⭐
+### 1. OCI Registry ⭐
 
 **What it does:** Helm charts are published to GitHub Container Registry as OCI artifacts.
 
 **Benefits:**
-- ✅ No need for `helm repo update`
+- ✅ No need for `helm repo add` or `helm repo update`
 - ✅ Always pulls latest version by default
 - ✅ Better authentication and security
 - ✅ Same infrastructure as Docker images
-- ✅ Faster than traditional Helm repos
+- ✅ Faster and more reliable
+- ✅ No caching issues
 
 **Usage:**
 ```bash
@@ -41,7 +42,7 @@ helm upgrade airia-test-pod \
 **Location:** `scripts/upgrade.sh`
 
 **Features:**
-- ✅ Automatically updates repository (traditional method) or uses OCI
+- ✅ Uses OCI registry for latest version
 - ✅ Checks current vs. latest version
 - ✅ Shows what will be upgraded
 - ✅ Asks for confirmation
@@ -50,11 +51,8 @@ helm upgrade airia-test-pod \
 
 **Usage:**
 ```bash
-# OCI method (recommended)
+# OCI method
 ./scripts/upgrade.sh --oci -f config.yaml
-
-# Traditional method
-./scripts/upgrade.sh -f config.yaml
 
 # Remote execution
 curl -sSL https://raw.githubusercontent.com/davidpacold/airia-test-pod/main/scripts/upgrade.sh | \
@@ -71,7 +69,7 @@ curl -sSL https://raw.githubusercontent.com/davidpacold/airia-test-pod/main/scri
 
 **How it works:**
 1. Runs as a Kubernetes Job before each upgrade
-2. Fetches the latest version from OCI registry or Helm repo
+2. Fetches the latest version from OCI registry
 3. Compares with the version being installed
 4. Shows warnings if not using the latest version
 5. Optionally blocks upgrades in strict mode
@@ -80,7 +78,7 @@ curl -sSL https://raw.githubusercontent.com/davidpacold/airia-test-pod/main/scri
 ```yaml
 versionCheck:
   enabled: true          # Enable automatic version checking
-  useOCI: true          # Check OCI registry (faster)
+  useOCI: true          # Use OCI registry for checks
   strict: false         # Block upgrades if not latest (set to true to enforce)
 ```
 
@@ -97,16 +95,14 @@ helm upgrade airia-test-pod \
 
 ### 4. CI/CD Health Validation
 
-**What it does:** After each release, validates that the Helm repository is properly updated.
+**What it does:** After each release, validates that the OCI registry is properly updated.
 
 **Location:** `.github/workflows/release.yml` (post-deployment-validation job)
 
 **Checks performed:**
-1. ✅ GitHub Pages is accessible
-2. ✅ `index.yaml` exists and is valid
-3. ✅ New version is listed in `index.yaml`
-4. ✅ Chart package (`.tgz`) is downloadable
-5. ✅ Docker image is available
+1. ✅ OCI chart is pullable
+2. ✅ Chart version matches expected version
+3. ✅ Docker image is available
 
 **If checks fail:** Automatic rollback is triggered!
 
@@ -119,7 +115,6 @@ helm upgrade airia-test-pod \
 | **OCI Registry** | ❌ No | ✅ Yes | ⚠️ Optional | ⚡ Fast |
 | **Upgrade Script** | ❌ No | ✅ Yes | ⚠️ Optional | ⚡ Fast |
 | **Pre-Upgrade Hook** | ⚠️ Sometimes | ✅ Yes | ✅ Yes (strict mode) | 🐢 Slower |
-| **Traditional Repo** | ✅ Yes (`helm repo update`) | ❌ No | ❌ No | 🐢 Slower |
 
 ---
 
@@ -129,16 +124,16 @@ helm upgrade airia-test-pod \
 
 **Option 1: Use the upgrade script (zero configuration)**
 ```bash
-cd /path/to/Airia-Configs/AWS
+cd /path/to/your-configs
 curl -sSL https://raw.githubusercontent.com/davidpacold/airia-test-pod/main/scripts/upgrade.sh | \
-  bash -s -- --oci -f aws-pre-install-config.yaml
+  bash -s -- --oci -f your-config.yaml
 ```
 
 **Option 2: Use OCI directly**
 ```bash
 helm upgrade airia-test-pod \
   oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
-  -f aws-pre-install-config.yaml \
+  -f your-config.yaml \
   --install
 ```
 
@@ -179,33 +174,6 @@ helm upgrade airia-test-pod \
 
 ---
 
-## 🔄 Migration Guide
-
-### From Traditional Helm Repo to OCI
-
-**Old way:**
-```bash
-helm repo add airia-test-pod https://davidpacold.github.io/airia-test-pod/
-helm repo update airia-test-pod
-helm upgrade airia-test-pod airia-test-pod/airia-test-pod -f config.yaml
-```
-
-**New way:**
-```bash
-# No repo add needed!
-helm upgrade airia-test-pod \
-  oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
-  -f config.yaml \
-  --install
-```
-
-**To remove old repo (optional):**
-```bash
-helm repo remove airia-test-pod
-```
-
----
-
 ## 🛠️ Troubleshooting
 
 ### "Error: failed to download chart" with OCI
@@ -226,9 +194,8 @@ docker login ghcr.io
 **Cause:** Pre-upgrade job needs to fetch version information.
 
 **Solutions:**
-1. Use OCI mode (faster): `versionCheck.useOCI: true`
+1. Version check already uses OCI mode (fastest option)
 2. Disable if not needed: `versionCheck.enabled: false`
-3. Keep using OCI registry which doesn't need the check
 
 ### Want to force a specific version
 
@@ -247,17 +214,16 @@ helm upgrade airia-test-pod \
 
 - **Deployment Guide:** [DEPLOYMENT.md](DEPLOYMENT.md)
 - **GitHub Repository:** https://github.com/davidpacold/airia-test-pod
-- **OCI Registry:** https://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod
-- **Helm Repository:** https://davidpacold.github.io/airia-test-pod/
-- **Docker Registry:** https://ghcr.io/davidpacold/airia-test-pod
+- **OCI Registry:** oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod
+- **Docker Registry:** ghcr.io/davidpacold/airia-test-pod
 
 ---
 
 ## 🎉 Summary
 
-You now have **4 layers of protection** against deploying outdated versions:
+You now have **3 layers of protection** against deploying outdated versions:
 
-1. ⭐ **OCI Registry** - Always fresh, no cache
+1. ⭐ **OCI Registry** - Always fresh, no cache, no repo management needed
 2. 🤖 **Automated Script** - Handles updates automatically
 3. 🛡️ **Pre-Upgrade Hook** - Warns or blocks old versions
 4. ✅ **CI/CD Validation** - Ensures releases are properly deployed
