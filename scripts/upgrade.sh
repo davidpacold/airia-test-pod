@@ -28,16 +28,15 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         --oci)
-            USE_OCI=true
+            # Kept for backwards compatibility but now ignored (OCI is default)
             shift
             ;;
         -h|--help)
             echo "Usage: $0 [OPTIONS]"
             echo ""
             echo "Options:"
-            echo "  -f, --config FILE    Config file (e.g., aws-pre-install-config.yaml)"
+            echo "  -f, --config FILE    Config file (e.g., your-config.yaml)"
             echo "  -n, --namespace NS   Kubernetes namespace (default: default)"
-            echo "  --oci                Use OCI registry instead of traditional Helm repo"
             echo "  -h, --help           Show this help message"
             exit 0
             ;;
@@ -65,41 +64,24 @@ CURRENT_VERSION=$(helm list -n "$NAMESPACE" -o json | jq -r ".[] | select(.name=
 echo "Current: $CURRENT_VERSION"
 echo ""
 
-# Use OCI registry or traditional Helm repo
-if [ "$USE_OCI" = true ]; then
-    echo -e "${YELLOW}🔄 Using OCI registry (no repo update needed)${NC}"
-    OCI_REPO="oci://ghcr.io/davidpacold/airia-test-pod/charts"
+# Use OCI registry (only method)
+echo -e "${YELLOW}🔄 Using OCI registry (always pulls latest)${NC}"
+OCI_REPO="oci://ghcr.io/davidpacold/airia-test-pod/charts"
 
-    # Get latest version from OCI registry
-    echo "Fetching latest version from OCI registry..."
-    LATEST_VERSION=$(helm show chart "$OCI_REPO/$CHART_NAME" 2>/dev/null | grep '^version:' | awk '{print $2}')
+# Get latest version from OCI registry
+echo "Fetching latest version from OCI registry..."
+LATEST_VERSION=$(helm show chart "$OCI_REPO/$CHART_NAME" 2>/dev/null | grep '^version:' | awk '{print $2}')
 
-    if [ -z "$LATEST_VERSION" ]; then
-        echo -e "${RED}Failed to fetch version from OCI registry${NC}"
-        exit 1
-    fi
-
-    echo "Latest: $CHART_NAME-$LATEST_VERSION"
-    echo ""
-
-    # Build upgrade command
-    UPGRADE_CMD="helm upgrade $RELEASE_NAME $OCI_REPO/$CHART_NAME --version $LATEST_VERSION --namespace $NAMESPACE --install"
-
-else
-    echo -e "${YELLOW}🔄 Updating Helm repository...${NC}"
-    helm repo add "$REPO_NAME" https://davidpacold.github.io/airia-test-pod/ 2>/dev/null || true
-    helm repo update "$REPO_NAME"
-    echo ""
-
-    # Check latest available version
-    echo -e "${YELLOW}📦 Checking latest available version...${NC}"
-    LATEST_VERSION=$(helm search repo "$REPO_NAME/$CHART_NAME" -o json | jq -r '.[0].version' 2>/dev/null || echo "Unknown")
-    echo "Latest: $CHART_NAME-$LATEST_VERSION"
-    echo ""
-
-    # Build upgrade command
-    UPGRADE_CMD="helm upgrade $RELEASE_NAME $REPO_NAME/$CHART_NAME --namespace $NAMESPACE --install"
+if [ -z "$LATEST_VERSION" ]; then
+    echo -e "${RED}Failed to fetch version from OCI registry${NC}"
+    exit 1
 fi
+
+echo "Latest: $CHART_NAME-$LATEST_VERSION"
+echo ""
+
+# Build upgrade command
+UPGRADE_CMD="helm upgrade $RELEASE_NAME $OCI_REPO/$CHART_NAME --version $LATEST_VERSION --namespace $NAMESPACE --install"
 
 # Add config file if provided
 if [ -n "$CONFIG_FILE" ]; then

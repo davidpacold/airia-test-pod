@@ -29,13 +29,7 @@ This Helm chart deploys the Airia Infrastructure Test Pod, a comprehensive solut
 
 ## Installation
 
-### 1. Add the Helm Repository (when available)
-```bash
-helm repo add airia-test-pod https://charts.airia.com/
-helm repo update
-```
-
-### 2. Create a Custom Values File
+### 1. Create a Custom Values File
 
 Create a `my-values.yaml` file with your configuration:
 
@@ -118,18 +112,21 @@ ingress:
         - precheck.yourdomain.com
 ```
 
-### 3. Install the Chart
+### 2. Install the Chart from OCI Registry
 
 ```bash
-helm install airia-test-pod airia-test-pod/airia-test-pod -f my-values.yaml
+helm upgrade airia-test-pod \
+  oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
+  -f my-values.yaml \
+  --install --create-namespace --namespace default
 ```
 
-Or for local installation:
+Or for local development:
 ```bash
 helm install airia-test-pod ./helm/airia-test-pod -f my-values.yaml
 ```
 
-### 4. Verify Installation
+### 3. Verify Installation
 
 ```bash
 kubectl get pods -n airia-preprod
@@ -213,7 +210,15 @@ kubectl get ingress -n airia-preprod
 To upgrade the chart with new values:
 
 ```bash
-helm upgrade airia-test-pod airia-test-pod/airia-test-pod -f my-values.yaml
+helm upgrade airia-test-pod \
+  oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
+  -f my-values.yaml
+```
+
+Or use the automated upgrade script:
+
+```bash
+./scripts/upgrade.sh --oci -f my-values.yaml
 ```
 
 ## Uninstalling

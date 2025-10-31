@@ -13,8 +13,6 @@ Perfect for DevOps teams who need to verify that Azure services, databases, stor
 
 ### Step 1: Install with Helm
 
-**🚀 Recommended: OCI Registry (Always Latest, No Repo Updates Needed!)**
-
 ```bash
 # Install with OCI registry - automatically pulls latest version!
 helm upgrade airia-test-pod \
@@ -25,21 +23,7 @@ helm upgrade airia-test-pod \
   --install --create-namespace --namespace default
 ```
 
-**📦 Alternative: Traditional Helm Repository**
-
-```bash
-# Add the Helm repository
-helm repo add airia-test-pod https://davidpacold.github.io/airia-test-pod/
-helm repo update airia-test-pod
-
-# Install with basic authentication
-helm install airia-test-pod airia-test-pod/airia-test-pod \
-  --set config.auth.username="admin" \
-  --set config.auth.password="YourSecurePassword123!" \
-  --set config.auth.secretKey="$(openssl rand -hex 32)"
-```
-
-> **💡 Pro Tip:** Use the OCI registry method to always get the latest version without needing `helm repo update`!
+> **💡 Tip:** No `helm repo add` needed! OCI registry always pulls the latest version.
 
 ### Step 2: Access the Dashboard
 
@@ -131,7 +115,6 @@ For ingress, TLS, and production deployments, see:
 
 ### **1. PostgreSQL Database**
 ```bash
-# Using OCI registry (recommended)
 helm upgrade airia-test-pod \
   oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
   --set config.postgresql.enabled=true \
@@ -142,7 +125,6 @@ helm upgrade airia-test-pod \
 
 ### **2. Azure Blob Storage**
 ```bash
-# Using OCI registry (recommended)
 helm upgrade airia-test-pod \
   oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
   --set config.blobStorage.enabled=true \
@@ -153,7 +135,6 @@ helm upgrade airia-test-pod \
 
 ### **3. Azure OpenAI**
 ```bash
-# Using OCI registry (recommended)
 helm upgrade airia-test-pod \
   oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
   --set config.openai.enabled=true \
@@ -188,14 +169,9 @@ versionCheck:
 
 Then upgrade:
 ```bash
-# Using OCI registry (recommended)
 helm upgrade airia-test-pod \
   oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
   -f my-config.yaml
-
-# Or using traditional Helm repo (remember to update first!)
-helm repo update airia-test-pod
-helm upgrade airia-test-pod airia-test-pod/airia-test-pod -f my-config.yaml
 ```
 
 ---

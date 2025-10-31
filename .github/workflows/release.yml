@@ -182,17 +182,16 @@ jobs:
 
         # Add all updated files in one atomic commit
         git add app/main.py app/config.py helm/airia-test-pod/Chart.yaml \
-                templates/dashboard.html templates/index.html docs/
+                templates/dashboard.html templates/index.html
 
         # Check if there are changes to commit
         if git diff --staged --quiet; then
           echo "ℹ️  No changes to commit"
         else
-          git commit -m "Release v$VERSION: Update versions and Helm repository [skip ci]"
+          git commit -m "Release v$VERSION: Update version references [skip ci]"
           git push
           echo "✅ All updates committed and pushed atomically"
           echo "   - Version references updated to $VERSION"
-          echo "   - Helm repository updated with packaged chart"
         fi
 
     - name: Post-update version consistency validation
@@ -302,18 +301,6 @@ jobs:
         # Use the version calculated in the previous step
         echo "version=${{ steps.calc_version.outputs.version }}" >> $GITHUB_OUTPUT
 
-    - name: Setup Helm repository files
-      if: success()
-      run: |
-        # Create docs directory for Helm repository
-        mkdir -p docs
-        cp ./helm-packages/*.tgz docs/
-
-        # Generate index.yaml for Helm repository
-        helm repo index docs --url https://davidpacold.github.io/airia-test-pod/
-
-        echo "✅ Helm repository files prepared (will be committed with version updates)"
-
     - name: Create GitHub Release with Helm chart
       uses: softprops/action-gh-release@v1
       with:
@@ -321,15 +308,6 @@ jobs:
         name: v${{ steps.version.outputs.version }}
         files: ./helm-packages/*.tgz
         generate_release_notes: true
-
-  # Deploy Helm repository to GitHub Pages
-  deploy-helm-pages:
-    needs: build-and-push-release
-    uses: ./.github/workflows/static.yml
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
 
   # Build and publish Docker image for the version tag
   build-version-docker:
@@ -479,80 +457,82 @@ jobs:
       actions: write  # Required to trigger workflow dispatch for auto-rollback
     
     steps:
-      - name: Wait for GitHub Pages propagation
+      - name: Wait for OCI registry propagation
         run: |
-          echo "⏳ Waiting for GitHub Pages to propagate..."
-          sleep 45
-          echo "✅ GitHub Pages propagation period completed"
+          echo "⏳ Waiting for OCI registry to propagate..."
+          sleep 30
+          echo "✅ OCI registry propagation period completed"
 
-      - name: Validate Helm repository availability
+      - name: Validate OCI registry deployment
         id: health_check
         run: |
-          echo "🏥 Validating Helm Repository Deployment"
+          echo "🏥 Validating OCI Registry Deployment"
           echo "Version: ${{ needs.build-and-push-release.outputs.docker_version }}"
-          echo "========================================"
+          echo "======================================"
 
           VERSION="${{ needs.build-and-push-release.outputs.docker_version }}"
-          REPO_URL="https://davidpacold.github.io/airia-test-pod"
+          OCI_REPO="oci://${{ env.REGISTRY }}/${{ github.repository }}/charts"
 
-          # Check 1: Verify GitHub Pages is accessible
-          echo "📡 Checking GitHub Pages accessibility..."
-          if curl -f -s -o /dev/null -w "%{http_code}" "$REPO_URL/index.yaml" | grep -q "200"; then
-            echo "✅ GitHub Pages is accessible"
-          else
-            echo "❌ GitHub Pages is not accessible"
-            echo "health_status=failed" >> $GITHUB_OUTPUT
-            exit 1
-          fi
+          VALIDATION_FAILED=false
 
-          # Check 2: Download and parse index.yaml
           echo ""
-          echo "📦 Downloading Helm repository index..."
-          if ! curl -f -s "$REPO_URL/index.yaml" -o /tmp/index.yaml; then
-            echo "❌ Failed to download index.yaml"
-            echo "health_status=failed" >> $GITHUB_OUTPUT
-            exit 1
-          fi
+          echo "═══════════════════════════════════════════"
+          echo "  OCI Registry Validation"
+          echo "═══════════════════════════════════════════"
 
-          # Check 3: Verify the new version exists in index.yaml
+          # Check 1: Verify OCI chart is pullable
           echo ""
-          echo "🔍 Verifying version $VERSION in Helm repository..."
-          if grep -q "version: $VERSION" /tmp/index.yaml; then
-            echo "✅ Version $VERSION found in Helm repository index"
+          echo "🐳 Verifying OCI registry chart availability..."
+          OCI_CHART="$OCI_REPO/airia-test-pod:$VERSION"
+
+          # Try to show chart metadata from OCI registry
+          if helm show chart "$OCI_CHART" >/dev/null 2>&1; then
+            echo "✅ Helm chart is pullable from OCI registry"
+            echo "   Registry: $OCI_CHART"
+
+            # Verify the version matches
+            PULLED_VERSION=$(helm show chart "$OCI_CHART" 2>/dev/null | grep '^version:' | awk '{print $2}')
+            if [ "$PULLED_VERSION" = "$VERSION" ]; then
+              echo "✅ OCI chart version matches: $VERSION"
+            else
+              echo "❌ OCI chart version mismatch: expected $VERSION, got $PULLED_VERSION"
+              VALIDATION_FAILED=true
+            fi
           else
-            echo "❌ Version $VERSION NOT found in Helm repository"
-            echo "Available versions in index.yaml:"
-            grep "version:" /tmp/index.yaml | head -5
-            echo "health_status=failed" >> $GITHUB_OUTPUT
-            exit 1
+            echo "❌ Failed to pull chart from OCI registry"
+            VALIDATION_FAILED=true
           fi
 
-          # Check 4: Verify the chart package file exists
-          echo ""
-          echo "📦 Verifying Helm chart package availability..."
-          CHART_URL="$REPO_URL/airia-test-pod-$VERSION.tgz"
-          if curl -f -s -o /dev/null -w "%{http_code}" "$CHART_URL" | grep -q "200"; then
-            echo "✅ Helm chart package is downloadable at: $CHART_URL"
-          else
-            echo "❌ Helm chart package not found at: $CHART_URL"
-            echo "health_status=failed" >> $GITHUB_OUTPUT
-            exit 1
-          fi
-
-          # Check 5: Verify Docker image exists
+          # Check 2: Verify Docker image exists
           echo ""
           echo "🐳 Verifying Docker image availability..."
           if docker manifest inspect ghcr.io/${{ github.repository }}:v$VERSION >/dev/null 2>&1; then
-            echo "✅ Docker image ghcr.io/${{ github.repository }}:v$VERSION is available"
+            echo "✅ Docker image is available"
+            echo "   Image: ghcr.io/${{ github.repository }}:v$VERSION"
           else
-            echo "⚠️  Docker image verification skipped (requires authentication)"
+            echo "❌ Docker image verification failed"
+            VALIDATION_FAILED=true
           fi
 
-          # All checks passed
+          # Final validation summary
           echo ""
-          echo "✅ All Helm repository health checks passed!"
-          echo "🎉 Users can now upgrade with: helm repo update && helm upgrade"
-          echo "health_status=passed" >> $GITHUB_OUTPUT
+          echo "═══════════════════════════════════════════"
+          echo "  VALIDATION SUMMARY"
+          echo "═══════════════════════════════════════════"
+          echo ""
+
+          if [ "$VALIDATION_FAILED" = true ]; then
+            echo "❌ VALIDATION FAILED"
+            echo "health_status=failed" >> $GITHUB_OUTPUT
+            exit 1
+          else
+            echo "✅ ALL VALIDATION CHECKS PASSED!"
+            echo ""
+            echo "Users can now upgrade with:"
+            echo "  helm upgrade airia-test-pod $OCI_REPO/airia-test-pod --version $VERSION"
+            echo ""
+            echo "health_status=passed" >> $GITHUB_OUTPUT
+          fi
       
       - name: Trigger automatic rollback on failure
         if: failure() && steps.health_check.outputs.health_status == 'failed'
