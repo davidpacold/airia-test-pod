@@ -112,7 +112,12 @@ data:
   llama-temperature: {{ .Values.config.llama.temperature | quote }}
   llama-timeout: {{ .Values.config.llama.timeout | quote }}
   {{- end }}
-  
+
+  {{- if .Values.config.gpu.enabled }}
+  # GPU detection configuration
+  gpu-required: {{ .Values.config.gpu.required | quote }}
+  {{- end }}
+
   # Kubernetes configuration
   storage-class: {{ .Values.config.kubernetes.storageClass | quote }}
   test-pvc-size: {{ .Values.config.kubernetes.testPvcSize | quote }}

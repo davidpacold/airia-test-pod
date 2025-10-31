@@ -12,8 +12,6 @@ class GPUTest(BaseTest):
     def __init__(self):
         super().__init__()
         self.require_gpu = os.getenv("GPU_REQUIRED", "false").lower() == "true"
-        self.min_gpu_memory_gb = int(os.getenv("GPU_MIN_MEMORY_GB", "0"))
-        self.max_gpu_temp_celsius = int(os.getenv("GPU_MAX_TEMP_CELSIUS", "85"))
 
     @property
     def test_name(self) -> str:
@@ -37,26 +35,16 @@ class GPUTest(BaseTest):
         return 30
 
     def is_configured(self) -> bool:
-        """Check if GPU/NVIDIA tools are available"""
-        try:
-            # Check if nvidia-smi command exists
-            result = subprocess.run(
-                ["which", "nvidia-smi"],
-                capture_output=True,
-                timeout=5,
-            )
-            return result.returncode == 0
-        except (FileNotFoundError, subprocess.TimeoutExpired):
-            return False
+        """Always run GPU detection test"""
+        # Always return True so the test runs and reports GPU presence
+        return True
 
     def get_configuration_help(self) -> str:
         return (
-            "GPU detection requires NVIDIA drivers and nvidia-smi to be installed. "
-            "Ensure the pod is scheduled on a node with GPU resources. "
-            "Environment variables: "
-            "GPU_REQUIRED (default: 'false'), "
-            "GPU_MIN_MEMORY_GB (default: 0), "
-            "GPU_MAX_TEMP_CELSIUS (default: 85)"
+            "GPU detection test always runs and reports GPU presence. "
+            "To allocate a GPU to the pod, add 'nvidia.com/gpu: 1' to resources.requests in values.yaml. "
+            "Set GPU_REQUIRED=true to fail the test if no GPU is found. "
+            "Requires NVIDIA drivers and GPU-enabled Kubernetes node."
         )
 
     def run_test(self) -> TestResult:
@@ -69,10 +57,18 @@ class GPUTest(BaseTest):
             result.add_sub_test("nvidia-smi Availability", nvidia_smi_result)
 
             if not nvidia_smi_result["success"]:
-                result.fail(
-                    "nvidia-smi command not available",
-                    remediation="Install NVIDIA drivers and ensure pod is on a GPU node",
-                )
+                # nvidia-smi not available - no GPU detected
+                if self.require_gpu:
+                    result.fail(
+                        "GPU required but nvidia-smi command not available",
+                        remediation="Install NVIDIA drivers and ensure pod is on a GPU node with GPU resources requested",
+                    )
+                else:
+                    result.complete(
+                        True,
+                        "No GPU detected (nvidia-smi not available)",
+                        {"gpu_detected": False, "gpu_count": 0},
+                    )
                 return result
 
             # Test 2: Detect GPUs
@@ -80,10 +76,18 @@ class GPUTest(BaseTest):
             result.add_sub_test("GPU Detection", gpu_detection_result)
 
             if not gpu_detection_result["success"]:
-                result.fail(
-                    "No GPUs detected",
-                    remediation="Ensure pod has GPU resources requested and node has GPUs",
-                )
+                # nvidia-smi available but no GPUs found
+                if self.require_gpu:
+                    result.fail(
+                        "GPU required but no GPUs detected",
+                        remediation="Ensure pod has GPU resources requested (nvidia.com/gpu: 1) and node has GPUs",
+                    )
+                else:
+                    result.complete(
+                        True,
+                        "No GPU detected",
+                        {"gpu_detected": False, "gpu_count": 0},
+                    )
                 return result
 
             gpu_count = gpu_detection_result.get("gpu_count", 0)
@@ -102,23 +106,6 @@ class GPUTest(BaseTest):
                 gpu_details_result = self._test_gpu_details(i)
                 result.add_sub_test(f"GPU {i} Details", gpu_details_result)
 
-                # Check memory requirements
-                if self.min_gpu_memory_gb > 0:
-                    gpu_memory_gb = gpu_details_result.get("memory_total_gb", 0)
-                    if gpu_memory_gb < self.min_gpu_memory_gb:
-                        result.add_log(
-                            "WARNING",
-                            f"GPU {i} has {gpu_memory_gb}GB memory, less than required {self.min_gpu_memory_gb}GB",
-                        )
-
-                # Check temperature
-                gpu_temp = gpu_details_result.get("temperature_celsius")
-                if gpu_temp and gpu_temp > self.max_gpu_temp_celsius:
-                    result.add_log(
-                        "WARNING",
-                        f"GPU {i} temperature {gpu_temp}°C exceeds threshold {self.max_gpu_temp_celsius}°C",
-                    )
-
             # Determine overall success
             all_critical_passed = (
                 nvidia_smi_result["success"]
@@ -129,25 +116,40 @@ class GPUTest(BaseTest):
             if all_critical_passed:
                 result.complete(
                     True,
-                    f"GPU tests passed - {gpu_count} GPU(s) detected",
+                    f"GPU detected - {gpu_count} GPU(s) available",
                     {
+                        "gpu_detected": True,
                         "gpu_count": gpu_count,
                         "driver_version": driver_result.get("driver_version"),
                         "cuda_version": cuda_result.get("cuda_version"),
                     },
                 )
             else:
-                result.fail(
-                    "GPU validation failed",
-                    remediation="Check GPU availability, drivers, and CUDA installation",
-                )
+                if self.require_gpu:
+                    result.fail(
+                        "GPU validation failed",
+                        remediation="Check GPU availability, drivers, and CUDA installation",
+                    )
+                else:
+                    result.complete(
+                        True,
+                        "GPU detection incomplete",
+                        {"gpu_detected": True, "gpu_count": gpu_count, "warnings": True},
+                    )
 
         except Exception as e:
-            result.fail(
-                f"GPU test failed: {str(e)}",
-                error=e,
-                remediation="Check NVIDIA drivers, GPU availability, and nvidia-smi installation",
-            )
+            if self.require_gpu:
+                result.fail(
+                    f"GPU test failed: {str(e)}",
+                    error=e,
+                    remediation="Check NVIDIA drivers, GPU availability, and nvidia-smi installation",
+                )
+            else:
+                result.complete(
+                    True,
+                    f"No GPU detected (error during detection: {str(e)})",
+                    {"gpu_detected": False, "gpu_count": 0, "error": str(e)},
+                )
 
         return result
 

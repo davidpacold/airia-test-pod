@@ -143,7 +143,15 @@ helm upgrade airia-test-pod \
   --set config.openai.deploymentName="gpt-35-turbo"
 ```
 
-### **4. Using a Values File (Recommended for Multiple Services)**
+### **4. GPU Detection**
+```bash
+helm upgrade airia-test-pod \
+  oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
+  --set config.gpu.enabled=true \
+  --set config.gpu.required=false
+```
+
+### **5. Using a Values File (Recommended for Multiple Services)**
 
 Create `my-config.yaml`:
 ```yaml
@@ -160,6 +168,10 @@ config:
     endpoint: "https://your-openai.openai.azure.com/"
     apiKey: "your-openai-key"
     deploymentName: "gpt-35-turbo"
+
+  gpu:
+    enabled: true
+    required: false  # Set to true to require GPU presence
 
 # Optional: Enable version checking strict mode
 versionCheck:
