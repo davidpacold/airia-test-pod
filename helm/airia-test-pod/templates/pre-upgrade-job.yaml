@@ -1,0 +1,107 @@
+{{- if .Values.versionCheck.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "airia-test-pod.fullname" . }}-version-check
+  labels:
+    {{- include "airia-test-pod.labels" . | nindent 4 }}
+    app.kubernetes.io/component: version-check
+  annotations:
+    "helm.sh/hook": pre-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 1
+  template:
+    metadata:
+      name: {{ include "airia-test-pod.fullname" . }}-version-check
+      labels:
+        {{- include "airia-test-pod.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: version-check
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "airia-test-pod.serviceAccountName" . }}
+      containers:
+      - name: version-checker
+        image: alpine/helm:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+
+          echo "🔍 Airia Test Pod - Version Check"
+          echo "=================================="
+          echo ""
+
+          CURRENT_VERSION="{{ .Chart.Version }}"
+          REPO_URL="{{ .Values.versionCheck.repoUrl }}"
+          OCI_REPO="{{ .Values.versionCheck.ociRepo }}"
+
+          echo "📊 Current chart version being installed: $CURRENT_VERSION"
+          echo ""
+
+          {{- if .Values.versionCheck.useOCI }}
+          # Check OCI registry for latest version
+          echo "🔄 Checking OCI registry for latest version..."
+          echo "Registry: $OCI_REPO"
+
+          # Note: This is informational only, actual version enforcement happens in upgrade command
+          if command -v helm >/dev/null 2>&1; then
+            LATEST_VERSION=$(helm show chart "$OCI_REPO/{{ .Chart.Name }}" 2>/dev/null | grep '^version:' | awk '{print $2}' || echo "Unable to fetch")
+            echo "📦 Latest version in OCI registry: $LATEST_VERSION"
+          else
+            echo "⚠️  Helm not available, skipping version check"
+          fi
+          {{- else }}
+          # Check traditional Helm repo for latest version
+          echo "🔄 Checking Helm repository for latest version..."
+          echo "Repository: $REPO_URL"
+
+          # Add and update repo
+          helm repo add airia-test-pod "$REPO_URL" 2>/dev/null || true
+          helm repo update airia-test-pod >/dev/null 2>&1 || true
+
+          # Get latest version
+          LATEST_VERSION=$(helm search repo airia-test-pod/{{ .Chart.Name }} -o json 2>/dev/null | grep -o '"version":"[^"]*"' | head -1 | cut -d'"' -f4 || echo "Unable to fetch")
+          echo "📦 Latest version in Helm repository: $LATEST_VERSION"
+          {{- end }}
+
+          echo ""
+
+          # Compare versions (informational)
+          if [ "$LATEST_VERSION" != "Unable to fetch" ] && [ "$CURRENT_VERSION" != "$LATEST_VERSION" ]; then
+            echo "⚠️  WARNING: You are not installing the latest version!"
+            echo "   Installing: $CURRENT_VERSION"
+            echo "   Latest:     $LATEST_VERSION"
+            echo ""
+            {{- if .Values.versionCheck.useOCI }}
+            echo "💡 To install the latest version:"
+            echo "   helm upgrade {{ include "airia-test-pod.fullname" . }} $OCI_REPO/{{ .Chart.Name }} \\"
+            echo "     --version $LATEST_VERSION -f your-config.yaml"
+            {{- else }}
+            echo "💡 To install the latest version:"
+            echo "   helm repo update airia-test-pod"
+            echo "   helm upgrade {{ include "airia-test-pod.fullname" . }} airia-test-pod/{{ .Chart.Name }} \\"
+            echo "     -f your-config.yaml"
+            {{- end }}
+            echo ""
+
+            {{- if .Values.versionCheck.strict }}
+            echo "❌ Strict version checking enabled - upgrade blocked!"
+            echo "   Set versionCheck.strict=false to bypass this check"
+            exit 1
+            {{- else }}
+            echo "⚠️  Continuing with installation (strict mode disabled)"
+            echo "   To enforce latest version, set versionCheck.strict=true"
+            {{- end }}
+          elif [ "$LATEST_VERSION" = "$CURRENT_VERSION" ]; then
+            echo "✅ You are installing the latest version: $CURRENT_VERSION"
+          else
+            echo "ℹ️  Unable to verify latest version, proceeding with installation"
+          fi
+
+          echo ""
+          echo "✅ Version check complete"
+{{- end }}

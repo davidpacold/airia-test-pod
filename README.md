@@ -5,31 +5,47 @@
 Perfect for DevOps teams who need to verify that Azure services, databases, storage, and AI/ML endpoints are correctly configured before deploying production applications.
 
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/davidpacold/airia-test-pod)](https://github.com/davidpacold/airia-test-pod/releases)
-[![Container Image](https://img.shields.io/badge/container-ghcr.io%2Fdavidpacold%2Fairia--test--pod-blue)](https://github.com/davidpacold/airia-test-pod/pkgs/container/airia-test-pod)
-[![Docker Hub](https://img.shields.io/docker/v/davidpacold/airia-test-pod?label=Docker%20Hub)](https://hub.docker.com/r/davidpacold/airia-test-pod)
-[![Build Status](https://github.com/davidpacold/airia-test-pod/actions/workflows/build-and-publish.yml/badge.svg)](https://github.com/davidpacold/airia-test-pod/actions)
+[![Helm Chart](https://img.shields.io/badge/helm-oci%3A%2F%2Fghcr.io-blue)](https://github.com/davidpacold/airia-test-pod/pkgs/container/airia-test-pod%2Fcharts%2Fairia-test-pod)
+[![Container Image](https://img.shields.io/badge/container-ghcr.io-blue)](https://github.com/davidpacold/airia-test-pod/pkgs/container/airia-test-pod)
+[![Build Status](https://github.com/davidpacold/airia-test-pod/actions/workflows/release.yml/badge.svg)](https://github.com/davidpacold/airia-test-pod/actions)
 
 ## ⚡ Get Started in 3 Steps
 
-### Step 1: Install with Helm (Recommended)
+### Step 1: Install with Helm
+
+**🚀 Recommended: OCI Registry (Always Latest, No Repo Updates Needed!)**
+
+```bash
+# Install with OCI registry - automatically pulls latest version!
+helm upgrade airia-test-pod \
+  oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
+  --set config.auth.username="admin" \
+  --set config.auth.password="YourSecurePassword123!" \
+  --set config.auth.secretKey="$(openssl rand -hex 32)" \
+  --install --create-namespace --namespace default
+```
+
+**📦 Alternative: Traditional Helm Repository**
 
 ```bash
 # Add the Helm repository
 helm repo add airia-test-pod https://davidpacold.github.io/airia-test-pod/
-helm repo update
+helm repo update airia-test-pod
 
-# Install with basic authentication (customize as needed)
+# Install with basic authentication
 helm install airia-test-pod airia-test-pod/airia-test-pod \
   --set config.auth.username="admin" \
   --set config.auth.password="YourSecurePassword123!" \
   --set config.auth.secretKey="$(openssl rand -hex 32)"
 ```
 
+> **💡 Pro Tip:** Use the OCI registry method to always get the latest version without needing `helm repo update`!
+
 ### Step 2: Access the Dashboard
 
 ```bash
 # Port forward to access the web interface
-kubectl port-forward -n airia-preprod svc/airia-test-pod 8080:80
+kubectl port-forward -n default svc/airia-test-pod 8080:80
 
 # Open your browser
 open http://localhost:8080
@@ -44,9 +60,47 @@ Click "Run All Tests" to see which services need configuration, then add your se
 
 ---
 
-## 🎯 Need Production Setup?
+## 🔄 Version Management & Updates
 
-For ingress, TLS, and production deployments, see our **[Complete Deployment Guide](DEPLOYMENT_GUIDE.md)** with step-by-step instructions.
+### Automatic Version Checking ✨
+
+The Helm chart includes **automatic version checking** to ensure you're always deploying the latest version:
+
+- ✅ Checks if you're installing the latest version during upgrades
+- ⚠️ Warns you if a newer version is available
+- 🚫 Optionally blocks upgrades if not using the latest (strict mode)
+
+**Enable strict mode to enforce always using the latest version:**
+```bash
+helm upgrade airia-test-pod \
+  oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
+  --set versionCheck.strict=true \
+  -f your-config.yaml
+```
+
+### Automated Upgrade Script
+
+Use our automated upgrade script for the easiest experience:
+
+```bash
+# From the repository
+./scripts/upgrade.sh --oci -f your-config.yaml
+
+# Or remotely
+curl -sSL https://raw.githubusercontent.com/davidpacold/airia-test-pod/main/scripts/upgrade.sh | \
+  bash -s -- --oci -f your-config.yaml
+```
+
+📚 **For complete version management details:** [VERSION_MANAGEMENT.md](VERSION_MANAGEMENT.md)
+
+---
+
+## 🎯 Production Setup & Advanced Deployment
+
+For ingress, TLS, and production deployments, see:
+- **[📄 Complete Deployment Guide](DEPLOYMENT.md)** - OCI registry, version management, troubleshooting
+- **[🚀 Production Deployment Guide](DEPLOYMENT_GUIDE.md)** - Ingress, TLS, and production setup
+- **[🔄 Version Management Guide](VERSION_MANAGEMENT.md)** - Automated updates and version control
 
 ## 🧪 What Does It Test?
 
@@ -55,6 +109,7 @@ For ingress, TLS, and production deployments, see our **[Complete Deployment Gui
 - **💾 Azure Blob Storage** - Authentication, file operations
 - **⚙️ Kubernetes Storage (PVC)** - Storage classes, volume creation
 - **🔒 SSL Certificates** - Complete certificate chain validation
+- **🎮 GPU Detection** - NVIDIA GPU availability, driver, and CUDA installation
 
 ### 🤖 **AI & Machine Learning** (Configure as needed)
 - **Azure OpenAI** - API connectivity, model access, embeddings
@@ -76,7 +131,9 @@ For ingress, TLS, and production deployments, see our **[Complete Deployment Gui
 
 ### **1. PostgreSQL Database**
 ```bash
-helm upgrade airia-test-pod airia-test-pod/airia-test-pod \
+# Using OCI registry (recommended)
+helm upgrade airia-test-pod \
+  oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
   --set config.postgresql.enabled=true \
   --set config.postgresql.host="your-server.postgres.database.azure.com" \
   --set config.postgresql.username="your-username" \
@@ -85,7 +142,9 @@ helm upgrade airia-test-pod airia-test-pod/airia-test-pod \
 
 ### **2. Azure Blob Storage**
 ```bash
-helm upgrade airia-test-pod airia-test-pod/airia-test-pod \
+# Using OCI registry (recommended)
+helm upgrade airia-test-pod \
+  oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
   --set config.blobStorage.enabled=true \
   --set config.blobStorage.accountName="yourstorageaccount" \
   --set config.blobStorage.accountKey="your-storage-key" \
@@ -94,7 +153,9 @@ helm upgrade airia-test-pod airia-test-pod/airia-test-pod \
 
 ### **3. Azure OpenAI**
 ```bash
-helm upgrade airia-test-pod airia-test-pod/airia-test-pod \
+# Using OCI registry (recommended)
+helm upgrade airia-test-pod \
+  oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
   --set config.openai.enabled=true \
   --set config.openai.endpoint="https://your-openai.openai.azure.com/" \
   --set config.openai.apiKey="your-openai-key" \
@@ -112,16 +173,28 @@ config:
     host: "your-server.postgres.database.azure.com"
     username: "your-username"
     password: "your-password"
-    
+
   openai:
     enabled: true
     endpoint: "https://your-openai.openai.azure.com/"
     apiKey: "your-openai-key"
     deploymentName: "gpt-35-turbo"
+
+# Optional: Enable version checking strict mode
+versionCheck:
+  enabled: true
+  strict: false  # Set to true to block upgrades if not using latest version
 ```
 
 Then upgrade:
 ```bash
+# Using OCI registry (recommended)
+helm upgrade airia-test-pod \
+  oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
+  -f my-config.yaml
+
+# Or using traditional Helm repo (remember to update first!)
+helm repo update airia-test-pod
 helm upgrade airia-test-pod airia-test-pod/airia-test-pod -f my-config.yaml
 ```
 
@@ -129,10 +202,18 @@ helm upgrade airia-test-pod airia-test-pod/airia-test-pod -f my-config.yaml
 
 ## 📖 Complete Documentation
 
-### 🎯 **Need More Configuration Options?**
-- **[📄 Complete Configuration Example](Test%20deploy/values-example.yaml)** - All 7 tests with detailed examples
-- **[🚀 Production Deployment Guide](DEPLOYMENT_GUIDE.md)** - Ingress, TLS, and production setup
+### 🎯 **Deployment & Configuration**
+- **[🚀 Deployment Guide](DEPLOYMENT.md)** - OCI registry, traditional Helm repo, automated upgrades
+- **[🔄 Version Management](VERSION_MANAGEMENT.md)** - Automatic updates, version checking, upgrade scripts
+- **[🏭 Production Setup](DEPLOYMENT_GUIDE.md)** - Ingress, TLS, and production deployment
+- **[📄 Complete Configuration Example](Test%20deploy/values-example.yaml)** - All tests with detailed examples
 - **[⚙️ Helm Configuration Reference](helm/airia-test-pod/values.yaml)** - Every available setting
+
+### 🛠️ **Advanced Features**
+- **Automatic Version Checking** - Ensures you're always using the latest version
+- **OCI Registry Support** - No need for `helm repo update`, always fresh
+- **Pre-Upgrade Hooks** - Validates versions before deployment
+- **Automated Upgrade Script** - One-command upgrades with health checks
 
 ## 🔍 Understanding Test Results
 
