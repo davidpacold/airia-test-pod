@@ -227,3 +227,35 @@ versionCheck:
   # Set to true to enforce always using the latest version
   # Set to false to show warnings but allow older versions
   strict: false
+
+# ===============================================================================
+# NGINX INGRESS CONTROLLER CONFIGURATION
+# ===============================================================================
+# Deploys NGINX Ingress Controller for routing traffic to the test pod.
+# Set enabled: false if you already have an ingress controller in your cluster.
+ingress-nginx:
+  enabled: true
+  controller:
+    # Watch all ingresses in the cluster (not just those with ingressClassName)
+    watchIngressWithoutClass: true
+    # Watch ALL namespaces
+    scope:
+      enabled: false
+    # Make this the default ingress class
+    ingressClassResource:
+      default: true
+    # Service configuration - LoadBalancer for cloud environments
+    service:
+      type: LoadBalancer
+      # Annotations can be customized per cloud provider:
+      # AWS: Uncomment these lines for AWS NLB
+      # annotations:
+      #   service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+      #   service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+      #   service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+      #
+      # Azure: Uncomment for Azure Load Balancer
+      # annotations:
+      #   service.beta.kubernetes.io/azure-load-balancer-internal: "false"
+      #
+      # GCP: Default LoadBalancer works without annotations
