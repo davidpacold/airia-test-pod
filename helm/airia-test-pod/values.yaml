@@ -51,55 +51,10 @@ serviceAccount:
   #   eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/airia-test-pod
   name: ""  # Leave empty to auto-generate name based on release name
 
-# ---------------------------------------------------------------------------
-# POD ANNOTATIONS
-# ---------------------------------------------------------------------------
-# Annotations to add to the pod (key-value pairs for metadata).
-# Useful for integrations with monitoring, logging, or service mesh.
-podAnnotations: {}
-# Example annotations:
-# podAnnotations:
-#   prometheus.io/scrape: "true"  # Enable Prometheus scraping
-#   prometheus.io/port: "8080"  # Port for metrics
-#   sidecar.istio.io/inject: "false"  # Disable Istio sidecar injection
-
-# ---------------------------------------------------------------------------
-# POD SECURITY CONTEXT
-# ---------------------------------------------------------------------------
-# Security settings that apply to all containers in the pod.
-# Controls filesystem access, user/group IDs, and system capabilities.
-# These settings affect how the pod interacts with the host system.
-podSecurityContext: {}
-  # Common pod security settings (uncomment to enable):
-  # fsGroup: 2000  # Set filesystem group ID for mounted volumes
-  # runAsNonRoot: true  # Require containers to run as non-root user
-  # runAsUser: 1000  # User ID to run all container processes
-  # runAsGroup: 3000  # Group ID for all container processes
-  # fsGroupChangePolicy: "OnRootMismatch"  # When to recursively change volume ownership
-  # seccompProfile:  # Seccomp (secure computing mode) profile
-  #   type: RuntimeDefault  # Use default seccomp profile for security
-
-# ---------------------------------------------------------------------------
-# CONTAINER SECURITY CONTEXT
-# ---------------------------------------------------------------------------
-# Security settings specific to the test pod container.
-# More restrictive than podSecurityContext but may limit some test functionality.
-#
-# NOTE: Some security restrictions may interfere with tests:
-# - readOnlyRootFilesystem: May prevent temporary file writes
-# - dropping ALL capabilities: May prevent certain network/system tests
-securityContext: {}
-  # Recommended security settings (uncomment as needed):
-  # capabilities:  # Linux capabilities to add/drop
-  #   drop:
-  #   - ALL  # Drop all capabilities for maximum security
-  #   add:
-  #   - NET_BIND_SERVICE  # Allow binding to ports < 1024 if needed
-  # readOnlyRootFilesystem: true  # Make container filesystem read-only
-  # runAsNonRoot: true  # Prevent running as root user
-  # runAsUser: 1000  # Specific user ID to run as (must be non-root)
-  # allowPrivilegeEscalation: false  # Prevent gaining more privileges
-  # privileged: false  # Don't run in privileged mode (never recommended)
+# Advanced Kubernetes settings (optional)
+podAnnotations: {}  # Add custom annotations for monitoring/service mesh
+podSecurityContext: {}  # Pod-level security settings
+securityContext: {}  # Container-level security settings
 
 # ---------------------------------------------------------------------------
 # SERVICE CONFIGURATION
