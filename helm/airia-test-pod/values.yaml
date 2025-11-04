@@ -363,15 +363,47 @@ ingress-nginx:
       type: LoadBalancer  # Creates cloud load balancer (NLB/ALB/etc)
       # Cloud provider annotations (uncomment as needed):
       #
-      # AWS - Network Load Balancer (recommended for production):
+      # -------------------------------------------------------------------------
+      # AWS - Internet-facing Network Load Balancer (public access):
+      # -------------------------------------------------------------------------
       # annotations:
       #   service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
       #   service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
       #   service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
       #
-      # Azure - Public Load Balancer:
+      # -------------------------------------------------------------------------
+      # AWS - Internal Network Load Balancer (private VPC access only):
+      # -------------------------------------------------------------------------
+      # annotations:
+      #   service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+      #   service.beta.kubernetes.io/aws-load-balancer-scheme: "internal"
+      #   service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+      #   # Optional: Specify subnets for internal LB
+      #   # service.beta.kubernetes.io/aws-load-balancer-subnets: "subnet-xxxxx,subnet-yyyyy"
+      #
+      # -------------------------------------------------------------------------
+      # Azure - Public Load Balancer (internet-facing):
+      # -------------------------------------------------------------------------
       # annotations:
       #   service.beta.kubernetes.io/azure-load-balancer-internal: "false"
       #
-      # GCP - Load Balancer (no annotations needed):
-      #   Default LoadBalancer type works out of the box
+      # -------------------------------------------------------------------------
+      # Azure - Internal Load Balancer (private VNet access only):
+      # -------------------------------------------------------------------------
+      # annotations:
+      #   service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+      #   # Optional: Specify subnet for internal LB
+      #   # service.beta.kubernetes.io/azure-load-balancer-internal-subnet: "my-subnet"
+      #
+      # -------------------------------------------------------------------------
+      # GCP - Public Load Balancer (internet-facing):
+      # -------------------------------------------------------------------------
+      # Default LoadBalancer type works out of the box for public access
+      #
+      # -------------------------------------------------------------------------
+      # GCP - Internal Load Balancer (private VPC access only):
+      # -------------------------------------------------------------------------
+      # annotations:
+      #   networking.gke.io/load-balancer-type: "Internal"
+      #   # Optional: Specify subnet for internal LB
+      #   # networking.gke.io/internal-load-balancer-subnet: "my-subnet"
