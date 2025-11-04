@@ -1,6 +1,20 @@
+# ===============================================================================
+# AIRIA TEST POD - DEFAULT CONFIGURATION
+# ===============================================================================
+# This Helm chart deploys an infrastructure validation tool that tests various
+# services and configurations in your Kubernetes environment.
+#
+# Each test appears as a card in the web UI dashboard at http://your-ingress-url/
+# Tests can be run individually or all at once to validate infrastructure readiness.
+# ===============================================================================
+
 # Default values for airia-test-pod
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
+
+# ===============================================================================
+# DEPLOYMENT CONFIGURATION
+# ===============================================================================
 
 replicaCount: 1
 
@@ -8,19 +22,20 @@ image:
   repository: ghcr.io/davidpacold/airia-test-pod
   pullPolicy: Always
   # tag defaults to .Chart.AppVersion if not specified
+  # The chart automatically prepends 'v' prefix (e.g., v1.0.170)
 
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
+# ===============================================================================
+# KUBERNETES RESOURCES
+# ===============================================================================
+
 # Service account configuration
 serviceAccount:
-  # Specifies whether a service account should be created
   create: true
-  # Annotations to add to the service account
   annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
   name: ""
 
 podAnnotations: {}
@@ -36,20 +51,28 @@ securityContext: {}
   # runAsNonRoot: true
   # runAsUser: 1000
 
+# Service configuration
 service:
-  type: ClusterIP  # Options: ClusterIP, NodePort, LoadBalancer
+  type: ClusterIP  # Use ClusterIP when using ingress, LoadBalancer for direct access
   port: 80
   targetPort: 8080
   # nodePort: 30000  # Only used if type is NodePort
 
+# ===============================================================================
+# INGRESS CONFIGURATION
+# ===============================================================================
+# Configures how external traffic reaches the test pod.
+# The ingress creates routes for the web UI and API endpoints.
 ingress:
   enabled: true
   className: "nginx"
   annotations:
-    # NGINX Ingress annotations
+    # Disable SSL redirect (configure SSL at load balancer or reverse proxy level)
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    # Max upload size for AI model file uploads (OpenAI, Document Intelligence, Llama)
     nginx.ingress.kubernetes.io/proxy-body-size: "50m"
   hosts:
+    # Default example hostnames - replace with your actual domains
     - host: test.example.com
       paths:
         - path: /
@@ -71,6 +94,7 @@ ingress:
         - path: /
           pathType: Prefix
   tls:
+    # TLS certificate configuration (requires cert-manager or manual certificate)
     - secretName: airia-test-pod-tls
       hosts:
         - test.example.com
@@ -79,16 +103,20 @@ ingress:
         - validation.example.com
         - precheck.example.com
 
+# ===============================================================================
+# RESOURCE LIMITS
+# ===============================================================================
 resources:
   limits:
     cpu: 500m
     memory: 512Mi
-    # Uncomment to request GPU allocation (requires GPU-enabled node)
+    # Uncomment to allocate a GPU to the pod (shows GPU test in UI)
+    # Requires GPU-enabled Kubernetes node with NVIDIA drivers
     # nvidia.com/gpu: 1
   requests:
     cpu: 100m
     memory: 256Mi
-    # Uncomment to request GPU allocation (requires GPU-enabled node)
+    # Uncomment to request GPU allocation
     # nvidia.com/gpu: 1
 
 autoscaling:
@@ -104,25 +132,46 @@ tolerations: []
 
 affinity: {}
 
-# Application configuration
+# ===============================================================================
+# APPLICATION CONFIGURATION
+# ===============================================================================
+# Each enabled test appears as a card in the web UI dashboard.
+# Configure credentials and endpoints for the services you want to validate.
+# ===============================================================================
+
 config:
-  # Authentication (required)
+  # ---------------------------------------------------------------------------
+  # AUTHENTICATION (Required)
+  # ---------------------------------------------------------------------------
+  # Credentials for accessing the web UI dashboard
+  # Default: username=admin, password=changeme
+  # IMPORTANT: Change these in production!
   auth:
     username: "admin"
     password: "changeme"
-    secretKey: "your-super-secret-key-change-this"
-  
-  # PostgreSQL configuration (optional)
+    secretKey: "your-super-secret-key-change-this"  # Used for JWT tokens
+
+  # ---------------------------------------------------------------------------
+  # POSTGRESQL DATABASE TEST (Optional)
+  # ---------------------------------------------------------------------------
+  # UI Card: "PostgreSQL Database"
+  # Tests: Connection, query execution, SSL/TLS, connection pooling
+  # Set enabled: true to show this test in the UI
   postgresql:
     enabled: false
     host: "your-postgres-server.postgres.database.azure.com"
     port: "5432"
     database: "postgres"
-    sslmode: "require"
+    sslmode: "require"  # Options: disable, require, verify-ca, verify-full
     username: ""
     password: ""
-  
-  # Apache Cassandra configuration (optional)
+
+  # ---------------------------------------------------------------------------
+  # APACHE CASSANDRA TEST (Optional)
+  # ---------------------------------------------------------------------------
+  # UI Card: "Apache Cassandra"
+  # Tests: Connection, keyspace access, read/write operations, multi-node
+  # Set enabled: true to show this test in the UI
   cassandra:
     enabled: false
     hosts: ""  # Comma-separated list: host1,host2,host3
@@ -130,132 +179,196 @@ config:
     username: ""
     password: ""
     keyspace: ""  # Optional: specific keyspace to test
-    datacenter: "datacenter1"  # Optional: leave empty for single-DC or if unknown
+    datacenter: "datacenter1"  # Optional: leave empty for single-DC
     useSsl: false
-  
-  # Azure Blob Storage configuration (optional)
+
+  # ---------------------------------------------------------------------------
+  # AZURE BLOB STORAGE TEST (Optional)
+  # ---------------------------------------------------------------------------
+  # UI Card: "Azure Blob Storage"
+  # Tests: Connection, container access, file upload/download, permissions
+  # Set enabled: true to show this test in the UI
   blobStorage:
     enabled: false
     accountName: ""
     accountKey: ""
     containerName: "test-container"
-  
-  # Azure OpenAI configuration (optional)
+
+  # ---------------------------------------------------------------------------
+  # AZURE OPENAI TEST (Optional)
+  # ---------------------------------------------------------------------------
+  # UI Card: "Azure OpenAI"
+  # Tests: Chat completion, embedding generation, API connectivity
+  # Supports custom prompts and file uploads through UI
+  # Set enabled: true to show this test in the UI
   openai:
     enabled: false
     endpoint: "https://your-openai.openai.azure.com/"
     apiKey: ""
     deploymentName: "gpt-35-turbo"
-    embeddingDeployment: ""
-  
-  # Azure Document Intelligence configuration (optional)
+    embeddingDeployment: ""  # Optional: for embedding tests
+
+  # ---------------------------------------------------------------------------
+  # AZURE DOCUMENT INTELLIGENCE TEST (Optional)
+  # ---------------------------------------------------------------------------
+  # UI Card: "Document Intelligence"
+  # Tests: Document analysis, OCR, form recognition, table extraction
+  # Supports PDF, image, and document file uploads through UI
+  # Set enabled: true to show this test in the UI
   documentIntelligence:
     enabled: false
     endpoint: "https://your-doc-intel.cognitiveservices.azure.com/"
     apiKey: ""
     model: "prebuilt-document"
-  
-  # SSL certificate testing (optional)
+
+  # ---------------------------------------------------------------------------
+  # SSL CERTIFICATE TEST (Optional)
+  # ---------------------------------------------------------------------------
+  # UI Card: "SSL Certificate Validation"
+  # Tests: Certificate validity, expiration dates, chain validation, TLS versions
+  # Monitors multiple URLs and warns when certificates expire soon
+  # Set enabled: true to show this test in the UI
   ssl:
     enabled: false
-    testUrls: "https://api.example.com,https://app.example.com"
-    connectTimeout: 10
-    warningDays: 30
-  
-  # Kubernetes storage testing (optional)
-  kubernetes:
-    storageClass: "default"
-    testPvcSize: "1Gi"
+    testUrls: "https://api.example.com,https://app.example.com"  # Comma-separated
+    connectTimeout: 10  # Seconds
+    warningDays: 30  # Warn if certificate expires within this many days
 
-  # GPU detection (optional)
+  # ---------------------------------------------------------------------------
+  # KUBERNETES STORAGE TEST (Always Enabled)
+  # ---------------------------------------------------------------------------
+  # UI Card: "Kubernetes PVC Storage"
+  # Tests: PVC creation, mounting, read/write operations, cleanup
+  # This test always appears in the UI to validate Kubernetes storage
+  kubernetes:
+    storageClass: "default"  # StorageClass to use for test PVC
+    testPvcSize: "1Gi"  # Size of test PVC
+
+  # ---------------------------------------------------------------------------
+  # GPU DETECTION TEST (Optional)
+  # ---------------------------------------------------------------------------
+  # UI Card: "GPU Detection"
+  # Tests: NVIDIA GPU presence, driver version, CUDA availability, memory
+  # Shows GPU information if available, or reports no GPU found
+  # Set enabled: true to show this test in the UI
+  # Note: Requires GPU node and nvidia.com/gpu resource allocation (see resources section)
   gpu:
     enabled: true
-    required: false  # Set to true to require GPU presence
+    required: false  # Set to true to FAIL the test if no GPU is found
 
-  # Minio S3-compatible storage configuration (optional)
+  # ---------------------------------------------------------------------------
+  # MINIO S3-COMPATIBLE STORAGE TEST (Optional)
+  # ---------------------------------------------------------------------------
+  # UI Card: "MinIO Storage"
+  # Tests: Connection, bucket access, file upload/download/delete, encryption
+  # Compatible with MinIO and other S3-compatible storage
+  # Set enabled: true to show this test in the UI
   minio:
     enabled: false
     endpointUrl: "https://minio.example.com"
     accessKey: ""
     secretKey: ""
     bucketName: "test-bucket"
-    secure: true
-  
-  # Amazon S3 storage configuration (optional)
+    secure: true  # Use HTTPS
+
+  # ---------------------------------------------------------------------------
+  # AMAZON S3 STORAGE TEST (Optional)
+  # ---------------------------------------------------------------------------
+  # UI Card: "Amazon S3 Storage"
+  # Tests: Connection, bucket access, file upload/download/delete, encryption, versioning
+  # Supports IAM roles, access keys, and temporary credentials
+  # Set enabled: true to show this test in the UI
   s3:
     enabled: false
     region: "us-east-1"
     accessKeyId: ""
     secretAccessKey: ""
-    sessionToken: ""  # Optional for temporary credentials
+    sessionToken: ""  # Optional for temporary credentials (IAM roles)
     bucketName: "test-bucket"
-    endpointUrl: ""  # Optional custom endpoint
-  
-  # Embedding model configuration (optional)
+    endpointUrl: ""  # Optional: for custom S3-compatible endpoints
+
+  # ---------------------------------------------------------------------------
+  # EMBEDDING MODEL TEST (Optional)
+  # ---------------------------------------------------------------------------
+  # UI Card: "Embedding Generation"
+  # Tests: Text embedding generation, batch processing, API connectivity
+  # Supports OpenAI and custom embedding endpoints
+  # Set enabled: true to show this test in the UI
   embeddings:
     enabled: false
-    baseUrl: "https://api.openai.com/v1"  # OpenAI or custom embedding endpoint
+    baseUrl: "https://api.openai.com/v1"  # OpenAI or custom endpoint
     apiKey: ""
     modelName: "text-embedding-ada-002"
     customHeaders: ""  # Optional: Header1:Value1,Header2:Value2
-  
-  # Llama model configuration (optional)
+
+  # ---------------------------------------------------------------------------
+  # LLAMA MODEL TEST (Optional)
+  # ---------------------------------------------------------------------------
+  # UI Card: "Llama Model"
+  # Tests: Text generation, chat completion, custom prompts
+  # Supports Ollama and custom Llama endpoints
+  # Supports custom prompts and file uploads through UI
+  # Set enabled: true to show this test in the UI
   llama:
     enabled: false
-    baseUrl: "http://localhost:11434"  # Ollama or custom Llama endpoint
+    baseUrl: "http://localhost:11434"  # Ollama or custom endpoint
     apiKey: ""
     modelName: "llama2"
     maxTokens: 2048
     temperature: 0.7
     timeout: 30
 
-# Namespace configuration
+# ===============================================================================
+# NAMESPACE CONFIGURATION
+# ===============================================================================
 namespace:
-  create: false
-  name: "airia-preprod"
+  create: false  # Set to true to create a new namespace
+  name: "airia-preprod"  # Namespace name if create is true
 
-# Version checking configuration
-# Helps ensure users are deploying the latest version
+# ===============================================================================
+# VERSION CHECKING (Optional)
+# ===============================================================================
+# Helps ensure you're deploying the latest version of the chart
 versionCheck:
-  # Enable version checking during helm upgrade
-  enabled: true
-  # Use OCI registry for version checks
-  useOCI: true
-  # OCI repository URL
+  enabled: true  # Check for newer versions during helm upgrade
+  useOCI: true  # Use OCI registry for version checks
   ociRepo: "oci://ghcr.io/davidpacold/airia-test-pod/charts"
-  # Strict mode - block upgrades if not using latest version
-  # Set to true to enforce always using the latest version
-  # Set to false to show warnings but allow older versions
-  strict: false
+  strict: false  # false = warn about newer versions, true = block old versions
 
 # ===============================================================================
 # NGINX INGRESS CONTROLLER CONFIGURATION
 # ===============================================================================
-# Deploys NGINX Ingress Controller for routing traffic to the test pod.
-# Set enabled: false if you already have an ingress controller in your cluster.
+# Automatically deploys NGINX Ingress Controller for routing traffic to the test pod.
+# This is enabled by default for out-of-the-box functionality.
+#
+# IMPORTANT: Set enabled: false if you already have an ingress controller
+# in your cluster to avoid conflicts and duplicate load balancers.
+# ===============================================================================
 ingress-nginx:
-  enabled: true
+  enabled: true  # Set to false if you have an existing ingress controller
   controller:
     # Watch all ingresses in the cluster (not just those with ingressClassName)
     watchIngressWithoutClass: true
-    # Watch ALL namespaces
+    # Watch ALL namespaces (not just the one where controller is deployed)
     scope:
       enabled: false
-    # Make this the default ingress class
+    # Make this the default ingress class in the cluster
     ingressClassResource:
       default: true
-    # Service configuration - LoadBalancer for cloud environments
+    # Service configuration - creates a LoadBalancer for external access
     service:
-      type: LoadBalancer
-      # Annotations can be customized per cloud provider:
-      # AWS: Uncomment these lines for AWS NLB
+      type: LoadBalancer  # Creates cloud load balancer (NLB/ALB/etc)
+      # Cloud provider annotations (uncomment as needed):
+      #
+      # AWS - Network Load Balancer (recommended for production):
       # annotations:
       #   service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
       #   service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
       #   service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
       #
-      # Azure: Uncomment for Azure Load Balancer
+      # Azure - Public Load Balancer:
       # annotations:
       #   service.beta.kubernetes.io/azure-load-balancer-internal: "false"
       #
-      # GCP: Default LoadBalancer works without annotations
+      # GCP - Load Balancer (no annotations needed):
+      #   Default LoadBalancer type works out of the box
