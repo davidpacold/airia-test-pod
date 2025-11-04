@@ -135,36 +135,21 @@ ingress:
     # Max upload size for AI model file uploads (OpenAI, Document Intelligence, Llama)
     nginx.ingress.kubernetes.io/proxy-body-size: "50m"
   hosts:
-    # Default example hostnames - replace with your actual domains
+    # Replace with your actual domain
     - host: test.example.com
       paths:
         - path: /
           pathType: Prefix
-    - host: readiness.example.com
-      paths:
-        - path: /
-          pathType: Prefix
-    - host: infra-test.example.com
-      paths:
-        - path: /
-          pathType: Prefix
-    - host: validation.example.com
-      paths:
-        - path: /
-          pathType: Prefix
-    - host: precheck.example.com
-      paths:
-        - path: /
-          pathType: Prefix
-  tls:
-    # TLS certificate configuration (requires cert-manager or manual certificate)
-    - secretName: airia-test-pod-tls
-      hosts:
-        - test.example.com
-        - readiness.example.com
-        - infra-test.example.com
-        - validation.example.com
-        - precheck.example.com
+  # Add additional hostnames if needed:
+  # - host: validation.example.com
+  #   paths:
+  #     - path: /
+  #       pathType: Prefix
+  tls: []
+    # Uncomment to enable TLS (requires cert-manager or manual certificate creation)
+    # - secretName: airia-test-pod-tls
+    #   hosts:
+    #     - test.example.com
 
 # ===============================================================================
 # RESOURCE LIMITS
