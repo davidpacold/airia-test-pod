@@ -130,18 +130,37 @@ class OpenAITest(BaseTest):
             all_passed = True
 
             # Test 1: Basic connection and model listing (if available)
+            print("🔗 Testing API connection...")
             connection_result = self._test_connection(client, use_azure)
             result.add_sub_test("API Connection", connection_result)
-            if not connection_result["success"]:
+            if connection_result["success"]:
+                print("✅ API connection successful")
+                if connection_result.get('models'):
+                    model_count = len(connection_result.get('models', []))
+                    print(f"   📋 Found {model_count} models available")
+                print(f"   ⏱️  Response Time: {connection_result.get('response_time_ms', 0)/1000:.2f}s")
+            else:
+                print(f"❌ API connection failed: {connection_result.get('message', 'Unknown error')}")
                 all_passed = False
 
             # Test 2: Completion API
             if self.test_completion and completion_model:
+                print("\n💬 Running text completion test...")
                 completion_result = self._test_completion(
                     client, completion_model, use_azure
                 )
                 result.add_sub_test("Text Completion", completion_result)
-                if not completion_result["success"]:
+                if completion_result["success"]:
+                    print("✅ Text completion test passed")
+                    print(f"   🤖 Model: {completion_result.get('model', 'N/A')}")
+                    print(f"   📝 Input: What is 2+2? Answer with just the number.")
+                    print(f"   💬 Output: {completion_result.get('response_text', 'N/A')}")
+                    print(f"   ✓ Validation: {'Passed (contains 4)' if completion_result.get('validation_passed') else 'Failed'}")
+                    tokens = completion_result.get('tokens_used', {})
+                    print(f"   🎯 Tokens: {tokens.get('total_tokens', 'N/A')} ({tokens.get('prompt_tokens', 'N/A')} prompt + {tokens.get('completion_tokens', 'N/A')} completion)")
+                    print(f"   ⏱️  Duration: {completion_result.get('response_time_ms', 0)/1000:.2f}s")
+                else:
+                    print(f"❌ Text completion test failed: {completion_result.get('message', 'Unknown error')}")
                     all_passed = False
             else:
                 result.add_log(
@@ -150,11 +169,23 @@ class OpenAITest(BaseTest):
 
             # Test 3: Embedding API
             if self.test_embedding and embedding_model:
+                print("\n🔢 Running text embedding test...")
                 embedding_result = self._test_embedding(
                     client, embedding_model, use_azure
                 )
                 result.add_sub_test("Text Embedding", embedding_result)
-                if not embedding_result["success"]:
+                if embedding_result["success"]:
+                    print("✅ Text embedding test passed")
+                    print(f"   🤖 Model: {embedding_result.get('model', 'N/A')}")
+                    print(f"   📝 Input: '{embedding_result.get('input_text', 'N/A')}'")
+                    print(f"   📐 Embedding Dimension: {embedding_result.get('embedding_dimensions', 'N/A')}")
+                    sample_vals = embedding_result.get('sample_values', [])
+                    if sample_vals:
+                        print(f"   📊 Sample Values: [{', '.join([f'{v:.6f}' for v in sample_vals])}...]")
+                    print(f"   🎯 Tokens Used: {embedding_result.get('tokens_used', 'N/A')}")
+                    print(f"   ⏱️  Duration: {embedding_result.get('response_time_ms', 0)/1000:.2f}s")
+                else:
+                    print(f"❌ Text embedding test failed: {embedding_result.get('message', 'Unknown error')}")
                     all_passed = False
             else:
                 result.add_log(
@@ -163,11 +194,23 @@ class OpenAITest(BaseTest):
 
             # Test 4: Custom prompt test (if configured)
             if self.custom_test_prompt and completion_model:
+                print("\n🎯 Running custom prompt test...")
                 custom_result = self._test_custom_prompt(
                     client, completion_model, use_azure
                 )
                 result.add_sub_test("Custom Prompt", custom_result)
-                if not custom_result["success"]:
+                if custom_result["success"]:
+                    print("✅ Custom prompt test passed")
+                    print(f"   🤖 Model: {custom_result.get('model', 'N/A')}")
+                    prompt = custom_result.get('prompt', 'N/A')
+                    print(f"   📝 Prompt: {prompt[:80]}{'...' if len(prompt) > 80 else ''}")
+                    response = custom_result.get('response_text', 'N/A')
+                    print(f"   💬 Response: {response[:100]}{'...' if len(response) > 100 else ''}")
+                    tokens = custom_result.get('tokens_used', {})
+                    print(f"   🎯 Tokens: {tokens.get('total_tokens', 'N/A')} total")
+                    print(f"   ⏱️  Duration: {custom_result.get('response_time_ms', 0)/1000:.2f}s")
+                else:
+                    print(f"❌ Custom prompt test failed: {custom_result.get('message', 'Unknown error')}")
                     all_passed = False
             else:
                 result.add_log(
@@ -175,6 +218,16 @@ class OpenAITest(BaseTest):
                 )
 
             if all_passed:
+                print("\n" + "="*60)
+                print("🎉 All OpenAI API tests passed successfully!")
+                print("="*60)
+                endpoint_type = "Azure OpenAI" if use_azure else "OpenAI-compatible API"
+                print(f"🔧 Endpoint: {endpoint_type}")
+                if completion_model:
+                    print(f"🤖 Completion Model: {completion_model}")
+                if embedding_model:
+                    print(f"🔢 Embedding Model: {embedding_model}")
+                print("="*60)
                 result.complete(True, "All OpenAI API tests passed successfully")
             else:
                 failed_tests = [

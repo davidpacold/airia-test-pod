@@ -67,3 +67,10 @@ new_cookies.txt
 cookies.txt
 aws.yaml
 Azure-test.yaml
+
+# Helm packaged charts (should be built in CI/CD)
+*.tgz
+
+# Test/temporary files
+*_TEST.md
+VERSION_TEST.md

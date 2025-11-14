@@ -111,6 +111,13 @@ class DocumentIntelligenceTest(BaseTest):
             if analysis_result["success"]:
                 self.logger.info("✅ Document analysis test passed")
                 print("✅ Document analysis test passed")
+                print(f"   📄 Pages: {analysis_result.get('page_count', 'N/A')}")
+                print(f"   📊 Tables: {analysis_result.get('table_count', 0)}")
+                print(f"   📝 Content Length: {analysis_result.get('content_length', 0)} characters")
+                print(f"   ⏱️  Processing Time: {analysis_result.get('processing_time_ms', 0)/1000:.2f}s")
+                if analysis_result.get('content_preview'):
+                    preview = analysis_result.get('content_preview', '')[:100]
+                    print(f"   👁️  Content Preview: {preview}...")
             else:
                 self.logger.error(f"❌ Document analysis test failed: {analysis_result.get('message', 'Unknown error')}")
                 print(f"❌ Document analysis test failed: {analysis_result.get('message', 'Unknown error')}")
@@ -135,7 +142,16 @@ class DocumentIntelligenceTest(BaseTest):
 
             if all_passed:
                 self.logger.info("🎉 All Document Intelligence tests passed successfully")
-                print("🎉 All Document Intelligence tests passed successfully")
+                print("\n" + "="*60)
+                print("🎉 All Document Intelligence tests passed successfully!")
+                print("="*60)
+                print(f"🔧 Endpoint: {self.endpoint}")
+                print(f"📋 Model: {self.model_id}")
+                if analysis_result.get('page_count'):
+                    print(f"📄 Document Pages Processed: {analysis_result.get('page_count', 0)}")
+                    print(f"📊 Tables Extracted: {analysis_result.get('table_count', 0)}")
+                    print(f"📝 Paragraphs Found: {analysis_result.get('paragraph_count', 0)}")
+                print("="*60)
                 result.complete(
                     True, "All Document Intelligence tests passed successfully"
                 )
@@ -235,6 +251,11 @@ class DocumentIntelligenceTest(BaseTest):
             page_count = len(result_doc.pages)
             content_length = len(result_doc.content) if result_doc.content else 0
 
+            # Extract content preview
+            content_preview = ""
+            if result_doc.content:
+                content_preview = result_doc.content[:200] if len(result_doc.content) > 200 else result_doc.content
+
             return {
                 "success": True,
                 "message": f"Successfully analyzed document from URL",
@@ -242,9 +263,11 @@ class DocumentIntelligenceTest(BaseTest):
                 "model": self.model_id,
                 "page_count": page_count,
                 "content_length": content_length,
+                "content_preview": content_preview,
                 "processing_time_ms": round(duration * 1000, 2),
                 "has_content": bool(result_doc.content),
                 "table_count": len(result_doc.tables) if result_doc.tables else 0,
+                "paragraph_count": len(result_doc.paragraphs) if result_doc.paragraphs else 0,
             }
 
         except Exception as e:
@@ -279,14 +302,22 @@ class DocumentIntelligenceTest(BaseTest):
             page_count = len(result_doc.pages)
             content_length = len(result_doc.content) if result_doc.content else 0
 
+            # Extract content preview
+            content_preview = ""
+            if result_doc.content:
+                content_preview = result_doc.content[:200] if len(result_doc.content) > 200 else result_doc.content
+
             return {
                 "success": True,
                 "message": f"Successfully analyzed sample document",
                 "model": self.model_id,
                 "page_count": page_count,
                 "content_length": content_length,
+                "content_preview": content_preview,
                 "processing_time_ms": round(duration * 1000, 2),
                 "has_content": bool(result_doc.content),
+                "table_count": len(result_doc.tables) if result_doc.tables else 0,
+                "paragraph_count": len(result_doc.paragraphs) if result_doc.paragraphs else 0,
                 "document_type": "sample_pdf",
             }
 
@@ -424,6 +455,19 @@ startxref
                     len(result_doc.key_value_pairs) if result_doc.key_value_pairs else 0
                 ),
             }
+
+            # Print detailed results
+            self.logger.info("✅ Custom document analysis completed successfully")
+            print("✅ Custom document analysis completed successfully")
+            print(f"   📄 Pages: {page_count}")
+            print(f"   📊 Tables: {table_count}")
+            print(f"   📝 Paragraphs: {structure_info['paragraphs']}")
+            print(f"   🔑 Key-Value Pairs: {structure_info['key_value_pairs']}")
+            print(f"   📏 Content Length: {content_length} characters")
+            print(f"   ⏱️  Processing Time: {duration:.2f}s")
+            if content_preview:
+                preview_text = content_preview[:100] if len(content_preview) > 100 else content_preview
+                print(f"   👁️  Content Preview: {preview_text}...")
 
             analysis_result = {
                 "success": True,

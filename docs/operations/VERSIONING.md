@@ -1,165 +1,231 @@
-# Version Management Guide
+# Version Management & Automatic Updates
 
-This guide explains how version synchronization works across the entire Airia Infrastructure Test Pod application and what to do to maintain it.
+This document explains the comprehensive version management system for the Airia Test Pod.
 
-## Automatic Version Management
+## 🎯 Problem Solved
 
-The application uses **fully automated version management** with the following workflow:
+Users no longer need to remember to run `helm repo update` before upgrading! We use **OCI registry** which always pulls the latest version automatically.
 
-### 1. Automatic Release Creation
-- **Manual releases**: Use GitHub UI or `gh release create v1.x.x` 
-- **Automatic releases**: Push to `main` branch auto-increments patch version
-- **Manual workflow**: Use GitHub Actions "Release" workflow with custom version
+## 🚀 Solutions Implemented
 
-### 2. Automatic Version Updates
-When a release is created, the GitHub Actions workflow automatically updates:
+### 1. OCI Registry ⭐
 
-#### Application Code
-- `app/config.py` → `version: str = "1.x.x"`
-- `app/main.py` → `FastAPI(..., version="1.x.x")`
+**What it does:** Helm charts are published to GitHub Container Registry as OCI artifacts.
 
-#### Helm Charts  
-- `helm/airia-test-pod/Chart.yaml` → `version: 1.x.x` and `appVersion: "1.x.x"`
+**Benefits:**
+- ✅ No need for `helm repo add` or `helm repo update`
+- ✅ Always pulls latest version by default
+- ✅ Better authentication and security
+- ✅ Same infrastructure as Docker images
+- ✅ Faster and more reliable
+- ✅ No caching issues
 
-#### Template Fallbacks
-- `templates/dashboard.html` → JavaScript fallback version
-- `templates/index.html` → JavaScript fallback version
-
-#### Version Persistence
-- Changes are automatically committed back to the repository with `[skip ci]` flag
-- This ensures all files stay synchronized without triggering infinite workflows
-
-### 3. Dynamic Version Display
-The UI dynamically loads versions from the `/version` API endpoint:
-
-```javascript
-// Both templates include this logic
-async function loadVersion() {
-    try {
-        const response = await fetch('/version');
-        const data = await response.json();
-        document.getElementById('version-display').textContent = 'v' + data.version;
-    } catch (error) {
-        // Fallback to hardcoded version if API fails
-        document.getElementById('version-display').textContent = 'v1.x.x';
-    }
-}
-```
-
-## Manual Version Updates (If Needed)
-
-If you ever need to manually update versions, update these files:
-
-1. **Core Application**
-   ```python
-   # app/config.py
-   version: str = "1.x.x"
-   
-   # app/main.py  
-   app = FastAPI(title="Airia Infrastructure Test Pod", version="1.x.x")
-   ```
-
-2. **Helm Chart**
-   ```yaml
-   # helm/airia-test-pod/Chart.yaml
-   version: 1.x.x
-   appVersion: "1.x.x"
-   ```
-
-3. **Template Fallbacks** (optional - only if JavaScript fails)
-   ```javascript
-   // templates/dashboard.html & templates/index.html
-   document.getElementById('version-display').textContent = 'v1.x.x';
-   ```
-
-## Deployment Process
-
-### For Version Updates
-1. **Create Release**: GitHub UI, CLI, or push to main
-2. **Wait for Build**: GitHub Actions builds new Docker image  
-3. **Deploy**: `helm upgrade` with latest values
-4. **Force Update**: `kubectl rollout restart` if using `:latest` tag
-
-### For Immediate Deployment
+**Usage:**
 ```bash
-# Check latest release
-gh release list --limit 1
-
-# Upgrade deployment (using local chart)
-helm upgrade airia-test-pod ./helm/airia-test-pod -n airia-preprod -f values.yaml
-
-# Force pod restart to pull latest image
-kubectl rollout restart deployment/airia-test-pod -n airia-preprod
-kubectl rollout status deployment/airia-test-pod -n airia-preprod
+helm upgrade airia-test-pod \
+  oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
+  -f config.yaml \
+  --install
 ```
 
-## Verification Steps
+**How it works:**
+- Every release automatically pushes the chart to `ghcr.io/davidpacold/airia-test-pod/charts`
+- Helm pulls directly from the OCI registry
+- No local cache to become stale
 
-After deployment, verify version synchronization:
+---
 
+### 2. Automated Upgrade Script
+
+**What it does:** A shell script that handles the entire upgrade process automatically.
+
+**Location:** `scripts/upgrade.sh`
+
+**Features:**
+- ✅ Uses OCI registry for latest version
+- ✅ Checks current vs. latest version
+- ✅ Shows what will be upgraded
+- ✅ Asks for confirmation
+- ✅ Monitors rollout status
+- ✅ Displays pod health
+
+**Usage:**
 ```bash
-# Check API version
-curl http://localhost:8080/version
+# OCI method
+./scripts/upgrade.sh --oci -f config.yaml
 
-# Check GitHub releases  
-gh release list --limit 3
-
-# Check Helm chart version
-helm list -n airia-preprod
-
-# Check running pod image
-kubectl get pods -n airia-preprod -o jsonpath='{.items[0].spec.containers[0].image}'
+# Remote execution
+curl -sSL https://raw.githubusercontent.com/davidpacold/airia-test-pod/main/scripts/upgrade.sh | \
+  bash -s -- --oci -f config.yaml
 ```
 
-## Troubleshooting
+---
 
-### Version Mismatch Issues
+### 3. Helm Pre-Upgrade Version Check
 
-**Problem**: UI shows wrong version
-- **Cause**: Pod not restarted after new image build
-- **Solution**: `kubectl rollout restart deployment/airia-test-pod -n airia-preprod`
+**What it does:** Automatically checks for newer versions during `helm upgrade`.
 
-**Problem**: API returns old version  
-- **Cause**: Application code not updated in source
-- **Solution**: Check if GitHub Actions workflow completed successfully
+**Location:** `helm/airia-test-pod/templates/pre-upgrade-job.yaml`
 
-**Problem**: Helm chart version mismatch
-- **Cause**: Using cached local chart instead of updated version
-- **Solution**: Use chart from repository or update local files
+**How it works:**
+1. Runs as a Kubernetes Job before each upgrade
+2. Fetches the latest version from OCI registry
+3. Compares with the version being installed
+4. Shows warnings if not using the latest version
+5. Optionally blocks upgrades in strict mode
 
-### Docker Image Caching
+**Configuration:**
+```yaml
+versionCheck:
+  enabled: true          # Enable automatic version checking
+  useOCI: true          # Use OCI registry for checks
+  strict: false         # Block upgrades if not latest (set to true to enforce)
+```
 
-**Problem**: `:latest` tag not updating
-- **Cause**: Kubernetes ImagePullPolicy not forcing updates
-- **Solution**: Use `imagePullPolicy: Always` in values.yaml or specific version tags
+**Strict Mode Example:**
+```bash
+# This will FAIL if not installing the latest version
+helm upgrade airia-test-pod \
+  oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
+  -f config.yaml \
+  --set versionCheck.strict=true
+```
 
-## Best Practices
+---
 
-1. **Use Semantic Versioning**: Major.Minor.Patch (e.g., 1.2.3)
-2. **Test Before Release**: Verify functionality before creating releases
-3. **Monitor Workflows**: Check GitHub Actions completed successfully  
-4. **Verify Deployment**: Always check version endpoints after deployment
-5. **Use Specific Tags**: For production, consider specific version tags instead of `:latest`
+### 4. CI/CD Health Validation
 
-## API Endpoints
+**What it does:** After each release, validates that the OCI registry is properly updated.
 
-- `GET /version` → `{"version": "1.x.x"}` (public endpoint)
-- `GET /api/version` → `{"version": "1.x.x"}` (same as above)
-- `GET /health` → Health check with version info
+**Location:** `.github/workflows/release.yml` (post-deployment-validation job)
 
-## Files That Control Versioning
+**Checks performed:**
+1. ✅ OCI chart is pullable
+2. ✅ Chart version matches expected version
+3. ✅ Docker image is available
 
-### Critical Files (Auto-updated by workflow)
-- `app/config.py` - Core application version
-- `app/main.py` - FastAPI application version  
-- `helm/airia-test-pod/Chart.yaml` - Helm chart versions
+**If checks fail:** Automatic rollback is triggered!
 
-### Template Files (Auto-updated fallbacks)
-- `templates/dashboard.html` - Dynamic loading + fallback
-- `templates/index.html` - Dynamic loading + fallback
+---
 
-### Workflow Files
-- `.github/workflows/release.yml` - Handles version updates and releases
-- `.github/workflows/build-and-publish.yml` - Builds Docker images
+## 📊 Comparison Matrix
 
-This system ensures that all version references stay synchronized automatically without manual intervention.
+| Method | Manual Update Required | Auto-Detects Latest | Strict Enforcement | Speed |
+|--------|----------------------|--------------------|--------------------|-------|
+| **OCI Registry** | ❌ No | ✅ Yes | ⚠️ Optional | ⚡ Fast |
+| **Upgrade Script** | ❌ No | ✅ Yes | ⚠️ Optional | ⚡ Fast |
+| **Pre-Upgrade Hook** | ⚠️ Sometimes | ✅ Yes | ✅ Yes (strict mode) | 🐢 Slower |
+
+---
+
+## 🎯 Recommended Workflow
+
+### For End Users (Easiest)
+
+**Option 1: Use the upgrade script (zero configuration)**
+```bash
+cd /path/to/your-configs
+curl -sSL https://raw.githubusercontent.com/davidpacold/airia-test-pod/main/scripts/upgrade.sh | \
+  bash -s -- --oci -f your-config.yaml
+```
+
+**Option 2: Use OCI directly**
+```bash
+helm upgrade airia-test-pod \
+  oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
+  -f your-config.yaml \
+  --install
+```
+
+### For CI/CD Pipelines
+
+**With strict version enforcement:**
+```bash
+# This will FAIL if not deploying the latest version
+helm upgrade airia-test-pod \
+  oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
+  -f config.yaml \
+  --set versionCheck.strict=true \
+  --install
+```
+
+**Or fetch latest version explicitly:**
+```bash
+LATEST_VERSION=$(helm show chart oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod | \
+  grep '^version:' | awk '{print $2}')
+
+helm upgrade airia-test-pod \
+  oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
+  --version "$LATEST_VERSION" \
+  -f config.yaml \
+  --install
+```
+
+### For Development/Testing
+
+**With warnings but allow older versions:**
+```bash
+helm upgrade airia-test-pod \
+  oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
+  --version 1.0.150 \
+  -f config.yaml \
+  --set versionCheck.strict=false
+```
+
+---
+
+## 🛠️ Troubleshooting
+
+### "Error: failed to download chart" with OCI
+
+**Cause:** Authentication required for private registry.
+
+**Solution:**
+```bash
+# Login to GitHub Container Registry
+echo $GITHUB_TOKEN | helm registry login ghcr.io -u USERNAME --password-stdin
+
+# Or use Docker credentials
+docker login ghcr.io
+```
+
+### Version check job is slow
+
+**Cause:** Pre-upgrade job needs to fetch version information.
+
+**Solutions:**
+1. Version check already uses OCI mode (fastest option)
+2. Disable if not needed: `versionCheck.enabled: false`
+
+### Want to force a specific version
+
+**Disable version checking:**
+```bash
+helm upgrade airia-test-pod \
+  oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
+  --version 1.0.150 \
+  -f config.yaml \
+  --set versionCheck.enabled=false
+```
+
+---
+
+## 📚 Additional Resources
+
+- **Deployment Guide:** [DEPLOYMENT.md](DEPLOYMENT.md)
+- **GitHub Repository:** https://github.com/davidpacold/airia-test-pod
+- **OCI Registry:** oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod
+- **Docker Registry:** ghcr.io/davidpacold/airia-test-pod
+
+---
+
+## 🎉 Summary
+
+You now have **3 layers of protection** against deploying outdated versions:
+
+1. ⭐ **OCI Registry** - Always fresh, no cache, no repo management needed
+2. 🤖 **Automated Script** - Handles updates automatically
+3. 🛡️ **Pre-Upgrade Hook** - Warns or blocks old versions
+4. ✅ **CI/CD Validation** - Ensures releases are properly deployed
+
+**Recommended:** Use OCI registry with the upgrade script for the best experience!

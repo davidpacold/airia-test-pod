@@ -81,14 +81,28 @@ service:
 # ===============================================================================
 # Configures how external traffic reaches the test pod.
 # The ingress creates routes for the web UI and API endpoints.
+#
+# NOTE: This configures the ingress ROUTE for the test pod application.
+#       For the NGINX Ingress Controller deployment, see: ingress-nginx (line 477)
+#
 ingress:
   enabled: true
   className: "nginx"
   annotations:
     # Disable SSL redirect (configure SSL at load balancer or reverse proxy level)
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    # Max upload size for AI model file uploads (OpenAI, Document Intelligence, Llama)
+
+    # File upload support - allows up to 50MB files for AI model testing
     nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/client-body-buffer-size: "50m"
+
+    # Timeouts for large file uploads - 5 minutes for complete upload
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+
+    # Request buffering for file uploads
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "on"
   hosts:
     # Replace with your actual domain
     - host: test.example.com
@@ -140,9 +154,56 @@ affinity: {}
 # ===============================================================================
 # Each enabled test appears as a card in the web UI dashboard.
 # Configure credentials and endpoints for the services you want to validate.
+#
+# 🚀 QUICK START: Common Configuration Scenarios
+#
+# 1️⃣  Azure Infrastructure Testing:
+#     Enable: postgresql, blobStorage
+#
+# 2️⃣  Azure + AI/ML Stack:
+#     Enable: postgresql, blobStorage, openai, documentIntelligence
+#
+# 3️⃣  Self-hosted AI Stack:
+#     Enable: postgresql, s3, openai (with baseUrl), or llama
+#
+# 4️⃣  Minimal Validation:
+#     kubernetes test is always enabled automatically
+#
+# ===============================================================================
+# TABLE OF CONTENTS
+# ===============================================================================
+#
+# 📋 REQUIRED/CORE
+#   - Authentication .......................... Line 192
+#   - Kubernetes Storage (always enabled) ..... Line 424
+#
+# 🗄️ DATABASES
+#   - PostgreSQL .............................. Line 207
+#   - Apache Cassandra ........................ Line 223
+#
+# 💾 OBJECT STORAGE
+#   - Azure Blob Storage ...................... Line 242
+#   - MinIO (S3-compatible) ................... Line 254
+#   - Amazon S3 ............................... Line 269
+#
+# 🤖 AI & MACHINE LEARNING
+#   - Azure OpenAI & OpenAI-Compatible ........ Line 289
+#   - Azure Document Intelligence ............. Line 329
+#   - Dedicated Embedding Models .............. Line 345
+#   - Self-hosted Llama Models ................ Line 372
+#
+# 🔧 INFRASTRUCTURE
+#   - SSL Certificate Validation .............. Line 410
+#   - Kubernetes Storage (always enabled) ..... Line 424
+#   - GPU Detection ........................... Line 437
+#
 # ===============================================================================
 
 config:
+  # ╔═══════════════════════════════════════════════════════════════════════════╗
+  # ║                        📋 REQUIRED/CORE CONFIGURATION                     ║
+  # ╚═══════════════════════════════════════════════════════════════════════════╝
+
   # ---------------------------------------------------------------------------
   # AUTHENTICATION (Required)
   # ---------------------------------------------------------------------------
@@ -153,6 +214,10 @@ config:
     username: "admin"
     password: "changeme"
     secretKey: "your-super-secret-key-change-this"  # Used for JWT tokens
+
+  # ╔═══════════════════════════════════════════════════════════════════════════╗
+  # ║                            🗄️ DATABASE TESTS                              ║
+  # ╚═══════════════════════════════════════════════════════════════════════════╝
 
   # ---------------------------------------------------------------------------
   # POSTGRESQL DATABASE TEST (Optional)
@@ -185,6 +250,10 @@ config:
     datacenter: "datacenter1"  # Optional: leave empty for single-DC
     useSsl: false
 
+  # ╔═══════════════════════════════════════════════════════════════════════════╗
+  # ║                          💾 OBJECT STORAGE TESTS                          ║
+  # ╚═══════════════════════════════════════════════════════════════════════════╝
+
   # ---------------------------------------------------------------------------
   # AZURE BLOB STORAGE TEST (Optional)
   # ---------------------------------------------------------------------------
@@ -196,68 +265,6 @@ config:
     accountName: ""
     accountKey: ""
     containerName: "test-container"
-
-  # ---------------------------------------------------------------------------
-  # AZURE OPENAI TEST (Optional)
-  # ---------------------------------------------------------------------------
-  # UI Card: "Azure OpenAI"
-  # Tests: Chat completion, embedding generation, API connectivity
-  # Supports custom prompts and file uploads through UI
-  # Set enabled: true to show this test in the UI
-  openai:
-    enabled: false
-    endpoint: "https://your-openai.openai.azure.com/"
-    apiKey: ""
-    deploymentName: "gpt-35-turbo"
-    embeddingDeployment: ""  # Optional: for embedding tests
-
-  # ---------------------------------------------------------------------------
-  # AZURE DOCUMENT INTELLIGENCE TEST (Optional)
-  # ---------------------------------------------------------------------------
-  # UI Card: "Document Intelligence"
-  # Tests: Document analysis, OCR, form recognition, table extraction
-  # Supports PDF, image, and document file uploads through UI
-  # Set enabled: true to show this test in the UI
-  documentIntelligence:
-    enabled: false
-    endpoint: "https://your-doc-intel.cognitiveservices.azure.com/"
-    apiKey: ""
-    model: "prebuilt-document"
-
-  # ---------------------------------------------------------------------------
-  # SSL CERTIFICATE TEST (Optional)
-  # ---------------------------------------------------------------------------
-  # UI Card: "SSL Certificate Validation"
-  # Tests: Certificate validity, expiration dates, chain validation, TLS versions
-  # Monitors multiple URLs and warns when certificates expire soon
-  # Set enabled: true to show this test in the UI
-  ssl:
-    enabled: false
-    testUrls: "https://api.example.com,https://app.example.com"  # Comma-separated
-    connectTimeout: 10  # Seconds
-    warningDays: 30  # Warn if certificate expires within this many days
-
-  # ---------------------------------------------------------------------------
-  # KUBERNETES STORAGE TEST (Always Enabled)
-  # ---------------------------------------------------------------------------
-  # UI Card: "Kubernetes PVC Storage"
-  # Tests: PVC creation, mounting, read/write operations, cleanup
-  # This test always appears in the UI to validate Kubernetes storage
-  kubernetes:
-    storageClass: "default"  # StorageClass to use for test PVC
-    testPvcSize: "1Gi"  # Size of test PVC
-
-  # ---------------------------------------------------------------------------
-  # GPU DETECTION TEST (Optional)
-  # ---------------------------------------------------------------------------
-  # UI Card: "GPU Detection"
-  # Tests: NVIDIA GPU presence, driver version, CUDA availability, memory
-  # Shows GPU information if available, or reports no GPU found
-  # Set enabled: true to show this test in the UI
-  # Note: Requires GPU node and nvidia.com/gpu resource allocation (see resources section)
-  gpu:
-    enabled: true
-    required: false  # Set to true to FAIL the test if no GPU is found
 
   # ---------------------------------------------------------------------------
   # MINIO S3-COMPATIBLE STORAGE TEST (Optional)
@@ -290,36 +297,169 @@ config:
     bucketName: "test-bucket"
     endpointUrl: ""  # Optional: for custom S3-compatible endpoints
 
+  # ╔═══════════════════════════════════════════════════════════════════════════╗
+  # ║                      🤖 AI & MACHINE LEARNING TESTS                       ║
+  # ╚═══════════════════════════════════════════════════════════════════════════╝
+
   # ---------------------------------------------------------------------------
-  # EMBEDDING MODEL TEST (Optional)
+  # AZURE OPENAI & OPENAI-COMPATIBLE API TEST (Optional)
   # ---------------------------------------------------------------------------
-  # UI Card: "Embedding Generation"
-  # Tests: Text embedding generation, batch processing, API connectivity
-  # Supports OpenAI and custom embedding endpoints
+  # UI Card: "Azure OpenAI & OpenAI-Compatible APIs"
+  # Tests: Chat completion, embedding generation, API connectivity
+  # Supports custom prompts and file uploads (PDFs, images) through UI
+  #
+  # This test supports TWO configuration modes:
+  #
+  # MODE 1: Azure OpenAI (Azure-hosted)
+  # Use this for Microsoft Azure OpenAI Service
+  openai:
+    enabled: false
+    endpoint: "https://your-openai.openai.azure.com/"
+    apiKey: ""
+    deploymentName: "gpt-35-turbo"  # Your Azure deployment name
+    embeddingDeployment: ""  # Optional: Azure embedding deployment (e.g., "text-embedding-ada-002")
+    # When embeddingDeployment is set, the test will also validate embedding generation
+
+  # MODE 2: Self-hosted OpenAI-Compatible API
+  # Use this for local LLMs (Ollama, vLLM, LocalAI, etc.) with OpenAI-compatible endpoints
+  # Uncomment and configure these instead of the Azure settings above:
+  # openai:
+  #   enabled: true
+  #   baseUrl: "http://your-llm-server:8080/v1"  # Your OpenAI-compatible endpoint
+  #   apiKey: "your-api-key"  # May not be required for local endpoints
+  #   modelName: "gpt-3.5-turbo"  # Model name to use
+  #
+  # Common self-hosted endpoints:
+  # - Ollama: http://localhost:11434/v1
+  # - vLLM: http://localhost:8000/v1
+  # - LocalAI: http://localhost:8080/v1
+  # - Text Generation Inference: http://localhost:8080/v1
+  #
+  # NOTE: For Llama-specific endpoints (non-OpenAI-compatible), use the 'llama' test below instead.
+
+  # ---------------------------------------------------------------------------
+  # AZURE DOCUMENT INTELLIGENCE TEST (Optional)
+  # ---------------------------------------------------------------------------
+  # UI Card: "Document Intelligence"
+  # Tests: Document analysis, OCR, form recognition, table extraction
+  # Supports PDF, image, and document file uploads (up to 25MB) through UI
+  #
+  # Use Case: Validate Azure Document Intelligence API for processing documents
+  # - OCR text extraction from images and PDFs
+  # - Table and form recognition
+  # - Layout analysis and structure detection
+  # - Page-by-page content analysis
+  #
+  # Set enabled: true to show this test in the UI
+  documentIntelligence:
+    enabled: false
+    endpoint: "https://your-doc-intel.cognitiveservices.azure.com/"
+    apiKey: ""
+    model: "prebuilt-document"  # Options: prebuilt-document, prebuilt-invoice, prebuilt-receipt, etc.
+
+  # ---------------------------------------------------------------------------
+  # DEDICATED EMBEDDING MODEL TEST (Optional)
+  # ---------------------------------------------------------------------------
+  # UI Card: "Embedding Models"
+  # Tests: Text vectorization, batch embedding generation, similarity calculations
+  # Supports custom text input through UI for testing embeddings
+  #
+  # IMPORTANT: Only enable this if you have a SEPARATE embedding endpoint
+  # (not Azure OpenAI). Azure OpenAI embeddings are tested within the 'openai' test above.
+  #
+  # Use Case: Standalone embedding services separate from your chat/completion API
+  # Examples:
+  # - OpenAI's embedding API (separate from Azure)
+  # - Dedicated embedding servers (sentence-transformers, instructor-xl, etc.)
+  # - Custom embedding endpoints
+  #
   # Set enabled: true to show this test in the UI
   embeddings:
     enabled: false
-    baseUrl: "https://api.openai.com/v1"  # OpenAI or custom endpoint
+    baseUrl: "https://api.openai.com/v1"  # OpenAI or custom embedding endpoint
     apiKey: ""
-    modelName: "text-embedding-ada-002"
+    modelName: "text-embedding-ada-002"  # Or: text-embedding-3-small, text-embedding-3-large
     customHeaders: ""  # Optional: Header1:Value1,Header2:Value2
+    # Example for custom embedding server:
+    # baseUrl: "http://embedding-server:8080/v1"
+    # modelName: "sentence-transformers/all-MiniLM-L6-v2"
 
   # ---------------------------------------------------------------------------
-  # LLAMA MODEL TEST (Optional)
+  # SELF-HOSTED LLAMA MODEL TEST (Optional)
   # ---------------------------------------------------------------------------
-  # UI Card: "Llama Model"
+  # UI Card: "Self-hosted Llama Models"
   # Tests: Text generation, chat completion, custom prompts
-  # Supports Ollama and custom Llama endpoints
-  # Supports custom prompts and file uploads through UI
+  # Supports custom prompts and file uploads (PDFs, images) through UI
+  #
+  # Use Case: Test dedicated Llama-specific endpoints (non-OpenAI-compatible)
+  # Examples:
+  # - Ollama with Llama models
+  # - llama.cpp server
+  # - Custom Llama deployment endpoints
+  #
+  # IMPORTANT: If your Llama endpoint is OpenAI-compatible, use the 'openai' test
+  # above instead (set baseUrl to your Llama endpoint and modelName to llama model).
+  # Only use this test for Llama-SPECIFIC endpoints that don't follow OpenAI API format.
+  #
   # Set enabled: true to show this test in the UI
   llama:
     enabled: false
-    baseUrl: "http://localhost:11434"  # Ollama or custom endpoint
-    apiKey: ""
-    modelName: "llama2"
-    maxTokens: 2048
-    temperature: 0.7
-    timeout: 30
+    baseUrl: "http://localhost:11434"  # Ollama default endpoint
+    apiKey: ""  # Optional, many local Llama servers don't require auth
+    modelName: "llama2"  # Or: llama3, codellama, mistral, etc.
+    maxTokens: 2048  # Maximum tokens to generate
+    temperature: 0.7  # Creativity (0.0-1.0): lower = more deterministic
+    timeout: 30  # Request timeout in seconds
+    # Example for Ollama:
+    # baseUrl: "http://ollama-server:11434"
+    # modelName: "llama3:8b"
+    #
+    # Example for llama.cpp server:
+    # baseUrl: "http://llama-cpp-server:8080"
+    # modelName: "llama-2-7b-chat"
+
+  # ╔═══════════════════════════════════════════════════════════════════════════╗
+  # ║                         🔧 INFRASTRUCTURE TESTS                           ║
+  # ╚═══════════════════════════════════════════════════════════════════════════╝
+
+  # ---------------------------------------------------------------------------
+  # SSL CERTIFICATE TEST (Optional)
+  # ---------------------------------------------------------------------------
+  # UI Card: "SSL Certificate Validation"
+  # Tests: Certificate validity, expiration dates, chain validation, TLS versions
+  # Monitors multiple URLs and warns when certificates expire soon
+  # Set enabled: true to show this test in the UI
+  ssl:
+    enabled: false
+    testUrls: "https://api.example.com,https://app.example.com"  # Comma-separated
+    connectTimeout: 10  # Seconds
+    warningDays: 30  # Warn if certificate expires within this many days
+
+  # ---------------------------------------------------------------------------
+  # KUBERNETES STORAGE TEST (Always Enabled)
+  # ---------------------------------------------------------------------------
+  # UI Card: "Kubernetes PVC Storage"
+  # Tests: PVC creation, mounting, read/write operations, cleanup
+  #
+  # NOTE: This test is ALWAYS enabled and cannot be disabled.
+  # It validates that Kubernetes can provision persistent storage in your cluster.
+  kubernetes:
+    storageClass: "default"  # StorageClass to use for test PVC
+    testPvcSize: "1Gi"  # Size of test PVC
+
+  # ---------------------------------------------------------------------------
+  # GPU DETECTION TEST (Optional)
+  # ---------------------------------------------------------------------------
+  # UI Card: "GPU Detection"
+  # Tests: NVIDIA GPU presence, driver version, CUDA availability, memory
+  # Shows GPU information if available, or reports no GPU found
+  # Set enabled: true to show this test in the UI
+  # Note: Requires GPU node and nvidia.com/gpu resource allocation (see resources section)
+  gpu:
+    enabled: true
+    required: false  # Set to true to FAIL the test if no GPU is found
+    # ⚙️  RELATED SETTINGS:
+    #     To allocate GPU to the pod, see: resources.limits.nvidia.com/gpu (line 118)
 
 # ===============================================================================
 # NAMESPACE CONFIGURATION
@@ -343,6 +483,9 @@ versionCheck:
 # ===============================================================================
 # Automatically deploys NGINX Ingress Controller for routing traffic to the test pod.
 # This is enabled by default for out-of-the-box functionality.
+#
+# NOTE: This configures the NGINX Ingress Controller deployment (the router itself).
+#       For the test pod's ingress route configuration, see: ingress (line 80)
 #
 # IMPORTANT: Set enabled: false if you already have an ingress controller
 # in your cluster to avoid conflicts and duplicate load balancers.
