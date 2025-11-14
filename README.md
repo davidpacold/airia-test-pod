@@ -20,7 +20,8 @@ helm upgrade airia-test-pod \
   --set config.auth.username="admin" \
   --set config.auth.password="YourSecurePassword123!" \
   --set config.auth.secretKey="$(openssl rand -hex 32)" \
-  --install --create-namespace --namespace default
+  --install --create-namespace \
+  --namespace default
 ```
 
 > **💡 Tip:** No `helm repo add` needed! OCI registry always pulls the latest version.
@@ -59,7 +60,8 @@ The Helm chart includes **automatic version checking** to ensure you're always d
 helm upgrade airia-test-pod \
   oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
   --set versionCheck.strict=true \
-  -f your-config.yaml
+  -f your-config.yaml \
+  --namespace default
 ```
 
 ### Automated Upgrade Script
@@ -75,41 +77,70 @@ curl -sSL https://raw.githubusercontent.com/davidpacold/airia-test-pod/main/scri
   bash -s -- --oci -f your-config.yaml
 ```
 
-📚 **For complete version management details:** [VERSION_MANAGEMENT.md](VERSION_MANAGEMENT.md)
+📚 **For complete version management details:** [Version Management Guide](docs/operations/versioning.md)
 
 ---
 
 ## 🎯 Production Setup & Advanced Deployment
 
 For ingress, TLS, and production deployments, see:
-- **[📄 Complete Deployment Guide](DEPLOYMENT.md)** - OCI registry, version management, troubleshooting
-- **[🚀 Production Deployment Guide](DEPLOYMENT_GUIDE.md)** - Ingress, TLS, and production setup
-- **[🔄 Version Management Guide](VERSION_MANAGEMENT.md)** - Automated updates and version control
+- **[📄 Deployment Guide](docs/deployment/deployment-guide.md)** - Complete deployment instructions
+- **[🚀 Example Deployment](docs/deployment/example-deployment.md)** - Step-by-step walkthrough
+- **[🔄 Version Management Guide](docs/operations/versioning.md)** - Automated updates and version control
 
 ## 🧪 What Does It Test?
 
-### ✅ **Core Infrastructure** (Essential for most deployments)
+### ✅ **Required for Successful Airia Deployment**
+These tests **must pass** for a successful Airia deployment:
 - **🗄️ PostgreSQL Database** - Connection, extensions, permissions
-- **💾 Azure Blob Storage** - Authentication, file operations
-- **⚙️ Kubernetes Storage (PVC)** - Storage classes, volume creation
+- **🗄️ Apache Cassandra** - NoSQL database clusters, keyspace access
+- **💾 Blob Storage** - Must have ONE of:
+  - **Azure Blob Storage** - Authentication, file operations
+  - **Amazon S3** - S3-compatible storage
+  - **MinIO** - S3-compatible storage
+- **⚙️ Kubernetes Storage (PVC)** - Storage classes, volume creation (always enabled)
 - **🔒 SSL Certificates** - Complete certificate chain validation
+
+### 🎯 **Optional Tests** (Configure as needed)
 - **🎮 GPU Detection** - NVIDIA GPU availability, driver, and CUDA installation
 
 ### 🤖 **AI & Machine Learning** (Configure as needed)
-- **Azure OpenAI** - API connectivity, model access, embeddings
-- **Azure Document Intelligence** - Document processing capabilities
-- **Custom AI Testing** - Upload files and test prompts with your AI models
-- **Embedding Models** - Text vectorization and similarity analysis
 
-### 🔧 **Additional Services** (Optional)
-- **Apache Cassandra** - NoSQL database clusters
-- **Amazon S3 / MinIO** - S3-compatible storage
-- **Self-hosted LLMs** - Local OpenAI-compatible and Llama models
+#### **Automated Standard Tests**
+These tests verify that your AI services are configured correctly with automated checks:
+
+- **Azure OpenAI & OpenAI-Compatible APIs** - Chat completions, model access, and embeddings
+  - Tests both Azure-hosted and self-hosted OpenAI-compatible endpoints
+  - Automatically validates API keys, endpoints, and model deployments
+
+- **Self-hosted Llama Models** - Local/self-hosted Llama model APIs
+  - For Llama-specific endpoints or OpenAI-compatible Llama deployments
+  - Validates Llama prompt formats and response generation
+
+- **Azure Document Intelligence** - OCR and document processing capabilities
+  - Tests document analysis, table extraction, and content recognition
+  - Validates Azure Document Intelligence API configuration
+
+- **Embedding Models** - Dedicated text vectorization testing
+  - Tests OpenAI-compatible embedding endpoints (separate from Azure OpenAI embeddings)
+  - Validates embedding generation, batch processing, and similarity calculations
+
+#### **Custom AI Testing** (Interactive Testing)
+After your services pass automated tests, use custom testing to validate with your own data:
+
+- **Custom Prompts** - Test OpenAI and Llama models with your own prompts
+- **File Upload Testing** - Upload PDFs, images, or documents (up to 25MB) to test:
+  - OpenAI vision/multimodal capabilities
+  - Llama model file processing
+  - Azure Document Intelligence with your own documents
+- **Custom Text Embeddings** - Generate embeddings for your specific text data
+
+> **💡 When to use which:** Standard tests verify connectivity and basic functionality. Custom tests let you validate your specific use cases with real data.
 
 ### 🎯 **Advanced Features**
-- **Custom File Upload Testing** - Test AI models with PDFs, images, documents (up to 25MB)
 - **Intelligent Error Detection** - Automatic remediation suggestions
 - **Real-time Results** - Live dashboard with detailed test outcomes
+- **Batch Testing** - Run all tests simultaneously or individually
 
 ## 📚 Configuration Guide
 
@@ -120,7 +151,8 @@ helm upgrade airia-test-pod \
   --set config.postgresql.enabled=true \
   --set config.postgresql.host="your-server.postgres.database.azure.com" \
   --set config.postgresql.username="your-username" \
-  --set config.postgresql.password="your-password"
+  --set config.postgresql.password="your-password" \
+  --install --namespace default
 ```
 
 ### **2. Azure Blob Storage**
@@ -130,45 +162,143 @@ helm upgrade airia-test-pod \
   --set config.blobStorage.enabled=true \
   --set config.blobStorage.accountName="yourstorageaccount" \
   --set config.blobStorage.accountKey="your-storage-key" \
-  --set config.blobStorage.containerName="test-container"
+  --set config.blobStorage.containerName="test-container" \
+  --install --namespace default
 ```
 
-### **3. Azure OpenAI**
+### **3. AI & Machine Learning Services**
+
+#### **Azure OpenAI (Chat + Embeddings)**
 ```bash
-helm upgrade airia-test-pod \
+helm upgrade --install airia-test-pod \
   oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
   --set config.openai.enabled=true \
   --set config.openai.endpoint="https://your-openai.openai.azure.com/" \
   --set config.openai.apiKey="your-openai-key" \
-  --set config.openai.deploymentName="gpt-35-turbo"
+  --set config.openai.deploymentName="gpt-35-turbo" \
+  --set config.openai.embeddingDeploymentName="text-embedding-ada-002" \
+  --namespace default
 ```
+
+#### **Self-hosted OpenAI-Compatible API**
+For local LLMs or alternative OpenAI-compatible endpoints:
+```bash
+helm upgrade --install airia-test-pod \
+  oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
+  --set config.openai.enabled=true \
+  --set config.openai.baseUrl="http://your-llm-server:8080/v1" \
+  --set config.openai.apiKey="your-api-key" \
+  --set config.openai.modelName="gpt-3.5-turbo" \
+  --namespace default
+```
+
+#### **Self-hosted Llama Models**
+For dedicated Llama endpoints:
+```bash
+helm upgrade --install airia-test-pod \
+  oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
+  --set config.llama.enabled=true \
+  --set config.llama.baseUrl="http://your-llama-server:8080" \
+  --set config.llama.modelName="llama2" \
+  --namespace default
+```
+
+#### **Azure Document Intelligence**
+For OCR and document processing:
+```bash
+helm upgrade --install airia-test-pod \
+  oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
+  --set config.documentIntelligence.enabled=true \
+  --set config.documentIntelligence.endpoint="https://your-docintel.cognitiveservices.azure.com/" \
+  --set config.documentIntelligence.apiKey="your-doc-intel-key" \
+  --namespace default
+```
+
+#### **Dedicated Embedding Models**
+For separate embedding endpoints (not Azure OpenAI):
+```bash
+helm upgrade --install airia-test-pod \
+  oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
+  --set config.embeddings.enabled=true \
+  --set config.embeddings.baseUrl="https://api.openai.com/v1" \
+  --set config.embeddings.apiKey="your-embedding-api-key" \
+  --set config.embeddings.modelName="text-embedding-ada-002" \
+  --namespace default
+```
+
+> **💡 Tip:** Azure OpenAI includes embeddings by default. Use the dedicated Embedding test only if you have a separate embedding endpoint (non-Azure).
 
 ### **4. GPU Detection**
 ```bash
 helm upgrade airia-test-pod \
   oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
   --set config.gpu.enabled=true \
-  --set config.gpu.required=false
+  --set config.gpu.required=false \
+  --install --namespace default
 ```
 
 ### **5. Using a Values File (Recommended for Multiple Services)**
 
-Create `my-config.yaml`:
+For a comprehensive configuration file with all available options, see the [Helm Configuration Reference](helm/airia-test-pod/values.yaml). This file includes:
+- Detailed comments for every configuration option
+- Examples for all supported services
+- Cloud provider annotations for AWS, Azure, and GCP
+- Advanced Kubernetes settings
+
+**Quick Start Example** - Create `my-config.yaml`:
 ```yaml
 config:
-  # Enable and configure the services you use
+  # Core Infrastructure
   postgresql:
     enabled: true
     host: "your-server.postgres.database.azure.com"
     username: "your-username"
     password: "your-password"
 
+  blobStorage:
+    enabled: true
+    accountName: "yourstorageaccount"
+    accountKey: "your-storage-key"
+    containerName: "test-container"
+
+  # AI & Machine Learning
+
+  # Option 1: Azure OpenAI (includes chat + embeddings)
   openai:
     enabled: true
     endpoint: "https://your-openai.openai.azure.com/"
     apiKey: "your-openai-key"
     deploymentName: "gpt-35-turbo"
+    embeddingDeploymentName: "text-embedding-ada-002"  # Optional
 
+  # Option 2: Self-hosted OpenAI-compatible API
+  # openai:
+  #   enabled: true
+  #   baseUrl: "http://your-llm-server:8080/v1"
+  #   apiKey: "your-api-key"
+  #   modelName: "gpt-3.5-turbo"
+
+  # Self-hosted Llama models (separate from OpenAI)
+  llama:
+    enabled: true
+    baseUrl: "http://your-llama-server:8080"
+    modelName: "llama2"
+    apiKey: "optional-key"  # Optional
+
+  # Azure Document Intelligence
+  documentIntelligence:
+    enabled: true
+    endpoint: "https://your-docintel.cognitiveservices.azure.com/"
+    apiKey: "your-doc-intel-key"
+
+  # Dedicated Embedding endpoint (only if NOT using Azure OpenAI embeddings)
+  embeddings:
+    enabled: false  # Set to true only for non-Azure embedding endpoints
+    baseUrl: "https://api.openai.com/v1"
+    apiKey: "your-embedding-api-key"
+    modelName: "text-embedding-ada-002"
+
+  # GPU Detection
   gpu:
     enabled: true
     required: false  # Set to true to require GPU presence
@@ -179,22 +309,56 @@ versionCheck:
   strict: false  # Set to true to block upgrades if not using latest version
 ```
 
-Then upgrade:
+Then install or upgrade:
 ```bash
-helm upgrade airia-test-pod \
+helm upgrade --install airia-test-pod \
   oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
-  -f my-config.yaml
+  -f my-config.yaml \
+  --namespace default
 ```
+
+> **💡 For all configuration options:** See the comprehensive [Helm values.yaml](helm/airia-test-pod/values.yaml) with detailed documentation for every setting.
+
+---
+
+## 🤔 AI/ML Testing Decision Guide
+
+**Not sure which AI test to configure?** Use this decision tree:
+
+| Your Situation | Test to Configure | Why |
+|---------------|-------------------|-----|
+| Using Azure OpenAI for chat completions | **Azure OpenAI** | Tests chat APIs and optionally embeddings in one test |
+| Using Azure OpenAI embeddings | **Azure OpenAI** (set `embeddingDeploymentName`) | Azure OpenAI embeddings are tested within the OpenAI test |
+| Using self-hosted LLM (Ollama, vLLM, etc.) | **Self-hosted OpenAI-Compatible** | Most local LLMs provide OpenAI-compatible endpoints |
+| Using Llama-specific endpoint | **Self-hosted Llama Models** | For dedicated Llama APIs with Llama-specific formats |
+| Processing PDFs/images for OCR | **Azure Document Intelligence** | Tests document analysis and table extraction |
+| Using separate embedding service (not Azure) | **Dedicated Embedding Models** | For standalone embedding endpoints like OpenAI's API |
+| Want to test custom prompts | Use **Custom AI Testing** in the UI | Available after standard tests pass |
+| Want to upload files for testing | Use **Custom AI Testing** in the UI | Supports PDFs, images up to 25MB |
+
+**Common Questions:**
+
+- **Q: Can I configure both Azure OpenAI and Llama?**
+  A: Yes! They're separate tests. Configure both if you use both services.
+
+- **Q: Do I need the Embedding test if I have Azure OpenAI?**
+  A: No. Azure OpenAI includes embedding testing. Only use the dedicated Embedding test for non-Azure endpoints.
+
+- **Q: What's the difference between standard tests and custom testing?**
+  A: Standard tests run automated checks to verify configuration. Custom testing lets you upload your own files and prompts.
+
+- **Q: Can I test OpenAI-compatible Llama with the OpenAI test?**
+  A: Yes! Use the "Self-hosted OpenAI-Compatible API" configuration. Reserve the Llama test for Llama-specific endpoints.
 
 ---
 
 ## 📖 Complete Documentation
 
 ### 🎯 **Deployment & Configuration**
-- **[🚀 Deployment Guide](DEPLOYMENT.md)** - OCI registry, traditional Helm repo, automated upgrades
-- **[🔄 Version Management](VERSION_MANAGEMENT.md)** - Automatic updates, version checking, upgrade scripts
-- **[🏭 Production Setup](DEPLOYMENT_GUIDE.md)** - Ingress, TLS, and production deployment
-- **[📄 Complete Configuration Example](Test%20deploy/values-example.yaml)** - All tests with detailed examples
+- **[🚀 Deployment Guide](docs/deployment/deployment-guide.md)** - Complete deployment instructions
+- **[🔄 Version Management](docs/operations/versioning.md)** - Automatic updates, version checking, upgrade scripts
+- **[🏭 Example Deployment](docs/deployment/example-deployment.md)** - Step-by-step walkthrough
+- **[📄 Complete Configuration Example](examples/helm/basic-values.yaml)** - All tests with detailed examples
 - **[⚙️ Helm Configuration Reference](helm/airia-test-pod/values.yaml)** - Every available setting
 
 ### 🛠️ **Advanced Features**
@@ -272,9 +436,24 @@ kubectl rollout restart -n airia-preprod deployment/airia-test-pod
 
 ---
 
+## 📚 Documentation & Resources
+
+### Documentation
+- **[Documentation Index](docs/README.md)** - Complete documentation overview
+- **[Deployment](docs/deployment/)** - Deployment guides and examples
+- **[Operations](docs/operations/)** - Version management and rollback procedures
+- **[Development](docs/development/)** - Development setup and contributing
+
+### Examples
+- **[Examples Index](examples/README.md)** - Configuration examples overview
+- **[Helm Examples](examples/helm/)** - Helm values files
+- **[Kubernetes Examples](k8s/)** - Kubernetes manifests
+
+### Testing
+- **[Manual Tests](tests/manual_tests/)** - Manual test scripts and configurations
+
 ## 🤝 Support & Feedback
 
-- **📚 Complete Documentation**: [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)
 - **🐛 Found an Issue?** [GitHub Issues](https://github.com/davidpacold/airia-test-pod/issues)
 - **💡 Feature Requests**: [GitHub Discussions](https://github.com/davidpacold/airia-test-pod/discussions)
 

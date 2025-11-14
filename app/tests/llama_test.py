@@ -148,6 +148,9 @@ class LlamaTest(BaseTest):
             if completion_result["success"]:
                 self.logger.info("✅ Text generation test passed")
                 print("✅ Text generation test passed")
+                print(f"   📝 Input: {completion_result.get('input_prompt', 'N/A')}")
+                print(f"   💬 Output: {completion_result.get('response_preview', 'N/A')}")
+                print(f"   ⏱️  Duration: {completion_result.get('duration_seconds', 0):.2f}s")
             else:
                 self.logger.error(f"❌ Text generation test failed: {completion_result.get('message', 'Unknown error')}")
                 print(f"❌ Text generation test failed: {completion_result.get('message', 'Unknown error')}")
@@ -163,6 +166,9 @@ class LlamaTest(BaseTest):
             if llama_prompt_result["success"]:
                 self.logger.info("✅ Llama-style prompt test passed")
                 print("✅ Llama-style prompt test passed")
+                print(f"   📝 Input: {llama_prompt_result.get('input_prompt', 'N/A')}")
+                print(f"   💬 Output: {llama_prompt_result.get('response_preview', 'N/A')}")
+                print(f"   ⏱️  Duration: {llama_prompt_result.get('duration_seconds', 0):.2f}s")
             else:
                 self.logger.error(f"❌ Llama-style prompt test failed: {llama_prompt_result.get('message', 'Unknown error')}")
                 print(f"❌ Llama-style prompt test failed: {llama_prompt_result.get('message', 'Unknown error')}")
@@ -224,12 +230,14 @@ class LlamaTest(BaseTest):
         try:
             start_time = time.time()
 
+            input_prompt = "Hello! Can you introduce yourself briefly?"
+
             response = client.chat.completions.create(
                 model=model_name,
                 messages=[
                     {
                         "role": "user",
-                        "content": "Hello! Can you introduce yourself briefly?",
+                        "content": input_prompt,
                     }
                 ],
                 max_tokens=max_tokens,
@@ -243,9 +251,11 @@ class LlamaTest(BaseTest):
                 return {
                     "success": True,
                     "message": f"Text generation successful (took {duration:.2f}s)",
+                    "input_prompt": input_prompt,
                     "response_preview": (
                         content[:100] + "..." if len(content) > 100 else content
                     ),
+                    "response_full": content,
                     "response_length": len(content),
                     "duration_seconds": duration,
                 }
@@ -270,9 +280,7 @@ class LlamaTest(BaseTest):
         try:
             start_time = time.time()
 
-            # Use a prompt format that works well with Llama models
-            llama_prompt = """<s>[INST] You are a helpful AI assistant. Please answer this question concisely:
-What are the key capabilities of Llama models? [/INST]"""
+            input_prompt = "What are the key capabilities of Llama models? Please answer concisely."
 
             # For chat completions, we'll use the system/user format
             response = client.chat.completions.create(
@@ -281,7 +289,7 @@ What are the key capabilities of Llama models? [/INST]"""
                     {"role": "system", "content": "You are a helpful AI assistant."},
                     {
                         "role": "user",
-                        "content": "What are the key capabilities of Llama models? Please answer concisely.",
+                        "content": input_prompt,
                     },
                 ],
                 max_tokens=max_tokens,
@@ -299,9 +307,11 @@ What are the key capabilities of Llama models? [/INST]"""
                 return {
                     "success": True,
                     "message": f"Llama prompt test successful (took {duration:.2f}s)",
+                    "input_prompt": input_prompt,
                     "response_preview": (
                         content[:150] + "..." if len(content) > 150 else content
                     ),
+                    "response_full": content,
                     "mentions_llama": mentions_llama,
                     "response_length": len(content),
                     "duration_seconds": duration,

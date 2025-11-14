@@ -87,12 +87,38 @@ class EmbeddingTest(BaseTest):
                 return result
 
             # Test 1: Basic embedding generation
+            print("🔢 Running single embedding test...")
             single_embedding_result = self._test_single_embedding()
             result.add_sub_test("single_embedding", single_embedding_result)
+            if single_embedding_result["success"]:
+                print("✅ Single embedding test passed")
+                details = single_embedding_result.get("details", {})
+                print(f"   📝 Input: '{details.get('input_text', 'N/A')[:80]}...'")
+                print(f"   📐 Embedding Dimension: {details.get('dimension', 'N/A')}")
+                print(f"   ⏱️  Processing Time: {details.get('response_time_seconds', 'N/A')}s")
+                print(f"   📊 Value Range: [{details.get('embedding_range', {}).get('min', 'N/A')}, {details.get('embedding_range', {}).get('max', 'N/A')}]")
+                usage = details.get('usage', {})
+                if usage.get('total_tokens'):
+                    print(f"   🎯 Tokens Used: {usage.get('total_tokens', 'N/A')}")
+            else:
+                print(f"❌ Single embedding test failed: {single_embedding_result.get('message', 'Unknown error')}")
 
             # Test 2: Batch embedding generation
+            print("\n📚 Running batch embedding test...")
             batch_embedding_result = self._test_batch_embeddings()
             result.add_sub_test("batch_embeddings", batch_embedding_result)
+            if batch_embedding_result["success"]:
+                print("✅ Batch embedding test passed")
+                details = batch_embedding_result.get("details", {})
+                print(f"   📦 Batch Size: {details.get('batch_size', 'N/A')}")
+                print(f"   📐 Embedding Dimension: {details.get('embedding_dimension', 'N/A')}")
+                print(f"   ⏱️  Total Processing Time: {details.get('response_time_seconds', 'N/A')}s")
+                print(f"   ⚡ Avg Time per Embedding: {details.get('avg_time_per_embedding', 'N/A')}s")
+                usage = details.get('usage', {})
+                if usage.get('total_tokens'):
+                    print(f"   🎯 Tokens Used: {usage.get('total_tokens', 'N/A')}")
+            else:
+                print(f"❌ Batch embedding test failed: {batch_embedding_result.get('message', 'Unknown error')}")
 
             # Test 3: Empty text handling
             empty_text_result = self._test_empty_text_handling()
@@ -104,8 +130,20 @@ class EmbeddingTest(BaseTest):
 
             # Test 5: Similarity validation (optional)
             if single_embedding_result["success"] and batch_embedding_result["success"]:
+                print("\n🔬 Running similarity validation test...")
                 similarity_result = self._test_embedding_similarity()
                 result.add_sub_test("similarity_validation", similarity_result)
+                if similarity_result["success"]:
+                    print("✅ Similarity validation test passed")
+                    details = similarity_result.get("details", {})
+                    if details.get("skipped_reason"):
+                        print(f"   ⚠️  Skipped: {details.get('skipped_reason')}")
+                    else:
+                        print(f"   📊 Similar Texts Similarity: {details.get('similar_texts_similarity', 'N/A')}")
+                        print(f"   📊 Different Texts Similarity: {details.get('different_texts_similarity', 'N/A')}")
+                        print(f"   ✓ Makes Sense: {details.get('similarity_makes_sense', 'N/A')}")
+                else:
+                    print(f"❌ Similarity validation test failed: {similarity_result.get('message', 'Unknown error')}")
 
             # Determine overall success
             critical_tests_passed = (
@@ -116,6 +154,20 @@ class EmbeddingTest(BaseTest):
                 embedding_dim = single_embedding_result.get("details", {}).get(
                     "dimension", "unknown"
                 )
+                processing_time = single_embedding_result.get("details", {}).get(
+                    "response_time_seconds", "N/A"
+                )
+
+                print("\n" + "="*60)
+                print("🎉 All critical embedding tests passed!")
+                print("="*60)
+                print(f"📊 Model: {self.model_name}")
+                print(f"📐 Embedding Dimension: {embedding_dim}")
+                print(f"⏱️  Single Embedding Processing Time: {processing_time}s")
+                batch_details = batch_embedding_result.get("details", {})
+                print(f"⚡ Batch Processing (3 texts): {batch_details.get('response_time_seconds', 'N/A')}s")
+                print("="*60)
+
                 result.complete(
                     True,
                     "Embedding model tests completed successfully",
@@ -197,6 +249,7 @@ class EmbeddingTest(BaseTest):
                 "success": True,
                 "message": f"Successfully generated embedding for single text",
                 "details": {
+                    "input_text": test_text,
                     "input_text_length": len(test_text),
                     "dimension": len(embedding),
                     "response_time_seconds": round(response_time, 3),
@@ -204,6 +257,7 @@ class EmbeddingTest(BaseTest):
                         "min": round(min(embedding), 6),
                         "max": round(max(embedding), 6),
                     },
+                    "embedding_preview": [round(x, 6) for x in embedding[:5]],  # First 5 values
                     "usage": {
                         "prompt_tokens": (
                             response.usage.prompt_tokens
@@ -288,12 +342,14 @@ class EmbeddingTest(BaseTest):
                 "success": True,
                 "message": f"Successfully generated {len(embeddings)} batch embeddings",
                 "details": {
+                    "input_texts": test_texts,
                     "batch_size": len(test_texts),
                     "embedding_dimension": len(embeddings[0]) if embeddings else 0,
                     "response_time_seconds": round(response_time, 3),
                     "avg_time_per_embedding": (
                         round(response_time / len(embeddings), 3) if embeddings else 0
                     ),
+                    "first_embedding_preview": [round(x, 6) for x in embeddings[0][:5]] if embeddings else [],  # First 5 values of first embedding
                     "usage": {
                         "prompt_tokens": (
                             response.usage.prompt_tokens
