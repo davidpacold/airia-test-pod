@@ -9,7 +9,7 @@
 # -----------------------------------------------------------------------------
 # BUILD STAGE - Install dependencies and compile packages
 # -----------------------------------------------------------------------------
-FROM python:3.11-slim as builder
+FROM python:3.11.11-slim-bookworm as builder
 
 # Install build dependencies (only needed during build)
 RUN apt-get update && apt-get install -y \
@@ -32,7 +32,7 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
 # -----------------------------------------------------------------------------
 # RUNTIME STAGE - Minimal production environment
 # -----------------------------------------------------------------------------
-FROM python:3.11-slim as runtime
+FROM python:3.11.11-slim-bookworm as runtime
 
 # Accept build arguments for version information
 ARG APP_VERSION
