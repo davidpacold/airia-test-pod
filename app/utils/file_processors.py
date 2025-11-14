@@ -8,7 +8,7 @@ import io
 from typing import Optional
 
 from PIL import Image
-from PyPDF2 import PdfReader
+from pypdf import PdfReader
 
 
 def process_pdf(pdf_content: bytes) -> str:
