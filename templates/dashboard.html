@@ -6,6 +6,7 @@
     <title>Dashboard - {{ title }}</title>
     <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}">
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="{{ url_for('static', path='/critical-extensions.js') }}"></script>
     <script>
         // Configure axios to send cookies with all requests
         axios.defaults.withCredentials = true;
@@ -1839,20 +1840,25 @@
         function formatTestDetails(result, testId) {
             // Use enhanced formatting based on test type
             if (testId) {
-                if (testId === 'postgresql') {
+                // Map API test IDs to formatter functions
+                if (testId === 'postgresql' || testId === 'postgresqlv2') {
                     return formatPostgreSQLResult(result);
-                } else if (testId === 'blob_storage') {
+                } else if (testId === 'blob_storage' || testId === 'blobstorage') {
                     return formatBlobStorageResult(result);
                 } else if (testId === 'cassandra') {
                     return formatCassandraResult(result);
                 } else if (testId === 'ssl') {
                     return formatSSLResult(result);
-                } else if (testId === 'kubernetes_pvc') {
+                } else if (testId === 'kubernetes_pvc' || testId === 'pvc') {
                     return formatKubernetesPVCResult(result);
                 } else if (testId === 'llama') {
                     return formatLlamaResult(result);
                 } else if (testId === 'embeddings') {
                     return formatEmbeddingResult(result);
+                } else if (testId === 'docintel' || testId === 'document_intelligence') {
+                    return formatDocumentIntelligenceResult(result);
+                } else if (testId === 'gpu') {
+                    return formatGPUResult(result);
                 }
             }
 
@@ -2137,15 +2143,128 @@
             // Only show detailed results if test passed
             if (result.status === 'passed') {
 
+            // Extract data from nested structure
+            const model = result.details?.model || result.model || 'N/A';
+            const embeddingDimension = result.details?.embedding_dimension || result.embedding_dimension || 'N/A';
+
+            // Calculate embeddings generated and average processing time from sub_tests
+            let embeddingsGenerated = 0;
+            let totalProcessingTime = 0;
+            let testCount = 0;
+
+            if (result.sub_tests) {
+                // Count embeddings from single and batch tests
+                if (result.sub_tests.single_embedding?.success) {
+                    embeddingsGenerated += 1;
+                    totalProcessingTime += result.sub_tests.single_embedding.details?.response_time_seconds || 0;
+                    testCount += 1;
+                }
+                if (result.sub_tests.batch_embeddings?.success) {
+                    embeddingsGenerated += result.sub_tests.batch_embeddings.details?.batch_size || 0;
+                    totalProcessingTime += result.sub_tests.batch_embeddings.details?.response_time_seconds || 0;
+                    testCount += 1;
+                }
+                if (result.sub_tests.large_text_handling?.success) {
+                    embeddingsGenerated += 1;
+                    totalProcessingTime += result.sub_tests.large_text_handling.details?.response_time_seconds || 0;
+                    testCount += 1;
+                }
+            }
+
+            const avgProcessingTimeMs = testCount > 0 ? ((totalProcessingTime / testCount) * 1000).toFixed(0) : 'N/A';
+
             // Primary metrics section
             html += `<div class="embedding-summary">`;
             html += `<div class="embedding-header-stats">`;
-            html += `<span class="stat-item"><strong>📊 Model:</strong> ${result.model || 'N/A'}</span>`;
-            html += `<span class="stat-item"><strong>⏱️ Processing Time:</strong> ${result.response_time_ms || 'N/A'}ms</span>`;
-            html += `<span class="stat-item"><strong>🔢 Embeddings Generated:</strong> ${result.embeddings_generated || 'N/A'}</span>`;
-            html += `<span class="stat-item"><strong>📐 Embedding Dimension:</strong> ${result.embedding_dimension || 'N/A'}</span>`;
+            html += `<span class="stat-item"><strong>📊 Model:</strong> ${model}</span>`;
+            html += `<span class="stat-item"><strong>⏱️ Avg Processing Time:</strong> ${avgProcessingTimeMs}ms</span>`;
+            html += `<span class="stat-item"><strong>🔢 Embeddings Generated:</strong> ${embeddingsGenerated}</span>`;
+            html += `<span class="stat-item"><strong>📐 Embedding Dimension:</strong> ${embeddingDimension}</span>`;
             html += `</div>`;
             html += `</div>`;
+
+            // Display sub-test results
+            if (result.sub_tests) {
+                html += `<div class="embedding-details">`;
+                html += `<h5>📊 Test Details</h5>`;
+
+                // Single embedding test
+                if (result.sub_tests.single_embedding?.success) {
+                    const details = result.sub_tests.single_embedding.details;
+                    html += `<div class="embedding-stat-item">`;
+                    html += `<div class="stat-header">`;
+                    html += `<strong>✅ Single Embedding:</strong> "${details.input_text?.substring(0, 50)}..."`;
+                    html += `</div>`;
+                    html += `<div class="stat-details">`;
+                    html += `<div class="stat-row">`;
+                    html += `<span class="stat-label">⏱️ Time:</span> <span class="stat-value">${(details.response_time_seconds * 1000).toFixed(0)}ms</span>`;
+                    html += `<span class="stat-label">📐 Dimension:</span> <span class="stat-value">${details.dimension}</span>`;
+                    html += `<span class="stat-label">📊 Range:</span> <span class="stat-value">${details.embedding_range.min.toFixed(2)} to ${details.embedding_range.max.toFixed(2)}</span>`;
+                    html += `</div>`;
+                    html += `</div>`;
+                    html += `</div>`;
+                }
+
+                // Batch embeddings test
+                if (result.sub_tests.batch_embeddings?.success) {
+                    const details = result.sub_tests.batch_embeddings.details;
+                    html += `<div class="embedding-stat-item">`;
+                    html += `<div class="stat-header">`;
+                    html += `<strong>✅ Batch Processing:</strong> ${details.batch_size} texts embedded`;
+                    html += `</div>`;
+                    html += `<div class="stat-details">`;
+                    html += `<div class="stat-row">`;
+                    html += `<span class="stat-label">⏱️ Total Time:</span> <span class="stat-value">${(details.response_time_seconds * 1000).toFixed(0)}ms</span>`;
+                    html += `<span class="stat-label">⚡ Avg/Text:</span> <span class="stat-value">${(details.avg_time_per_embedding * 1000).toFixed(0)}ms</span>`;
+                    html += `<span class="stat-label">📐 Dimension:</span> <span class="stat-value">${details.embedding_dimension}</span>`;
+                    html += `</div>`;
+                    html += `</div>`;
+                    html += `</div>`;
+                }
+
+                // Large text handling test
+                if (result.sub_tests.large_text_handling?.success) {
+                    const details = result.sub_tests.large_text_handling.details;
+                    html += `<div class="embedding-stat-item">`;
+                    html += `<div class="stat-header">`;
+                    html += `<strong>✅ Large Text:</strong> ${details.input_word_count} words (${details.input_text_length} chars)`;
+                    html += `</div>`;
+                    html += `<div class="stat-details">`;
+                    html += `<div class="stat-row">`;
+                    html += `<span class="stat-label">⏱️ Time:</span> <span class="stat-value">${(details.response_time_seconds * 1000).toFixed(0)}ms</span>`;
+                    html += `<span class="stat-label">📐 Dimension:</span> <span class="stat-value">${details.embedding_dimension}</span>`;
+                    html += `</div>`;
+                    html += `</div>`;
+                    html += `</div>`;
+                }
+
+                // Similarity validation test
+                if (result.sub_tests.similarity_validation?.success) {
+                    const details = result.sub_tests.similarity_validation.details;
+                    html += `<div class="embedding-stat-item">`;
+                    html += `<div class="stat-header">`;
+                    html += `<strong>✅ Similarity Validation:</strong> Quality check passed`;
+                    html += `</div>`;
+                    html += `<div class="stat-details">`;
+                    html += `<div class="stat-row">`;
+                    html += `<span class="stat-label">🔗 Similar Texts:</span> <span class="stat-value">${(details.similar_texts_similarity * 100).toFixed(1)}%</span>`;
+                    html += `<span class="stat-label">🔀 Different Texts:</span> <span class="stat-value">${(details.different_texts_similarity * 100).toFixed(1)}%</span>`;
+                    html += `</div>`;
+                    html += `</div>`;
+                    html += `</div>`;
+                }
+
+                // Empty text handling test
+                if (result.sub_tests.empty_text_handling?.success) {
+                    html += `<div class="embedding-stat-item">`;
+                    html += `<div class="stat-header">`;
+                    html += `<strong>✅ Empty Input Handling:</strong> API correctly rejected empty input`;
+                    html += `</div>`;
+                    html += `</div>`;
+                }
+
+                html += `</div>`;
+            }
 
             // Detailed statistics section
             if (result.embedding_stats && result.embedding_stats.length > 0) {
@@ -2213,6 +2332,106 @@
 
         function formatDocumentIntelligenceResult(result) {
             const responseId = 'docintel-response-' + Date.now();
+
+            // Check if this is an automated test result (has sub_tests) or custom test result
+            const isAutomatedTest = result.sub_tests !== undefined && result.sub_tests !== null;
+
+            if (isAutomatedTest) {
+                // Format as enhanced test result
+                let html = `<div class="test-result-enhanced docintel-result">`;
+
+                const statusIcon = result.status === 'passed' ? '✅' : result.status === 'skipped' ? '⚠️' : '❌';
+                const statusClass = result.status === 'passed' ? 'success' : result.status === 'skipped' ? 'warning' : 'error';
+
+                html += `<div class="result-header ${statusClass}">`;
+                html += `<h4>${statusIcon} Document Intelligence Test</h4>`;
+                html += `<div class="test-meta">`;
+                html += `<span class="duration">⏱️ ${result.duration_seconds?.toFixed(2) || 'N/A'}s</span>`;
+                html += `<span class="status">Status: ${result.status}</span>`;
+                html += `</div>`;
+                html += `</div>`;
+
+                html += `<div class="result-message">`;
+                html += `<p><strong>📄 Result:</strong> ${result.message}</p>`;
+                html += `</div>`;
+
+                // Sub-tests
+                if (result.sub_tests) {
+                    html += `<div class="sub-tests-section">`;
+                    html += `<h5>🔍 Document Analysis Tests:</h5>`;
+                    html += `<div class="sub-tests-grid">`;
+
+                    // API Connectivity
+                    if (result.sub_tests['API Connectivity']) {
+                        const test = result.sub_tests['API Connectivity'];
+                        const icon = test.success ? '✅' : '❌';
+                        html += `<div class="sub-test-item ${test.success ? 'sub-test-success' : 'sub-test-error'}">`;
+                        html += `<div class="sub-test-header">${icon} <strong>API Connectivity</strong></div>`;
+                        html += `<div class="sub-test-message">${test.message}</div>`;
+                        if (test.endpoint) {
+                            html += `<div class="sub-test-details">`;
+                            html += `<span class="stat-item"><strong>🌐 Endpoint:</strong> ${test.endpoint}</span>`;
+                            html += `<span class="stat-item"><strong>🤖 Model:</strong> ${test.model}</span>`;
+                            html += `<span class="stat-item"><strong>⏱️ Response:</strong> ${test.response_time_ms?.toFixed(0)}ms</span>`;
+                            html += `</div>`;
+                        }
+                        html += `</div>`;
+                    }
+
+                    // Document Analysis
+                    if (result.sub_tests['Document Analysis (Sample)']) {
+                        const test = result.sub_tests['Document Analysis (Sample)'];
+                        const icon = test.success ? '✅' : '❌';
+                        html += `<div class="sub-test-item ${test.success ? 'sub-test-success' : 'sub-test-error'}">`;
+                        html += `<div class="sub-test-header">${icon} <strong>Document Analysis</strong></div>`;
+                        html += `<div class="sub-test-message">${test.message}</div>`;
+                        if (test.success && test.page_count !== undefined) {
+                            html += `<div class="sub-test-details">`;
+                            html += `<div class="stats-row">`;
+                            html += `<span class="stat-item"><strong>📑 Pages:</strong> ${test.page_count}</span>`;
+                            html += `<span class="stat-item"><strong>📝 Paragraphs:</strong> ${test.paragraph_count}</span>`;
+                            html += `<span class="stat-item"><strong>📊 Tables:</strong> ${test.table_count}</span>`;
+                            html += `</div>`;
+                            html += `<div class="stats-row">`;
+                            html += `<span class="stat-item"><strong>📏 Content:</strong> ${test.content_length} chars</span>`;
+                            html += `<span class="stat-item"><strong>⏱️ Processing:</strong> ${test.processing_time_ms?.toFixed(0)}ms</span>`;
+                            html += `</div>`;
+                            if (test.content_preview) {
+                                html += `<div class="content-preview-section">`;
+                                html += `<span class="stat-label">📄 Content Preview:</span>`;
+                                html += `<div class="preview-text">"${test.content_preview}"</div>`;
+                                html += `</div>`;
+                            }
+                            html += `</div>`;
+                        }
+                        html += `</div>`;
+                    }
+
+                    // Model Information
+                    if (result.sub_tests['Model Information']) {
+                        const test = result.sub_tests['Model Information'];
+                        const icon = test.success ? '✅' : '❌';
+                        html += `<div class="sub-test-item ${test.success ? 'sub-test-success' : 'sub-test-error'}">`;
+                        html += `<div class="sub-test-header">${icon} <strong>Model Information</strong></div>`;
+                        html += `<div class="sub-test-message">${test.message}</div>`;
+                        if (test.model_id) {
+                            html += `<div class="sub-test-details">`;
+                            html += `<span class="stat-item"><strong>🤖 Model ID:</strong> ${test.model_id}</span>`;
+                            html += `<span class="stat-item"><strong>📋 Type:</strong> ${test.model_type}</span>`;
+                            html += `</div>`;
+                        }
+                        html += `</div>`;
+                    }
+
+                    html += `</div>`;
+                    html += `</div>`;
+                }
+
+                html += `</div>`;
+                return html;
+            }
+
+            // Original custom test formatting
             const contentPreview = result.content_preview || '';
             const isLongContent = contentPreview.length > 500;
 
@@ -2403,6 +2622,111 @@
             html += `<p><strong>📊 Result:</strong> ${result.message}</p>`;
             html += `</div>`;
 
+            // Database summary from details
+            if (result.details) {
+                html += `<div class="database-summary">`;
+                html += `<h5>🗄️ Database Information</h5>`;
+                html += `<div class="summary-stats">`;
+                if (result.details.version) {
+                    html += `<span class="stat-item"><strong>📌 Version:</strong> ${result.details.version}</span>`;
+                }
+                if (result.details.host) {
+                    html += `<span class="stat-item"><strong>🌐 Host:</strong> ${result.details.host}</span>`;
+                }
+                if (result.details.database) {
+                    html += `<span class="stat-item"><strong>💾 Database:</strong> ${result.details.database}</span>`;
+                }
+                if (result.details.database_count !== undefined) {
+                    html += `<span class="stat-item"><strong>📚 Total Databases:</strong> ${result.details.database_count}</span>`;
+                }
+                if (result.details.extension_count !== undefined) {
+                    html += `<span class="stat-item"><strong>🔧 Extensions:</strong> ${result.details.extension_count} installed</span>`;
+                }
+                html += `</div>`;
+                html += `</div>`;
+
+                // Show databases list prominently from sub_tests
+                if (result.sub_tests && result.sub_tests.databases && result.sub_tests.databases.databases) {
+                    html += `<div class="databases-overview">`;
+                    html += `<h5>📚 All Accessible Databases (${result.sub_tests.databases.databases.length})</h5>`;
+                    html += `<div class="database-grid">`;
+
+                    // Sort databases by size (largest first)
+                    const sortedDatabases = [...result.sub_tests.databases.databases].sort((a, b) => b.size - a.size);
+
+                    sortedDatabases.forEach(db => {
+                        html += `<div class="database-card">`;
+                        html += `<div class="db-name">📁 ${db.name}</div>`;
+                        html += `<div class="db-size">${db.size_human}</div>`;
+                        html += `</div>`;
+                    });
+
+                    html += `</div>`;
+                    html += `</div>`;
+                }
+
+                // Show installed extensions prominently from sub_tests
+                if (result.sub_tests && result.sub_tests.extensions && result.sub_tests.extensions.installed_extensions) {
+                    html += `<div class="extensions-overview">`;
+                    html += `<h5>🔧 Installed Extensions (${result.sub_tests.extensions.installed_extensions.length})</h5>`;
+                    html += `<div class="extension-grid">`;
+
+                    result.sub_tests.extensions.installed_extensions.forEach(ext => {
+                        html += `<div class="extension-badge">`;
+                        html += `<span class="ext-name">${ext.name}</span>`;
+                        html += `<span class="ext-version">v${ext.version}</span>`;
+                        html += `</div>`;
+                    });
+
+                    html += `</div>`;
+                    html += `</div>`;
+
+                    // Critical extensions status check - loaded from external config file
+                    const criticalExtensions = window.CRITICAL_POSTGRESQL_EXTENSIONS || [];
+
+                    const installedExtNames = result.sub_tests.extensions.installed_extensions.map(ext => ext.name.toLowerCase());
+                    const availableExtNames = result.sub_tests.extensions.available_extensions
+                        ? result.sub_tests.extensions.available_extensions.map(ext => ext.name.toLowerCase())
+                        : [];
+
+                    html += `<div class="critical-extensions-status">`;
+                    html += `<h5>🎯 Critical Extensions Status</h5>`;
+                    html += `<div class="extension-status-grid">`;
+
+                    criticalExtensions.forEach(ext => {
+                        const isInstalled = installedExtNames.includes(ext.name.toLowerCase());
+                        const isAvailable = availableExtNames.includes(ext.name.toLowerCase());
+
+                        let statusIcon, statusClass, statusText;
+                        if (isInstalled) {
+                            statusIcon = '✅';
+                            statusClass = 'ext-installed';
+                            statusText = 'Installed';
+                        } else if (isAvailable) {
+                            statusIcon = '⚠️';
+                            statusClass = 'ext-available';
+                            statusText = 'Available';
+                        } else {
+                            statusIcon = '❌';
+                            statusClass = 'ext-unavailable';
+                            statusText = 'Not Available';
+                        }
+
+                        html += `<div class="extension-status-item ${statusClass}">`;
+                        html += `<div class="ext-status-header">`;
+                        html += `<span class="ext-status-icon">${statusIcon}</span>`;
+                        html += `<span class="ext-status-name">${ext.displayName}</span>`;
+                        html += `</div>`;
+                        html += `<div class="ext-status-desc">${ext.description}</div>`;
+                        html += `<div class="ext-status-badge">${statusText}</div>`;
+                        html += `</div>`;
+                    });
+
+                    html += `</div>`;
+                    html += `</div>`;
+                }
+            }
+
             // Sub-tests if available
             if (result.sub_tests) {
                 html += `<div class="sub-tests-section">`;
@@ -2496,6 +2820,30 @@
             html += `<p><strong>☁️ Result:</strong> ${result.message}</p>`;
             html += `</div>`;
 
+            // Storage summary from details
+            if (result.details) {
+                html += `<div class="storage-summary">`;
+                html += `<h5>☁️ Storage Account Information</h5>`;
+                html += `<div class="summary-stats">`;
+                if (result.details.account_name) {
+                    html += `<span class="stat-item"><strong>📦 Account:</strong> ${result.details.account_name}</span>`;
+                }
+                if (result.details.container_name) {
+                    html += `<span class="stat-item"><strong>📁 Container:</strong> ${result.details.container_name}</span>`;
+                }
+                if (result.details.upload_speed_mbps !== undefined) {
+                    html += `<span class="stat-item"><strong>⬆️ Upload:</strong> ${result.details.upload_speed_mbps.toFixed(3)} Mbps</span>`;
+                }
+                if (result.details.download_speed_mbps !== undefined) {
+                    html += `<span class="stat-item"><strong>⬇️ Download:</strong> ${result.details.download_speed_mbps.toFixed(3)} Mbps</span>`;
+                }
+                if (result.details.test_blob_size !== undefined) {
+                    html += `<span class="stat-item"><strong>📏 Test Blob:</strong> ${result.details.test_blob_size} bytes</span>`;
+                }
+                html += `</div>`;
+                html += `</div>`;
+            }
+
             // Sub-tests
             if (result.sub_tests) {
                 html += `<div class="sub-tests-section">`;
@@ -2559,6 +2907,30 @@
             html += `<div class="result-message">`;
             html += `<p><strong>🗃️ Result:</strong> ${result.message}</p>`;
             html += `</div>`;
+
+            // Cluster summary from details
+            if (result.details) {
+                html += `<div class="cluster-summary">`;
+                html += `<h5>☁️ Cluster Information</h5>`;
+                html += `<div class="summary-stats">`;
+                if (result.details.cluster_name) {
+                    html += `<span class="stat-item"><strong>🏷️ Cluster:</strong> ${result.details.cluster_name}</span>`;
+                }
+                if (result.details.hosts) {
+                    html += `<span class="stat-item"><strong>🌐 Hosts:</strong> ${result.details.hosts}</span>`;
+                }
+                if (result.details.datacenter) {
+                    html += `<span class="stat-item"><strong>🏢 Datacenter:</strong> ${result.details.datacenter}</span>`;
+                }
+                if (result.details.nodes !== undefined) {
+                    html += `<span class="stat-item"><strong>🖥️ Nodes:</strong> ${result.details.nodes}</span>`;
+                }
+                if (result.details.keyspace_count !== undefined) {
+                    html += `<span class="stat-item"><strong>🔑 Keyspaces:</strong> ${result.details.keyspace_count}</span>`;
+                }
+                html += `</div>`;
+                html += `</div>`;
+            }
 
             // Sub-tests
             if (result.sub_tests) {
@@ -2637,6 +3009,38 @@
                     html += `<div class="sub-test-item ${itemClass}">`;
                     html += `<div class="sub-test-header">${icon} <strong>${testName}</strong></div>`;
                     html += `<div class="sub-test-message">${testResult.message}</div>`;
+
+                    // Show certificate summary
+                    if (testName.includes('SSL Check:') && testResult.certificate_info) {
+                        const certInfo = testResult.certificate_info;
+                        html += `<div class="certificate-summary">`;
+                        html += `<div class="cert-stats">`;
+                        if (certInfo.subject) {
+                            html += `<span class="stat-item"><strong>📜 Subject:</strong> ${certInfo.subject}</span>`;
+                        }
+                        if (certInfo.issuer) {
+                            html += `<span class="stat-item"><strong>✍️ Issuer:</strong> ${certInfo.issuer}</span>`;
+                        }
+                        if (certInfo.days_until_expiry !== undefined) {
+                            const expiryClass = certInfo.days_until_expiry < 30 ? 'expiry-warning' : 'expiry-ok';
+                            html += `<span class="stat-item ${expiryClass}"><strong>⏰ Expires in:</strong> ${certInfo.days_until_expiry} days</span>`;
+                        }
+                        if (certInfo.chain_length) {
+                            html += `<span class="stat-item"><strong>🔗 Chain Length:</strong> ${certInfo.chain_length} certificates</span>`;
+                        }
+                        html += `</div>`;
+
+                        // Show TLS version from checks
+                        if (testResult.checks && testResult.checks.connection && testResult.checks.connection.version) {
+                            html += `<div class="tls-info">`;
+                            html += `<span class="stat-item"><strong>🔐 TLS Version:</strong> ${testResult.checks.connection.version}</span>`;
+                            if (testResult.checks.connection.cipher && testResult.checks.connection.cipher[0]) {
+                                html += `<span class="stat-item"><strong>🔑 Cipher:</strong> ${testResult.checks.connection.cipher[0]}</span>`;
+                            }
+                            html += `</div>`;
+                        }
+                        html += `</div>`;
+                    }
 
                     // Show SSL certificate details
                     if (testName.includes('SSL Check:') && testResult.certificate_chain_analysis) {
@@ -2732,10 +3136,122 @@
             html += `<p><strong>☸️ Result:</strong> ${result.message}</p>`;
             html += `</div>`;
 
+            // Storage summary from details
+            if (result.details) {
+                html += `<div class="storage-summary">`;
+                html += `<h5>☸️ Kubernetes Storage Information</h5>`;
+                html += `<div class="summary-stats">`;
+                if (result.details.namespace) {
+                    html += `<span class="stat-item"><strong>📁 Namespace:</strong> ${result.details.namespace}</span>`;
+                }
+                if (result.details.storage_class) {
+                    html += `<span class="stat-item"><strong>💾 Storage Class:</strong> ${result.details.storage_class}</span>`;
+                }
+                if (result.details.security_note) {
+                    html += `<span class="stat-item"><strong>🔒 Security:</strong> ${result.details.security_note}</span>`;
+                }
+                html += `</div>`;
+                html += `</div>`;
+            }
+
             // Sub-tests
             if (result.sub_tests) {
                 html += `<div class="sub-tests-section">`;
                 html += `<h5>🔍 Storage Operations:</h5>`;
+                html += `<div class="sub-tests-grid">`;
+
+                for (const [testName, testResult] of Object.entries(result.sub_tests)) {
+                    const icon = testResult.success ? '✅' : '❌';
+                    const itemClass = testResult.success ? 'sub-test-success' : 'sub-test-error';
+
+                    html += `<div class="sub-test-item ${itemClass}">`;
+                    html += `<div class="sub-test-header">${icon} <strong>${testName}</strong></div>`;
+                    html += `<div class="sub-test-message">${testResult.message}</div>`;
+
+                    if (testResult.remediation) {
+                        html += `<div class="remediation">💡 <em>${testResult.remediation}</em></div>`;
+                    }
+
+                    html += `</div>`;
+                }
+
+                html += `</div>`;
+                html += `</div>`;
+            }
+
+            if (result.remediation) {
+                html += `<div class="remediation-section">`;
+                html += `<h5>💡 Remediation:</h5>`;
+                html += `<div class="remediation-content">${result.remediation}</div>`;
+                html += `</div>`;
+            }
+
+            html += `</div>`;
+            return html;
+        }
+
+        function formatGPUResult(result) {
+            const responseId = 'gpu-' + Date.now();
+            let html = `<div class="test-result-enhanced gpu-result">`;
+
+            // Header with status
+            let statusIcon, statusClass;
+            if (result.status === 'passed') {
+                statusIcon = '✅';
+                statusClass = 'success';
+            } else if (result.status === 'skipped') {
+                statusIcon = '⚠️';
+                statusClass = 'warning';
+            } else {
+                statusIcon = '❌';
+                statusClass = 'error';
+            }
+
+            html += `<div class="result-header ${statusClass}">`;
+            html += `<h4>${statusIcon} GPU Detection Test</h4>`;
+            html += `<div class="test-meta">`;
+            html += `<span class="duration">⏱️ ${result.duration_seconds?.toFixed(3) || 'N/A'}s</span>`;
+            html += `<span class="status">Status: ${result.status}</span>`;
+            html += `</div>`;
+            html += `</div>`;
+
+            html += `<div class="result-message">`;
+            html += `<p><strong>🎮 Result:</strong> ${result.message}</p>`;
+            html += `</div>`;
+
+            // GPU Details if detected
+            if (result.details?.gpu_detected) {
+                html += `<div class="gpu-details">`;
+                html += `<h5>💾 GPU Information</h5>`;
+                html += `<div class="gpu-stats">`;
+                html += `<span class="stat-item"><strong>🎮 GPUs Detected:</strong> ${result.details.gpu_count}</span>`;
+
+                if (result.details.gpu_info) {
+                    result.details.gpu_info.forEach((gpu, index) => {
+                        html += `<div class="gpu-card">`;
+                        html += `<h6>GPU ${index}: ${gpu.name || 'Unknown'}</h6>`;
+                        html += `<div class="gpu-card-details">`;
+                        if (gpu.memory_total) {
+                            html += `<span class="stat-item"><strong>💾 Memory:</strong> ${gpu.memory_total}</span>`;
+                        }
+                        if (gpu.driver_version) {
+                            html += `<span class="stat-item"><strong>🔧 Driver:</strong> ${gpu.driver_version}</span>`;
+                        }
+                        if (gpu.cuda_version) {
+                            html += `<span class="stat-item"><strong>⚡ CUDA:</strong> ${gpu.cuda_version}</span>`;
+                        }
+                        html += `</div>`;
+                        html += `</div>`;
+                    });
+                }
+                html += `</div>`;
+                html += `</div>`;
+            }
+
+            // Sub-tests
+            if (result.sub_tests) {
+                html += `<div class="sub-tests-section">`;
+                html += `<h5>🔍 Detection Steps:</h5>`;
                 html += `<div class="sub-tests-grid">`;
 
                 for (const [testName, testResult] of Object.entries(result.sub_tests)) {
@@ -2796,22 +3312,117 @@
             html += `<p><strong>🦙 Result:</strong> ${result.message}</p>`;
             html += `</div>`;
 
-            // Sub-tests
+            // Sub-tests with enhanced display
             if (result.sub_tests) {
                 html += `<div class="sub-tests-section">`;
-                html += `<h5>🔍 Model Operations:</h5>`;
+                html += `<h5>🔍 Model Tests:</h5>`;
                 html += `<div class="sub-tests-grid">`;
 
-                for (const [testName, testResult] of Object.entries(result.sub_tests)) {
+                // API Connection Test
+                if (result.sub_tests['API Connection']) {
+                    const testResult = result.sub_tests['API Connection'];
                     const icon = testResult.success ? '✅' : '❌';
                     const itemClass = testResult.success ? 'sub-test-success' : 'sub-test-error';
 
                     html += `<div class="sub-test-item ${itemClass}">`;
-                    html += `<div class="sub-test-header">${icon} <strong>${testName}</strong></div>`;
+                    html += `<div class="sub-test-header">${icon} <strong>API Connection</strong></div>`;
                     html += `<div class="sub-test-message">${testResult.message}</div>`;
 
-                    if (testResult.remediation) {
-                        html += `<div class="remediation">💡 <em>${testResult.remediation}</em></div>`;
+                    if (testResult.models && testResult.models.length > 0) {
+                        html += `<div class="sub-test-details">`;
+                        html += `<span class="stat-label">📋 Available Models:</span>`;
+                        testResult.models.forEach(model => {
+                            html += `<span class="model-badge">${model}</span>`;
+                        });
+                        html += `</div>`;
+                    }
+
+                    html += `</div>`;
+                }
+
+                // Text Generation Test
+                if (result.sub_tests['Text Generation']) {
+                    const testResult = result.sub_tests['Text Generation'];
+                    const icon = testResult.success ? '✅' : '❌';
+                    const itemClass = testResult.success ? 'sub-test-success' : 'sub-test-error';
+
+                    html += `<div class="sub-test-item ${itemClass}">`;
+                    html += `<div class="sub-test-header">${icon} <strong>Text Generation</strong></div>`;
+                    html += `<div class="sub-test-message">${testResult.message}</div>`;
+
+                    if (testResult.input_prompt) {
+                        html += `<div class="sub-test-details">`;
+                        html += `<div class="prompt-section">`;
+                        html += `<span class="stat-label">💬 Prompt:</span>`;
+                        html += `<div class="prompt-text">"${testResult.input_prompt}"</div>`;
+                        html += `</div>`;
+
+                        if (testResult.response_preview || testResult.response_full) {
+                            const response = testResult.response_full || testResult.response_preview;
+                            const isLong = response.length > 200;
+                            const displayResponse = isLong ? response.substring(0, 200) + '...' : response;
+
+                            html += `<div class="response-section">`;
+                            html += `<span class="stat-label">💡 Response:</span>`;
+                            html += `<div class="response-text">"${displayResponse}"</div>`;
+                            html += `</div>`;
+                        }
+
+                        html += `<div class="stats-row">`;
+                        if (testResult.duration_seconds) {
+                            html += `<span class="stat-item"><strong>⏱️ Time:</strong> ${(testResult.duration_seconds * 1000).toFixed(0)}ms</span>`;
+                        }
+                        if (testResult.response_length) {
+                            html += `<span class="stat-item"><strong>📏 Length:</strong> ${testResult.response_length} chars</span>`;
+                        }
+                        html += `</div>`;
+                        html += `</div>`;
+                    }
+
+                    html += `</div>`;
+                }
+
+                // Llama-style Prompt Test
+                if (result.sub_tests['Llama-style Prompt']) {
+                    const testResult = result.sub_tests['Llama-style Prompt'];
+                    const icon = testResult.success ? '✅' : '❌';
+                    const itemClass = testResult.success ? 'sub-test-success' : 'sub-test-error';
+
+                    html += `<div class="sub-test-item ${itemClass}">`;
+                    html += `<div class="sub-test-header">${icon} <strong>Llama-style Prompt</strong></div>`;
+                    html += `<div class="sub-test-message">${testResult.message}</div>`;
+
+                    if (testResult.input_prompt) {
+                        html += `<div class="sub-test-details">`;
+                        html += `<div class="prompt-section">`;
+                        html += `<span class="stat-label">💬 Prompt:</span>`;
+                        html += `<div class="prompt-text">"${testResult.input_prompt}"</div>`;
+                        html += `</div>`;
+
+                        if (testResult.response_preview || testResult.response_full) {
+                            const response = testResult.response_full || testResult.response_preview;
+                            const isLong = response.length > 200;
+                            const displayResponse = isLong ? response.substring(0, 200) + '...' : response;
+
+                            html += `<div class="response-section">`;
+                            html += `<span class="stat-label">💡 Response:</span>`;
+                            html += `<div class="response-text">"${displayResponse}"</div>`;
+                            html += `</div>`;
+                        }
+
+                        html += `<div class="stats-row">`;
+                        if (testResult.duration_seconds) {
+                            html += `<span class="stat-item"><strong>⏱️ Time:</strong> ${(testResult.duration_seconds * 1000).toFixed(0)}ms</span>`;
+                        }
+                        if (testResult.response_length) {
+                            html += `<span class="stat-item"><strong>📏 Length:</strong> ${testResult.response_length} chars</span>`;
+                        }
+                        if (testResult.mentions_llama !== undefined) {
+                            const llamaMention = testResult.mentions_llama ? '✅ Yes' : '❌ No';
+                            html += `<span class="stat-item"><strong>🦙 Mentions Llama:</strong> ${llamaMention}</span>`;
+                        }
+                        html += `</div>`;
+                        html += `</div>`;
                     }
 
                     html += `</div>`;
