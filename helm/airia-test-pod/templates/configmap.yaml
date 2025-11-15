@@ -53,7 +53,11 @@ data:
   # Test configuration
   openai-timeout: {{ .Values.config.openai.timeout | default 30 | quote }}
   test-completion: {{ .Values.config.openai.testCompletion | default true | quote }}
+  {{- if .Values.config.embeddings.enabled }}
+  test-embedding: "false"  # Disable OpenAI embedding test when dedicated embeddings service is configured
+  {{- else }}
   test-embedding: {{ .Values.config.openai.testEmbedding | default true | quote }}
+  {{- end }}
   {{- if .Values.config.openai.customPrompt }}
   openai-custom-prompt: {{ .Values.config.openai.customPrompt | quote }}
   {{- end }}
