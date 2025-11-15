@@ -877,6 +877,23 @@
 .test-card h3 {
     color: var(--color-text-heading);
     margin-bottom: var(--spacing-md);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.config-ref {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    cursor: help;
+    opacity: 0.6;
+    transition: opacity var(--transition-normal);
+}
+
+.config-ref:hover {
+    opacity: 1;
 }
 
 .test-status {
