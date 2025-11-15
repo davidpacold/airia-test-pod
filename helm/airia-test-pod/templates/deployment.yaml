@@ -203,6 +203,8 @@ spec:
                 configMapKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-config
                   key: openai-base-url
+            - name: OPENAI_API_KEY
+              value: {{ .Values.config.openai.openaiApiKey | default "not-required" | quote }}
             {{- end }}
             {{- if .Values.config.openai.openaiModelName }}
             - name: OPENAI_MODEL_NAME
@@ -217,13 +219,6 @@ spec:
                 configMapKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-config
                   key: openai-embedding-model
-            {{- end }}
-            {{- if .Values.config.openai.openaiApiKey }}
-            - name: OPENAI_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "airia-test-pod.fullname" . }}-openai
-                  key: openai-api-key
             {{- end }}
             - name: OPENAI_TIMEOUT
               valueFrom:
@@ -390,33 +385,33 @@ spec:
             {{- end }}
             {{- if or (and .Values.config.ollama .Values.config.ollama.enabled) (and .Values.config.llama .Values.config.llama.enabled) }}
             {{- $ollamaConfig := .Values.config.ollama | default .Values.config.llama }}
-            - name: LLAMA_BASE_URL
+            - name: OLLAMA_BASE_URL
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-config
                   key: ollama-base-url
-            - name: LLAMA_MODEL_NAME
+            - name: OLLAMA_MODEL_NAME
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-config
                   key: ollama-model-name
-            - name: LLAMA_MAX_TOKENS
+            - name: OLLAMA_MAX_TOKENS
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-config
                   key: ollama-max-tokens
-            - name: LLAMA_TEMPERATURE
+            - name: OLLAMA_TEMPERATURE
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-config
                   key: ollama-temperature
-            - name: LLAMA_TIMEOUT
+            - name: OLLAMA_TIMEOUT
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-config
                   key: ollama-timeout
             {{- if $ollamaConfig.apiKey }}
-            - name: LLAMA_API_KEY
+            - name: OLLAMA_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-llama
