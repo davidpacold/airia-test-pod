@@ -702,19 +702,28 @@
         async function handleCustomTest(testType, form) {
             const resultsElement = document.getElementById(`custom-${testType}-results`);
             const submitButton = form.querySelector('button[type="submit"]');
-            
+
             try {
+                // Validate prompt before submitting
+                const promptValue = form.prompt.value.trim();
+                if (promptValue.length < 3) {
+                    resultsElement.className = 'test-details show custom-test-results error';
+                    resultsElement.innerHTML = '❌ Error: Prompt too short (minimum 3 characters)';
+                    notificationManager.warning('Validation Error', 'Please enter a prompt with at least 3 characters');
+                    return;
+                }
+
                 // Disable submit button and show loading
                 submitButton.disabled = true;
                 submitButton.innerHTML = `Testing ${testType}... <span class="loading-spinner"></span>`;
-                
+
                 // Clear previous results
                 resultsElement.innerHTML = '';
                 resultsElement.className = 'test-details';
-                
+
                 // Prepare form data
                 const formData = new FormData();
-                formData.append('prompt', form.prompt.value);
+                formData.append('prompt', promptValue);
                 
                 if (form.system_message.value) {
                     formData.append('system_message', form.system_message.value);
@@ -743,12 +752,29 @@
                     resultsElement.innerHTML = `❌ Test Failed: ${result.message}\\n\\n${result.remediation || ''}`;
                     notificationManager.error('Test Failed', result.message, result.remediation);
                 }
-                
+
             } catch (error) {
                 resultsElement.className = 'test-details show custom-test-results error';
-                const errorMessage = error.response?.data?.detail || error.message || 'Unknown error occurred';
+                // Try multiple possible error message locations
+                let errorMessage = 'Unknown error occurred';
+                if (error.response?.data?.detail) {
+                    errorMessage = error.response.data.detail;
+                } else if (typeof error.response?.data === 'string') {
+                    errorMessage = error.response.data;
+                } else if (error.response?.data?.message) {
+                    errorMessage = error.response.data.message;
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+
                 resultsElement.innerHTML = `❌ Error: ${errorMessage}`;
-                handleApiError(error, 'Custom AI test');
+
+                // Show notification with helpful message for common errors
+                if (errorMessage.includes('too short') || errorMessage.includes('minimum')) {
+                    notificationManager.error('Validation Error', errorMessage, 'Please enter a prompt with at least 3 characters');
+                } else {
+                    handleApiError(error, 'Custom AI test');
+                }
             } finally {
                 // Re-enable submit button
                 submitButton.disabled = false;
