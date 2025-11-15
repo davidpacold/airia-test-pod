@@ -84,6 +84,7 @@
     --color-bg-error-light: #fdf2f2;
     --color-bg-error-lightest: #fff8f8;
     --color-bg-error-medium: #fef2f2;
+    --color-bg-error-pale: #fff5f5;
     --color-bg-warning-light: #fdf8f0;
     --color-bg-warning-lightest: #fffbf0;
     --color-bg-warning-pale: #fff5e6;
@@ -1722,6 +1723,30 @@ a:hover {
     color: var(--color-text-muted);
     line-height: 1.4;
     margin-bottom: 0.5rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.sub-test-details {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    background: var(--color-bg-white);
+    border-radius: var(--radius-md);
+    border-left: 3px solid var(--color-info-sky);
+}
+
+.sub-test-details .stat-item,
+.sub-test-details .stats-row .stat-item {
+    font-size: 0.85rem;
+    padding: 0.5rem 0.75rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.sub-test-details strong {
+    display: inline-block;
+    min-width: 100px;
+    color: var(--color-text-gray-dark);
 }
 
 .database-list, .extensions-section {
