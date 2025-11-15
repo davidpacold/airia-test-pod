@@ -388,33 +388,34 @@ spec:
                   name: {{ include "airia-test-pod.fullname" . }}-embeddings
                   key: api-key
             {{- end }}
-            {{- if .Values.config.llama.enabled }}
+            {{- if or (and .Values.config.ollama .Values.config.ollama.enabled) (and .Values.config.llama .Values.config.llama.enabled) }}
+            {{- $ollamaConfig := .Values.config.ollama | default .Values.config.llama }}
             - name: LLAMA_BASE_URL
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-config
-                  key: llama-base-url
+                  key: ollama-base-url
             - name: LLAMA_MODEL_NAME
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-config
-                  key: llama-model-name
+                  key: ollama-model-name
             - name: LLAMA_MAX_TOKENS
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-config
-                  key: llama-max-tokens
+                  key: ollama-max-tokens
             - name: LLAMA_TEMPERATURE
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-config
-                  key: llama-temperature
+                  key: ollama-temperature
             - name: LLAMA_TIMEOUT
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-config
-                  key: llama-timeout
-            {{- if .Values.config.llama.apiKey }}
+                  key: ollama-timeout
+            {{- if $ollamaConfig.apiKey }}
             - name: LLAMA_API_KEY
               valueFrom:
                 secretKeyRef:

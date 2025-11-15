@@ -104,7 +104,7 @@ data:
   {{- end }}
   {{- end }}
   
-  {{- if or .Values.config.ollama.enabled .Values.config.llama.enabled }}
+  {{- if or (and .Values.config.ollama .Values.config.ollama.enabled) (and .Values.config.llama .Values.config.llama.enabled) }}
   # Ollama native API configuration (supports legacy llama key for backwards compatibility)
   {{- $ollamaConfig := .Values.config.ollama | default .Values.config.llama }}
   ollama-base-url: {{ $ollamaConfig.baseUrl | quote }}
