@@ -47,7 +47,7 @@
                 <h2>💾 Storage Tests</h2>
                 <div class="test-grid">
                     <div class="test-card" id="blobstorage-card">
-                    <h3>Azure Blob Storage</h3>
+                    <h3>Azure Blob Storage <span class="config-ref" title="Configuration: helm/airia-test-pod/values.yaml → config.blobStorage">⚙️</span></h3>
                     <p>Tests authentication and file operations</p>
                     <span class="test-status ready" id="blobstorage-status">Ready to Test</span>
                     <button class="test-button" onclick="runTest('blobstorage')" id="blobstorage-btn">Run Test</button>
@@ -55,7 +55,7 @@
                 </div>
                 
                 <div class="test-card" id="s3-card">
-                    <h3>Amazon S3 Storage</h3>
+                    <h3>Amazon S3 Storage <span class="config-ref" title="Configuration: helm/airia-test-pod/values.yaml → config.s3">⚙️</span></h3>
                     <p>Tests S3 connectivity and operations</p>
                     <span class="test-status ready" id="s3-status">Ready to Test</span>
                     <button class="test-button" onclick="runTest('s3')" id="s3-btn">Run Test</button>
@@ -63,7 +63,7 @@
                 </div>
                 
                 <div class="test-card" id="minio-card">
-                    <h3>Minio Storage</h3>
+                    <h3>Minio Storage <span class="config-ref" title="Configuration: helm/airia-test-pod/values.yaml → config.minio">⚙️</span></h3>
                     <p>Tests S3-compatible storage connectivity</p>
                     <span class="test-status ready" id="minio-status">Ready to Test</span>
                     <button class="test-button" onclick="runTest('minio')" id="minio-btn">Run Test</button>
@@ -77,7 +77,7 @@
                 <h2>🗄️ Database Tests</h2>
                 <div class="test-grid">
                     <div class="test-card" id="postgresqlv2-card">
-                        <h3>PostgreSQL Database</h3>
+                        <h3>PostgreSQL Database <span class="config-ref" title="Configuration: helm/airia-test-pod/values.yaml → config.postgresql">⚙️</span></h3>
                         <p>Tests connection, databases, and extensions</p>
                         <span class="test-status ready" id="postgresqlv2-status">Ready to Test</span>
                         <button class="test-button" onclick="runTest('postgresqlv2')" id="postgresqlv2-btn">Run Test</button>
@@ -85,7 +85,7 @@
                     </div>
                     
                     <div class="test-card" id="cassandra-card">
-                        <h3>Apache Cassandra</h3>
+                        <h3>Apache Cassandra <span class="config-ref" title="Configuration: helm/airia-test-pod/values.yaml → config.cassandra">⚙️</span></h3>
                         <p>Tests connectivity, keyspaces, and cluster health</p>
                         <span class="test-status ready" id="cassandra-status">Ready to Test</span>
                         <button class="test-button" onclick="runTest('cassandra')" id="cassandra-btn">Run Test</button>
@@ -99,7 +99,7 @@
                 <h2>🤖 AI & Machine Learning Tests</h2>
                 <div class="test-grid">
                     <div class="test-card" id="openai-card">
-                    <h3>AI Models (OpenAI/Llama)</h3>
+                    <h3>AI Models (OpenAI/Llama) <span class="config-ref" title="Configuration: helm/airia-test-pod/values.yaml → config.openai">⚙️</span></h3>
                     <p>Tests API connectivity and models</p>
                     <span class="test-status ready" id="openai-status">Ready to Test</span>
                     <button class="test-button" onclick="runTest('openai')" id="openai-btn">Run Test</button>
@@ -107,7 +107,7 @@
                 </div>
                 
                 <div class="test-card" id="llama-card">
-                    <h3>Llama Model</h3>
+                    <h3>Llama Model <span class="config-ref" title="Configuration: helm/airia-test-pod/values.yaml → config.llama">⚙️</span></h3>
                     <p>Tests Llama model connectivity and text generation</p>
                     <span class="test-status ready" id="llama-status">Ready to Test</span>
                     <button class="test-button" onclick="runTest('llama')" id="llama-btn">Run Test</button>
@@ -115,7 +115,7 @@
                 </div>
                 
                 <div class="test-card" id="docintel-card">
-                    <h3>Document Intelligence</h3>
+                    <h3>Document Intelligence <span class="config-ref" title="Configuration: helm/airia-test-pod/values.yaml → config.documentIntelligence">⚙️</span></h3>
                     <p>Tests document processing API</p>
                     <span class="test-status ready" id="docintel-status">Ready to Test</span>
                     <button class="test-button" onclick="runTest('docintel')" id="docintel-btn">Run Test</button>
@@ -123,7 +123,7 @@
                 </div>
                 
                 <div class="test-card" id="embeddings-card">
-                    <h3>Embedding Models</h3>
+                    <h3>Embedding Models <span class="config-ref" title="Configuration: helm/airia-test-pod/values.yaml → config.embeddings">⚙️</span></h3>
                     <p>Tests OpenAI-compatible embedding endpoints</p>
                     <span class="test-status ready" id="embeddings-status">Ready to Test</span>
                     <button class="test-button" onclick="runTest('embeddings')" id="embeddings-btn">Run Test</button>
@@ -137,7 +137,7 @@
                 <h2>🏗️ Infrastructure Tests</h2>
                 <div class="test-grid">
                     <div class="test-card" id="pvc-card">
-                    <h3>Kubernetes PVC</h3>
+                    <h3>Kubernetes PVC <span class="config-ref" title="Configuration: helm/airia-test-pod/values.yaml → config.kubernetes">⚙️</span></h3>
                     <p>Tests storage class and permissions</p>
                     <span class="test-status ready" id="pvc-status">Ready to Test</span>
                     <button class="test-button" onclick="runTest('pvc')" id="pvc-btn">Run Test</button>
@@ -145,7 +145,7 @@
                 </div>
                 
                 <div class="test-card" id="ssl-card">
-                    <h3>SSL Certificates</h3>
+                    <h3>SSL Certificates <span class="config-ref" title="Configuration: helm/airia-test-pod/values.yaml → config.ssl">⚙️</span></h3>
                     <p>Validates certificate chains</p>
                     <span class="test-status ready" id="ssl-status">Ready to Test</span>
                     <button class="test-button" onclick="runTest('ssl')" id="ssl-btn">Run Test</button>
@@ -153,7 +153,7 @@
                 </div>
 
                 <div class="test-card" id="gpu-card">
-                    <h3>GPU Detection</h3>
+                    <h3>GPU Detection <span class="config-ref" title="Configuration: helm/airia-test-pod/values.yaml → config.gpu">⚙️</span></h3>
                     <p>Detects and validates GPU availability, driver, and CUDA installation</p>
                     <span class="test-status ready" id="gpu-status">Ready to Test</span>
                     <button class="test-button" onclick="runTest('gpu')" id="gpu-btn">Run Test</button>
