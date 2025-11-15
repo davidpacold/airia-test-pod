@@ -113,9 +113,10 @@ These tests verify that your AI services are configured correctly with automated
   - Tests both Azure-hosted and self-hosted OpenAI-compatible endpoints
   - Automatically validates API keys, endpoints, and model deployments
 
-- **Self-hosted Llama Models** - Local/self-hosted Llama model APIs
-  - For Llama-specific endpoints or OpenAI-compatible Llama deployments
-  - Validates Llama prompt formats and response generation
+- **Ollama Native API** - Local Ollama server with native API endpoints
+  - Tests Ollama's native REST API (`/api/generate`, `/api/chat`, `/api/tags`)
+  - For local LLM testing with Ollama (llama3, codellama, mistral, phi3, etc.)
+  - Note: For OpenAI-compatible Ollama endpoints (`/v1/*`), use the OpenAI test above
 
 - **Azure Document Intelligence** - OCR and document processing capabilities
   - Tests document analysis, table extraction, and content recognition
@@ -128,10 +129,10 @@ These tests verify that your AI services are configured correctly with automated
 #### **Custom AI Testing** (Interactive Testing)
 After your services pass automated tests, use custom testing to validate with your own data:
 
-- **Custom Prompts** - Test OpenAI and Llama models with your own prompts
+- **Custom Prompts** - Test OpenAI-compatible and Ollama models with your own prompts
 - **File Upload Testing** - Upload PDFs, images, or documents (up to 25MB) to test:
   - OpenAI vision/multimodal capabilities
-  - Llama model file processing
+  - Ollama model file processing
   - Azure Document Intelligence with your own documents
 - **Custom Text Embeddings** - Generate embeddings for your specific text data
 
@@ -192,16 +193,18 @@ helm upgrade --install airia-test-pod \
   --namespace default
 ```
 
-#### **Self-hosted Llama Models**
-For dedicated Llama endpoints:
+#### **Ollama Native API**
+For local Ollama server (native API):
 ```bash
 helm upgrade --install airia-test-pod \
   oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
-  --set config.llama.enabled=true \
-  --set config.llama.baseUrl="http://your-llama-server:8080" \
-  --set config.llama.modelName="llama2" \
+  --set config.ollama.enabled=true \
+  --set config.ollama.baseUrl="http://ollama-server:11434" \
+  --set config.ollama.modelName="llama3.1:8b" \
   --namespace default
 ```
+
+> **Note:** This tests Ollama's native `/api/*` endpoints. For OpenAI-compatible Ollama endpoints (`/v1/*`), use the OpenAI configuration with `baseUrl="http://ollama-server:11434/v1"`.
 
 #### **Azure Document Intelligence**
 For OCR and document processing:
@@ -278,12 +281,14 @@ config:
   #   apiKey: "your-api-key"
   #   modelName: "gpt-3.5-turbo"
 
-  # Self-hosted Llama models (separate from OpenAI)
-  llama:
+  # Ollama native API (separate from OpenAI)
+  ollama:
     enabled: true
-    baseUrl: "http://your-llama-server:8080"
-    modelName: "llama2"
-    apiKey: "optional-key"  # Optional
+    baseUrl: "http://ollama-server:11434"
+    modelName: "llama3.1:8b"
+    maxTokens: 100
+    temperature: 0.7
+    timeout: 60
 
   # Azure Document Intelligence
   documentIntelligence:
@@ -329,8 +334,9 @@ helm upgrade --install airia-test-pod \
 |---------------|-------------------|-----|
 | Using Azure OpenAI for chat completions | **Azure OpenAI** | Tests chat APIs and optionally embeddings in one test |
 | Using Azure OpenAI embeddings | **Azure OpenAI** (set `embeddingDeploymentName`) | Azure OpenAI embeddings are tested within the OpenAI test |
-| Using self-hosted LLM (Ollama, vLLM, etc.) | **Self-hosted OpenAI-Compatible** | Most local LLMs provide OpenAI-compatible endpoints |
-| Using Llama-specific endpoint | **Self-hosted Llama Models** | For dedicated Llama APIs with Llama-specific formats |
+| Using self-hosted LLM (vLLM, LocalAI, etc.) | **OpenAI-Compatible APIs** | Most local LLMs provide OpenAI-compatible endpoints at `/v1/*` |
+| Using Ollama's OpenAI-compatible endpoint | **OpenAI-Compatible APIs** | Set `baseUrl` to `http://ollama:11434/v1` |
+| Using Ollama's native API | **Ollama Native API** | Tests Ollama's native `/api/*` endpoints for maximum compatibility |
 | Processing PDFs/images for OCR | **Azure Document Intelligence** | Tests document analysis and table extraction |
 | Using separate embedding service (not Azure) | **Dedicated Embedding Models** | For standalone embedding endpoints like OpenAI's API |
 | Want to test custom prompts | Use **Custom AI Testing** in the UI | Available after standard tests pass |
@@ -338,8 +344,11 @@ helm upgrade --install airia-test-pod \
 
 **Common Questions:**
 
-- **Q: Can I configure both Azure OpenAI and Llama?**
+- **Q: Can I configure both Azure OpenAI and Ollama?**
   A: Yes! They're separate tests. Configure both if you use both services.
+
+- **Q: What's the difference between OpenAI-Compatible and Ollama Native tests?**
+  A: OpenAI-Compatible tests the `/v1/*` endpoints (works with Ollama, vLLM, etc.). Ollama Native tests Ollama's `/api/*` endpoints for Ollama-specific features.
 
 - **Q: Do I need the Embedding test if I have Azure OpenAI?**
   A: No. Azure OpenAI includes embedding testing. Only use the dedicated Embedding test for non-Azure endpoints.
@@ -347,8 +356,8 @@ helm upgrade --install airia-test-pod \
 - **Q: What's the difference between standard tests and custom testing?**
   A: Standard tests run automated checks to verify configuration. Custom testing lets you upload your own files and prompts.
 
-- **Q: Can I test OpenAI-compatible Llama with the OpenAI test?**
-  A: Yes! Use the "Self-hosted OpenAI-Compatible API" configuration. Reserve the Llama test for Llama-specific endpoints.
+- **Q: Which test should I use for Ollama?**
+  A: For Ollama's OpenAI-compatible endpoints (`/v1/*`), use the OpenAI test. For native Ollama API (`/api/*`), use the Ollama test.
 
 ---
 
