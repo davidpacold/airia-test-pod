@@ -1,16 +1,24 @@
 name: 🚀 Release & Version Management
 
 on:
-  push:
-    branches: [main]
-  release:
-    types: [published]
+  # Manual release trigger - prevents automatic commits to main
+  # This eliminates git sync issues caused by auto-commits after PR merges
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (e.g., 1.0.2). Leave empty to auto-increment patch version.'
+        description: 'Release version (e.g., 1.0.188). Leave empty to auto-increment patch version.'
         required: false
         type: string
+
+  # Tag-based releases - cleanest approach for versioning
+  # Usage: git tag v1.0.188 && git push origin v1.0.188
+  push:
+    tags:
+      - 'v*.*.*'
+
+  # Keep release trigger for GitHub UI releases
+  release:
+    types: [published]
 
 env:
   REGISTRY: ghcr.io
