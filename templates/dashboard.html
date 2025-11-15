@@ -2044,12 +2044,42 @@
                     html += `<div class="sub-test-header">${icon} <strong>API Connection</strong></div>`;
                     html += `<div class="sub-test-message">${testResult.message}</div>`;
 
+                    if (testResult.version) {
+                        html += `<div class="sub-test-details">`;
+                        html += `<span class="stat-item"><strong>🔖 Version:</strong> ${testResult.version}</span>`;
+                        html += `</div>`;
+                    }
+
+                    html += `</div>`;
+                }
+
+                // List Models Test
+                if (result.sub_tests['List Models']) {
+                    const testResult = result.sub_tests['List Models'];
+                    const icon = testResult.success ? '✅' : '❌';
+                    const itemClass = testResult.success ? 'sub-test-success' : 'sub-test-error';
+
+                    html += `<div class="sub-test-item ${itemClass}">`;
+                    html += `<div class="sub-test-header">${icon} <strong>List Models</strong></div>`;
+                    html += `<div class="sub-test-message">${testResult.message}</div>`;
+
                     if (testResult.models && testResult.models.length > 0) {
                         html += `<div class="sub-test-details">`;
-                        html += `<span class="stat-label">📋 Available Models:</span>`;
+                        html += `<span class="stat-label">📋 Available Models (${testResult.models.length}):</span><br/>`;
+                        html += `<div class="models-list">`;
                         testResult.models.forEach(model => {
-                            html += `<span class="model-badge">${model}</span>`;
+                            const isTarget = testResult.target_model && model.includes(testResult.target_model);
+                            const badgeClass = isTarget ? 'model-badge-target' : 'model-badge';
+                            const targetIcon = isTarget ? ' ⭐' : '';
+                            html += `<span class="${badgeClass}">${model}${targetIcon}</span>`;
                         });
+                        html += `</div>`;
+                        if (testResult.target_model) {
+                            const found = testResult.model_found ? '✅ Found' : '⚠️ Not found';
+                            html += `<div class="stats-row" style="margin-top: 0.5rem;">`;
+                            html += `<span class="stat-item"><strong>🎯 Target Model:</strong> ${testResult.target_model} (${found})</span>`;
+                            html += `</div>`;
+                        }
                         html += `</div>`;
                     }
 
@@ -2136,6 +2166,51 @@
                         if (testResult.mentions_llama !== undefined) {
                             const llamaMention = testResult.mentions_llama ? '✅ Yes' : '❌ No';
                             html += `<span class="stat-item"><strong>🦙 Mentions Llama:</strong> ${llamaMention}</span>`;
+                        }
+                        html += `</div>`;
+                        html += `</div>`;
+                    }
+
+                    html += `</div>`;
+                }
+
+                // Chat Completion Test
+                if (result.sub_tests['Chat Completion']) {
+                    const testResult = result.sub_tests['Chat Completion'];
+                    const icon = testResult.success ? '✅' : '❌';
+                    const itemClass = testResult.success ? 'sub-test-success' : 'sub-test-error';
+
+                    html += `<div class="sub-test-item ${itemClass}">`;
+                    html += `<div class="sub-test-header">${icon} <strong>Chat Completion</strong></div>`;
+                    html += `<div class="sub-test-message">${testResult.message}</div>`;
+
+                    if (testResult.user_message) {
+                        html += `<div class="sub-test-details">`;
+                        html += `<div class="prompt-section">`;
+                        html += `<span class="stat-label">💬 Message:</span>`;
+                        html += `<div class="prompt-text">"${testResult.user_message}"</div>`;
+                        html += `</div>`;
+
+                        if (testResult.response || testResult.response_full) {
+                            const response = testResult.response_full || testResult.response;
+                            const isLong = response.length > 200;
+                            const displayResponse = isLong ? response.substring(0, 200) + '...' : response;
+
+                            html += `<div class="response-section">`;
+                            html += `<span class="stat-label">💡 Response:</span>`;
+                            html += `<div class="response-text">"${displayResponse}"</div>`;
+                            html += `</div>`;
+                        }
+
+                        html += `<div class="stats-row">`;
+                        if (testResult.duration_seconds) {
+                            html += `<span class="stat-item"><strong>⏱️ Time:</strong> ${(testResult.duration_seconds * 1000).toFixed(0)}ms</span>`;
+                        }
+                        if (testResult.response_length) {
+                            html += `<span class="stat-item"><strong>📏 Length:</strong> ${testResult.response_length} chars</span>`;
+                        }
+                        if (testResult.eval_count) {
+                            html += `<span class="stat-item"><strong>🎯 Tokens:</strong> ${testResult.eval_count}</span>`;
                         }
                         html += `</div>`;
                         html += `</div>`;
@@ -2525,17 +2600,38 @@
                     html += `<div class="sub-test-header">${icon} <strong>${testName}</strong></div>`;
                     html += `<div class="sub-test-message">${testResult.message}</div>`;
 
-                    // Show prompt and response for completion tests
-                    if (testResult.input_prompt && testResult.success) {
+                    // Show models list for API Connection test
+                    if (testName === 'API Connection' && testResult.models && testResult.models.length > 0) {
                         html += `<div class="sub-test-details">`;
-                        html += `<div class="prompt-section">`;
-                        html += `<span class="stat-label">💬 Prompt:</span>`;
-                        html += `<div class="prompt-text">"${testResult.input_prompt}"</div>`;
+                        html += `<span class="stat-label">📋 Available Models (${testResult.models.length}):</span><br/>`;
+                        html += `<div class="models-list">`;
+                        testResult.models.forEach(model => {
+                            html += `<span class="model-badge">${model}</span>`;
+                        });
                         html += `</div>`;
+                        html += `</div>`;
+                    }
 
-                        if (testResult.response_preview || testResult.response_text) {
-                            const response = testResult.response_text || testResult.response_preview;
-                            const displayResponse = response.length > 200 ? response.substring(0, 200) + '...' : response;
+                    // Show prompt and response for completion tests
+                    if (testName === 'Text Completion' && testResult.success) {
+                        html += `<div class="sub-test-details">`;
+
+                        if (testResult.model) {
+                            html += `<div class="stats-row">`;
+                            html += `<span class="stat-item"><strong>🤖 Model:</strong> ${testResult.model}</span>`;
+                            if (testResult.validation_passed !== undefined) {
+                                const validIcon = testResult.validation_passed ? '✅' : '❌';
+                                html += `<span class="stat-item"><strong>✓ Validation:</strong> ${validIcon} ${testResult.validation_passed ? 'Passed' : 'Failed'}</span>`;
+                            }
+                            html += `</div>`;
+                        }
+
+                        if (testResult.response_text) {
+                            html += `<div class="prompt-section">`;
+                            html += `<span class="stat-label">💬 Test:</span>`;
+                            html += `<div class="prompt-text">What is 2+2? Answer with just the number.</div>`;
+                            html += `</div>`;
+                            const displayResponse = testResult.response_text.length > 200 ? testResult.response_text.substring(0, 200) + '...' : testResult.response_text;
                             html += `<div class="response-section">`;
                             html += `<span class="stat-label">💡 Response:</span>`;
                             html += `<div class="response-text">"${displayResponse}"</div>`;
@@ -2543,27 +2639,93 @@
                         }
 
                         html += `<div class="stats-row">`;
-                        if (testResult.duration_seconds || testResult.response_time_seconds) {
-                            const duration = testResult.duration_seconds || testResult.response_time_seconds;
-                            html += `<span class="stat-item"><strong>⏱️ Time:</strong> ${(duration * 1000).toFixed(0)}ms</span>`;
+                        if (testResult.response_time_ms) {
+                            html += `<span class="stat-item"><strong>⏱️ Time:</strong> ${testResult.response_time_ms.toFixed(0)}ms</span>`;
                         }
-                        if (testResult.response_length || testResult.total_tokens) {
-                            const length = testResult.response_length || testResult.total_tokens;
-                            html += `<span class="stat-item"><strong>📏 Length:</strong> ${length}</span>`;
+                        if (testResult.tokens_used) {
+                            const tokens = testResult.tokens_used;
+                            html += `<span class="stat-item"><strong>🎯 Tokens:</strong> ${tokens.total_tokens || 'N/A'} (${tokens.prompt_tokens || 0}p + ${tokens.completion_tokens || 0}c)</span>`;
+                        }
+                        html += `</div>`;
+                        html += `</div>`;
+                    }
+
+                    // Show custom prompt details
+                    if (testName === 'Custom Prompt' && testResult.success) {
+                        html += `<div class="sub-test-details">`;
+
+                        if (testResult.model) {
+                            html += `<div class="stats-row">`;
+                            html += `<span class="stat-item"><strong>🤖 Model:</strong> ${testResult.model}</span>`;
+                            html += `</div>`;
+                        }
+
+                        if (testResult.prompt) {
+                            html += `<div class="prompt-section">`;
+                            html += `<span class="stat-label">💬 Prompt:</span>`;
+                            const promptDisplay = testResult.prompt.length > 150 ? testResult.prompt.substring(0, 150) + '...' : testResult.prompt;
+                            html += `<div class="prompt-text">"${promptDisplay}"</div>`;
+                            html += `</div>`;
+                        }
+
+                        if (testResult.response_text) {
+                            const displayResponse = testResult.response_text.length > 200 ? testResult.response_text.substring(0, 200) + '...' : testResult.response_text;
+                            html += `<div class="response-section">`;
+                            html += `<span class="stat-label">💡 Response:</span>`;
+                            html += `<div class="response-text">"${displayResponse}"</div>`;
+                            html += `</div>`;
+                        }
+
+                        html += `<div class="stats-row">`;
+                        if (testResult.response_time_ms) {
+                            html += `<span class="stat-item"><strong>⏱️ Time:</strong> ${testResult.response_time_ms.toFixed(0)}ms</span>`;
+                        }
+                        if (testResult.tokens_used) {
+                            const tokens = testResult.tokens_used;
+                            html += `<span class="stat-item"><strong>🎯 Tokens:</strong> ${tokens.total_tokens || 'N/A'}</span>`;
                         }
                         html += `</div>`;
                         html += `</div>`;
                     }
 
                     // Show embedding details
-                    if (testResult.embedding_dimension) {
+                    if (testName === 'Text Embedding' && testResult.success) {
                         html += `<div class="sub-test-details">`;
+
+                        if (testResult.model) {
+                            html += `<div class="stats-row">`;
+                            html += `<span class="stat-item"><strong>🤖 Model:</strong> ${testResult.model}</span>`;
+                            html += `</div>`;
+                        }
+
+                        if (testResult.input_text) {
+                            html += `<div class="prompt-section">`;
+                            html += `<span class="stat-label">📝 Input:</span>`;
+                            const inputDisplay = testResult.input_text.length > 100 ? testResult.input_text.substring(0, 100) + '...' : testResult.input_text;
+                            html += `<div class="prompt-text">"${inputDisplay}"</div>`;
+                            html += `</div>`;
+                        }
+
                         html += `<div class="stats-row">`;
-                        html += `<span class="stat-item"><strong>📐 Dimension:</strong> ${testResult.embedding_dimension}</span>`;
-                        if (testResult.embeddings_generated) {
-                            html += `<span class="stat-item"><strong>📊 Generated:</strong> ${testResult.embeddings_generated}</span>`;
+                        if (testResult.embedding_dimensions) {
+                            html += `<span class="stat-item"><strong>📐 Dimensions:</strong> ${testResult.embedding_dimensions}</span>`;
+                        }
+                        if (testResult.response_time_ms) {
+                            html += `<span class="stat-item"><strong>⏱️ Time:</strong> ${testResult.response_time_ms.toFixed(0)}ms</span>`;
+                        }
+                        if (testResult.tokens_used) {
+                            html += `<span class="stat-item"><strong>🎯 Tokens:</strong> ${testResult.tokens_used}</span>`;
                         }
                         html += `</div>`;
+
+                        if (testResult.sample_values && testResult.sample_values.length > 0) {
+                            html += `<div class="stats-row">`;
+                            html += `<span class="stat-label">📊 Sample Values:</span>`;
+                            const samples = testResult.sample_values.map(v => v.toFixed(6)).join(', ');
+                            html += `<span class="stat-value">[${samples}...]</span>`;
+                            html += `</div>`;
+                        }
+
                         html += `</div>`;
                     }
 

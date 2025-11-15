@@ -593,7 +593,31 @@ a:hover {
     border-radius: var(--radius-xl);
     font-size: 0.8rem;
     font-weight: 600;
-    margin: 0 4px;
+    margin: 0 4px 4px 0;
+}
+
+.model-badge-target {
+    display: inline-block;
+    background-color: var(--color-success);
+    color: var(--color-bg-primary);
+    padding: 4px 10px;
+    border-radius: var(--radius-xl);
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin: 0 4px 4px 0;
+    border: 2px solid var(--color-success-dark);
+}
+
+.models-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    background-color: var(--color-bg-secondary);
+    border-radius: var(--radius-md);
+    max-height: 200px;
+    overflow-y: auto;
 }
 
 /* SSL Certificate styles */
