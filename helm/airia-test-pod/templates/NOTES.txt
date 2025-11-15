@@ -31,15 +31,40 @@
 {{- else }}
    ✗ PostgreSQL Database Test (disabled)
 {{- end }}
+{{- if .Values.config.cassandra.enabled }}
+   ✓ Apache Cassandra Test
+{{- else }}
+   ✗ Apache Cassandra Test (disabled)
+{{- end }}
 {{- if .Values.config.blobStorage.enabled }}
    ✓ Azure Blob Storage Test
 {{- else }}
    ✗ Azure Blob Storage Test (disabled)
 {{- end }}
-{{- if .Values.config.openai.enabled }}
-   ✓ Azure OpenAI Test
+{{- if .Values.config.minio.enabled }}
+   ✓ Minio Storage Test
 {{- else }}
-   ✗ Azure OpenAI Test (disabled)
+   ✗ Minio Storage Test (disabled)
+{{- end }}
+{{- if .Values.config.s3.enabled }}
+   ✓ Amazon S3 Storage Test
+{{- else }}
+   ✗ Amazon S3 Storage Test (disabled)
+{{- end }}
+{{- if .Values.config.openai.enabled }}
+   ✓ Azure OpenAI / OpenAI-Compatible API Test
+{{- else }}
+   ✗ Azure OpenAI / OpenAI-Compatible API Test (disabled)
+{{- end }}
+{{- if or (and .Values.config.ollama .Values.config.ollama.enabled) (and .Values.config.llama .Values.config.llama.enabled) }}
+   ✓ Ollama Native API Test
+{{- else }}
+   ✗ Ollama Native API Test (disabled)
+{{- end }}
+{{- if .Values.config.embeddings.enabled }}
+   ✓ Embedding Models Test
+{{- else }}
+   ✗ Embedding Models Test (disabled)
 {{- end }}
 {{- if .Values.config.documentIntelligence.enabled }}
    ✓ Document Intelligence Test
