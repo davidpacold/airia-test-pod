@@ -1859,6 +1859,12 @@
                     return formatDocumentIntelligenceResult(result);
                 } else if (testId === 'gpu') {
                     return formatGPUResult(result);
+                } else if (testId === 's3') {
+                    return formatS3Result(result);
+                } else if (testId === 'minio') {
+                    return formatMinioResult(result);
+                } else if (testId === 'openai') {
+                    return formatOpenAIResult(result);
                 }
             }
 
@@ -2734,40 +2740,17 @@
                 html += `<div class="sub-tests-grid">`;
 
                 for (const [testName, testResult] of Object.entries(result.sub_tests)) {
+                    // Skip databases and extensions as they're already shown in the formatted sections above
+                    if (testName === 'databases' || testName === 'extensions') {
+                        continue;
+                    }
+
                     const icon = testResult.success ? '✅' : '❌';
                     const itemClass = testResult.success ? 'sub-test-success' : 'sub-test-error';
 
                     html += `<div class="sub-test-item ${itemClass}">`;
                     html += `<div class="sub-test-header">${icon} <strong>${testName}</strong></div>`;
                     html += `<div class="sub-test-message">${testResult.message}</div>`;
-
-                    // Show database details
-                    if (testName === 'databases' && testResult.databases) {
-                        html += `<div class="database-list">`;
-                        html += `<h6>📚 Databases Found:</h6>`;
-                        testResult.databases.forEach(db => {
-                            html += `<div class="database-item">• ${db.name} <span class="size">(${db.size_human})</span></div>`;
-                        });
-                        html += `</div>`;
-                    }
-
-                    // Show extension details
-                    if (testName === 'extensions' && testResult.installed_extensions) {
-                        html += `<div class="extensions-section">`;
-                        html += `<h6>🔧 Installed Extensions:</h6>`;
-                        testResult.installed_extensions.forEach(ext => {
-                            html += `<div class="extension-item">• ${ext.name} <span class="version">v${ext.version}</span></div>`;
-                        });
-
-                        if (testResult.available_extensions && testResult.available_extensions.length > 0) {
-                            html += `<h6>📦 Available Extensions:</h6>`;
-                            testResult.available_extensions.forEach(ext => {
-                                const status = ext.installed ? ' ✓' : '';
-                                html += `<div class="extension-item">• ${ext.name} <span class="version">v${ext.version}${status}</span></div>`;
-                            });
-                        }
-                        html += `</div>`;
-                    }
 
                     if (testResult.remediation) {
                         html += `<div class="remediation">💡 <em>${testResult.remediation}</em></div>`;
@@ -3548,6 +3531,328 @@
                 });
             }
             
+            return html;
+        }
+
+        function formatS3Result(result) {
+            const responseId = 's3-' + Date.now();
+            let html = `<div class="test-result-enhanced s3-result">`;
+
+            // Header with status
+            let statusIcon, statusClass;
+            if (result.status === 'passed') {
+                statusIcon = '✅';
+                statusClass = 'success';
+            } else if (result.status === 'skipped') {
+                statusIcon = '⚠️';
+                statusClass = 'warning';
+            } else {
+                statusIcon = '❌';
+                statusClass = 'error';
+            }
+            html += `<div class="result-header ${statusClass}">`;
+            html += `<h4>${statusIcon} Amazon S3 Storage Test</h4>`;
+            html += `<div class="test-meta">`;
+            html += `<span class="duration">⏱️ ${result.duration_seconds?.toFixed(2) || 'N/A'}s</span>`;
+            html += `<span class="status">Status: ${result.status}</span>`;
+            html += `</div>`;
+            html += `</div>`;
+
+            html += `<div class="result-message">`;
+            html += `<p><strong>☁️ Result:</strong> ${result.message}</p>`;
+            html += `</div>`;
+
+            // Storage summary from details
+            if (result.details) {
+                html += `<div class="storage-summary">`;
+                html += `<h5>📦 S3 Configuration</h5>`;
+                html += `<div class="summary-stats">`;
+                if (result.details.region) {
+                    html += `<span class="stat-item"><strong>🌍 Region:</strong> ${result.details.region}</span>`;
+                }
+                if (result.details.bucket) {
+                    html += `<span class="stat-item"><strong>🪣 Bucket:</strong> ${result.details.bucket}</span>`;
+                }
+                if (result.details.endpoint) {
+                    html += `<span class="stat-item"><strong>🔗 Endpoint:</strong> ${result.details.endpoint}</span>`;
+                }
+                if (result.details.total_buckets !== undefined) {
+                    html += `<span class="stat-item"><strong>📚 Total Buckets:</strong> ${result.details.total_buckets}</span>`;
+                }
+                html += `</div>`;
+                html += `</div>`;
+            }
+
+            // Sub-tests
+            if (result.sub_tests) {
+                html += `<div class="sub-tests-section">`;
+                html += `<h5>🔍 Test Results:</h5>`;
+                html += `<div class="sub-tests-grid">`;
+
+                for (const [testName, testResult] of Object.entries(result.sub_tests)) {
+                    const icon = testResult.success ? '✅' : testResult.skipped ? '⚠️' : '❌';
+                    const itemClass = testResult.success ? 'sub-test-success' : 'sub-test-error';
+
+                    html += `<div class="sub-test-item ${itemClass}">`;
+                    html += `<div class="sub-test-header">${icon} <strong>${testName}</strong></div>`;
+                    html += `<div class="sub-test-message">${testResult.message}</div>`;
+
+                    if (testResult.details) {
+                        html += `<div class="sub-test-details">`;
+                        html += `<div class="stats-row">`;
+                        Object.entries(testResult.details).forEach(([key, value]) => {
+                            if (typeof value !== 'object') {
+                                html += `<span class="stat-item"><strong>${key}:</strong> ${value}</span>`;
+                            }
+                        });
+                        html += `</div>`;
+                        html += `</div>`;
+                    }
+
+                    if (testResult.remediation) {
+                        html += `<div class="remediation">💡 <em>${testResult.remediation}</em></div>`;
+                    }
+
+                    html += `</div>`;
+                }
+
+                html += `</div>`;
+                html += `</div>`;
+            }
+
+            if (result.remediation) {
+                html += `<div class="remediation-section">`;
+                html += `<h5>💡 Remediation:</h5>`;
+                html += `<div class="remediation-content">${result.remediation}</div>`;
+                html += `</div>`;
+            }
+
+            html += `</div>`;
+            return html;
+        }
+
+        function formatMinioResult(result) {
+            const responseId = 'minio-' + Date.now();
+            let html = `<div class="test-result-enhanced minio-result">`;
+
+            // Header with status
+            let statusIcon, statusClass;
+            if (result.status === 'passed') {
+                statusIcon = '✅';
+                statusClass = 'success';
+            } else if (result.status === 'skipped') {
+                statusIcon = '⚠️';
+                statusClass = 'warning';
+            } else {
+                statusIcon = '❌';
+                statusClass = 'error';
+            }
+            html += `<div class="result-header ${statusClass}">`;
+            html += `<h4>${statusIcon} MinIO Storage Test</h4>`;
+            html += `<div class="test-meta">`;
+            html += `<span class="duration">⏱️ ${result.duration_seconds?.toFixed(2) || 'N/A'}s</span>`;
+            html += `<span class="status">Status: ${result.status}</span>`;
+            html += `</div>`;
+            html += `</div>`;
+
+            html += `<div class="result-message">`;
+            html += `<p><strong>🗄️ Result:</strong> ${result.message}</p>`;
+            html += `</div>`;
+
+            // Storage summary from details
+            if (result.details) {
+                html += `<div class="storage-summary">`;
+                html += `<h5>📦 MinIO Configuration</h5>`;
+                html += `<div class="summary-stats">`;
+                if (result.details.endpoint) {
+                    html += `<span class="stat-item"><strong>🔗 Endpoint:</strong> ${result.details.endpoint}</span>`;
+                }
+                if (result.details.bucket) {
+                    html += `<span class="stat-item"><strong>🪣 Bucket:</strong> ${result.details.bucket}</span>`;
+                }
+                if (result.details.secure !== undefined) {
+                    html += `<span class="stat-item"><strong>🔒 Secure:</strong> ${result.details.secure ? 'Yes' : 'No'}</span>`;
+                }
+                if (result.details.total_buckets !== undefined) {
+                    html += `<span class="stat-item"><strong>📚 Total Buckets:</strong> ${result.details.total_buckets}</span>`;
+                }
+                html += `</div>`;
+                html += `</div>`;
+            }
+
+            // Sub-tests
+            if (result.sub_tests) {
+                html += `<div class="sub-tests-section">`;
+                html += `<h5>🔍 Test Results:</h5>`;
+                html += `<div class="sub-tests-grid">`;
+
+                for (const [testName, testResult] of Object.entries(result.sub_tests)) {
+                    const icon = testResult.success ? '✅' : testResult.skipped ? '⚠️' : '❌';
+                    const itemClass = testResult.success ? 'sub-test-success' : 'sub-test-error';
+
+                    html += `<div class="sub-test-item ${itemClass}">`;
+                    html += `<div class="sub-test-header">${icon} <strong>${testName}</strong></div>`;
+                    html += `<div class="sub-test-message">${testResult.message}</div>`;
+
+                    if (testResult.details) {
+                        html += `<div class="sub-test-details">`;
+                        html += `<div class="stats-row">`;
+                        Object.entries(testResult.details).forEach(([key, value]) => {
+                            if (typeof value !== 'object') {
+                                html += `<span class="stat-item"><strong>${key}:</strong> ${value}</span>`;
+                            }
+                        });
+                        html += `</div>`;
+                        html += `</div>`;
+                    }
+
+                    if (testResult.remediation) {
+                        html += `<div class="remediation">💡 <em>${testResult.remediation}</em></div>`;
+                    }
+
+                    html += `</div>`;
+                }
+
+                html += `</div>`;
+                html += `</div>`;
+            }
+
+            if (result.remediation) {
+                html += `<div class="remediation-section">`;
+                html += `<h5>💡 Remediation:</h5>`;
+                html += `<div class="remediation-content">${result.remediation}</div>`;
+                html += `</div>`;
+            }
+
+            html += `</div>`;
+            return html;
+        }
+
+        function formatOpenAIResult(result) {
+            const responseId = 'openai-' + Date.now();
+            let html = `<div class="test-result-enhanced openai-result">`;
+
+            // Header with status
+            let statusIcon, statusClass;
+            if (result.status === 'passed') {
+                statusIcon = '✅';
+                statusClass = 'success';
+            } else if (result.status === 'skipped') {
+                statusIcon = '⚠️';
+                statusClass = 'warning';
+            } else {
+                statusIcon = '❌';
+                statusClass = 'error';
+            }
+            html += `<div class="result-header ${statusClass}">`;
+            html += `<h4>${statusIcon} OpenAI/AI Models Test</h4>`;
+            html += `<div class="test-meta">`;
+            html += `<span class="duration">⏱️ ${result.duration_seconds?.toFixed(2) || 'N/A'}s</span>`;
+            html += `<span class="status">Status: ${result.status}</span>`;
+            html += `</div>`;
+            html += `</div>`;
+
+            html += `<div class="result-message">`;
+            html += `<p><strong>🤖 Result:</strong> ${result.message}</p>`;
+            html += `</div>`;
+
+            // AI Configuration summary
+            if (result.details) {
+                html += `<div class="database-summary">`;
+                html += `<h5>🧠 AI Configuration</h5>`;
+                html += `<div class="summary-stats">`;
+                if (result.details.provider) {
+                    html += `<span class="stat-item"><strong>🏢 Provider:</strong> ${result.details.provider}</span>`;
+                }
+                if (result.details.endpoint) {
+                    html += `<span class="stat-item"><strong>🔗 Endpoint:</strong> ${result.details.endpoint}</span>`;
+                }
+                if (result.details.deployment || result.details.model) {
+                    const modelName = result.details.deployment || result.details.model;
+                    html += `<span class="stat-item"><strong>🤖 Model:</strong> ${modelName}</span>`;
+                }
+                if (result.details.api_version) {
+                    html += `<span class="stat-item"><strong>📋 API Version:</strong> ${result.details.api_version}</span>`;
+                }
+                html += `</div>`;
+                html += `</div>`;
+            }
+
+            // Sub-tests
+            if (result.sub_tests) {
+                html += `<div class="sub-tests-section">`;
+                html += `<h5>🔍 Model Tests:</h5>`;
+                html += `<div class="sub-tests-grid">`;
+
+                for (const [testName, testResult] of Object.entries(result.sub_tests)) {
+                    const icon = testResult.success ? '✅' : testResult.skipped ? '⚠️' : '❌';
+                    const itemClass = testResult.success ? 'sub-test-success' : 'sub-test-error';
+
+                    html += `<div class="sub-test-item ${itemClass}">`;
+                    html += `<div class="sub-test-header">${icon} <strong>${testName}</strong></div>`;
+                    html += `<div class="sub-test-message">${testResult.message}</div>`;
+
+                    // Show prompt and response for completion tests
+                    if (testResult.input_prompt && testResult.success) {
+                        html += `<div class="sub-test-details">`;
+                        html += `<div class="prompt-section">`;
+                        html += `<span class="stat-label">💬 Prompt:</span>`;
+                        html += `<div class="prompt-text">"${testResult.input_prompt}"</div>`;
+                        html += `</div>`;
+
+                        if (testResult.response_preview || testResult.response_text) {
+                            const response = testResult.response_text || testResult.response_preview;
+                            const displayResponse = response.length > 200 ? response.substring(0, 200) + '...' : response;
+                            html += `<div class="response-section">`;
+                            html += `<span class="stat-label">💡 Response:</span>`;
+                            html += `<div class="response-text">"${displayResponse}"</div>`;
+                            html += `</div>`;
+                        }
+
+                        html += `<div class="stats-row">`;
+                        if (testResult.duration_seconds || testResult.response_time_seconds) {
+                            const duration = testResult.duration_seconds || testResult.response_time_seconds;
+                            html += `<span class="stat-item"><strong>⏱️ Time:</strong> ${(duration * 1000).toFixed(0)}ms</span>`;
+                        }
+                        if (testResult.response_length || testResult.total_tokens) {
+                            const length = testResult.response_length || testResult.total_tokens;
+                            html += `<span class="stat-item"><strong>📏 Length:</strong> ${length}</span>`;
+                        }
+                        html += `</div>`;
+                        html += `</div>`;
+                    }
+
+                    // Show embedding details
+                    if (testResult.embedding_dimension) {
+                        html += `<div class="sub-test-details">`;
+                        html += `<div class="stats-row">`;
+                        html += `<span class="stat-item"><strong>📐 Dimension:</strong> ${testResult.embedding_dimension}</span>`;
+                        if (testResult.embeddings_generated) {
+                            html += `<span class="stat-item"><strong>📊 Generated:</strong> ${testResult.embeddings_generated}</span>`;
+                        }
+                        html += `</div>`;
+                        html += `</div>`;
+                    }
+
+                    if (testResult.remediation) {
+                        html += `<div class="remediation">💡 <em>${testResult.remediation}</em></div>`;
+                    }
+
+                    html += `</div>`;
+                }
+
+                html += `</div>`;
+                html += `</div>`;
+            }
+
+            if (result.remediation) {
+                html += `<div class="remediation-section">`;
+                html += `<h5>💡 Remediation:</h5>`;
+                html += `<div class="remediation-content">${result.remediation}</div>`;
+                html += `</div>`;
+            }
+
+            html += `</div>`;
             return html;
         }
     </script>

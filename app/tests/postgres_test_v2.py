@@ -201,13 +201,12 @@ class PostgreSQLTestV2(BaseTest):
             for ext_name, ext_version in cursor.fetchall():
                 installed_extensions.append({"name": ext_name, "version": ext_version})
 
-            # Get available extensions (show more for better visibility)
+            # Get all available extensions (no limit to ensure we catch all critical ones)
             cursor.execute(
                 """
                 SELECT name, default_version, installed_version
                 FROM pg_available_extensions
-                ORDER BY name
-                LIMIT 25;
+                ORDER BY name;
             """
             )
 

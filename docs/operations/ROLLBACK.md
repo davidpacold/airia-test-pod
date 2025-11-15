@@ -74,21 +74,21 @@ gh workflow run rollback.yml \
 
 ```bash
 # Check current deployment status
-kubectl get deployment airia-test-pod -n default
-kubectl rollout status deployment/airia-test-pod -n default
+kubectl get deployment airia-test-pod -n airia
+kubectl rollout status deployment/airia-test-pod -n airia
 
 # View Helm release history
-helm history airia-test-pod -n default
+helm history airia-test-pod -n airia
 
 # Rollback to previous version
-helm rollback airia-test-pod -n default
+helm rollback airia-test-pod -n airia
 
 # Rollback to specific revision
-helm rollback airia-test-pod 3 -n default
+helm rollback airia-test-pod 3 -n airia
 
 # Verify rollback success
-kubectl rollout status deployment/airia-test-pod -n default
-kubectl exec deployment/airia-test-pod -n default -- curl -f http://localhost:8080/health/live
+kubectl rollout status deployment/airia-test-pod -n airia
+kubectl exec deployment/airia-test-pod -n airia -- curl -f http://localhost:8080/health/live
 ```
 
 ## 🏥 Health Check Validation
@@ -128,11 +128,11 @@ The rollback system uses comprehensive health checks to validate deployment succ
 **Commands**:
 ```bash
 # Rollback application
-helm rollback airia-test-pod -n default
+helm rollback airia-test-pod -n airia
 
 # Rollback database (if migrations were applied)
 # This would be application-specific - check migration tools
-kubectl exec deployment/airia-test-pod -n default -- python -m alembic downgrade -1
+kubectl exec deployment/airia-test-pod -n airia -- python -m alembic downgrade -1
 ```
 
 ### Configuration Rollbacks
@@ -205,27 +205,27 @@ kubectl exec deployment/airia-test-pod -n default -- python -m alembic downgrade
 #### Complete Service Outage
 ```bash
 # Immediate rollback without waiting
-helm rollback airia-test-pod --force --no-hooks -n default
+helm rollback airia-test-pod --force --no-hooks -n airia
 
 # Scale to zero and back up (nuclear option)
-kubectl scale deployment airia-test-pod --replicas=0 -n default
-kubectl scale deployment airia-test-pod --replicas=2 -n default
+kubectl scale deployment airia-test-pod --replicas=0 -n airia
+kubectl scale deployment airia-test-pod --replicas=2 -n airia
 
 # Check pod status
-kubectl get pods -n default -l app=airia-test-pod
+kubectl get pods -n airia -l app=airia-test-pod
 ```
 
 #### Rollback Workflow Failure
 ```bash
 # Manual Helm rollback
-helm rollback airia-test-pod -n default
+helm rollback airia-test-pod -n airia
 
 # Check rollback status
-helm status airia-test-pod -n default
-kubectl rollout status deployment/airia-test-pod -n default
+helm status airia-test-pod -n airia
+kubectl rollout status deployment/airia-test-pod -n airia
 
 # Force restart pods if needed
-kubectl rollout restart deployment/airia-test-pod -n default
+kubectl rollout restart deployment/airia-test-pod -n airia
 ```
 
 ## 📋 Rollback Checklist
