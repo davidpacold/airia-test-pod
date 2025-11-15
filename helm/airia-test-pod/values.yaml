@@ -208,7 +208,7 @@ affinity: {}
 #   - Azure OpenAI & OpenAI-Compatible ........ Line 289
 #   - Azure Document Intelligence ............. Line 329
 #   - Dedicated Embedding Models .............. Line 345
-#   - Self-hosted Llama Models ................ Line 372
+#   - Ollama Native API ....................... Line 406
 #
 # 🔧 INFRASTRUCTURE
 #   - SSL Certificate Validation .............. Line 410
