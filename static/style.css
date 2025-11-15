@@ -1267,6 +1267,22 @@ a:hover {
     border-radius: var(--radius-md);
     padding: 1rem;
     margin-bottom: 0.75rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Improved styling for stat-items within embedding-details */
+.embedding-details .stat-item,
+.embedding-details .stat-row .stat-item {
+    font-size: 0.85rem;
+    padding: 0.5rem 0.75rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.embedding-details .stat-value {
+    max-width: 100%;
+    display: inline-block;
 }
 
 .stat-header {
@@ -1275,10 +1291,14 @@ a:hover {
     margin-bottom: 0.5rem;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--color-border-gray);
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .stat-details {
     font-size: 0.9rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .stat-row {
@@ -1292,6 +1312,8 @@ a:hover {
     font-weight: 500;
     color: var(--color-text-muted);
     min-width: 80px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .stat-value {
@@ -1300,6 +1322,8 @@ a:hover {
     padding: var(--spacing-2xs) var(--spacing-sm);
     border-radius: var(--radius-sm);
     font-size: 0.85rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .similarity-analysis {
