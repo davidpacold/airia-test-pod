@@ -484,7 +484,7 @@ config:
 # ===============================================================================
 namespace:
   create: false  # Set to true to create a new namespace
-  name: "airia-preprod"  # Namespace name if create is true
+  name: "airia"  # Namespace name if create is true
 
 # ===============================================================================
 # VERSION CHECKING (Optional)

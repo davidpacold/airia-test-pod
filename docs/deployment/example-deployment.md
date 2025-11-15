@@ -76,4 +76,4 @@ Enable and configure services as needed:
 - Ensure your TLS certificate matches your domain
 - Verify all required credentials are correct
 - Check namespace permissions
-- Review pod logs: `kubectl logs -n your-namespace deployment/airia-test-pod`
+- Review pod logs: `kubectl logs -n airia deployment/airia-test-pod`

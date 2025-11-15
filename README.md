@@ -30,7 +30,7 @@ helm upgrade airia-test-pod \
 
 ```bash
 # Port forward to access the web interface
-kubectl port-forward -n default svc/airia-test-pod 8080:80
+kubectl port-forward -n airia svc/airia-test-pod 8080:80
 
 # Open your browser
 open http://localhost:8080
@@ -61,7 +61,7 @@ helm upgrade airia-test-pod \
   oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
   --set versionCheck.strict=true \
   -f your-config.yaml \
-  --namespace default
+  --namespace airia
 ```
 
 ### Automated Upgrade Script
@@ -409,20 +409,20 @@ docker run -d -p 8080:8080 \
 ### **Connection Issues**
 ```bash
 # Check pod logs for detailed error messages
-kubectl logs -n airia-preprod -l app.kubernetes.io/name=airia-test-pod
+kubectl logs -n airia -l app.kubernetes.io/name=airia-test-pod
 
 # Verify services are accessible from the pod
-kubectl exec -n airia-preprod deployment/airia-test-pod -- nslookup your-server.postgres.database.azure.com
+kubectl exec -n airia deployment/airia-test-pod -- nslookup your-server.postgres.database.azure.com
 ```
 
 ### **Dashboard Access Problems**
 ```bash
 # Port forward not working? Try:
-kubectl get pods -n airia-preprod
-kubectl port-forward -n airia-preprod pod/airia-test-pod-xxx 8080:8080
+kubectl get pods -n airia
+kubectl port-forward -n airia pod/airia-test-pod-xxx 8080:8080
 
 # Check if ingress is configured
-kubectl get ingress -n airia-preprod
+kubectl get ingress -n airia
 ```
 
 ### **Configuration Not Taking Effect**
@@ -431,7 +431,7 @@ kubectl get ingress -n airia-preprod
 helm get values airia-test-pod
 
 # Restart the pod to pick up new config
-kubectl rollout restart -n airia-preprod deployment/airia-test-pod
+kubectl rollout restart -n airia deployment/airia-test-pod
 ```
 
 ---

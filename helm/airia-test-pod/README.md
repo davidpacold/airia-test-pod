@@ -129,9 +129,9 @@ helm install airia-test-pod ./helm/airia-test-pod -f my-values.yaml
 ### 3. Verify Installation
 
 ```bash
-kubectl get pods -n airia-preprod
-kubectl get svc -n airia-preprod
-kubectl get ingress -n airia-preprod
+kubectl get pods -n airia
+kubectl get svc -n airia
+kubectl get ingress -n airia
 ```
 
 ## Configuration
@@ -238,7 +238,7 @@ helm uninstall airia-test-pod
 To also remove the namespace:
 
 ```bash
-kubectl delete namespace airia-preprod
+kubectl delete namespace airia
 ```
 
 ## Troubleshooting
@@ -254,14 +254,14 @@ kubectl delete namespace airia-preprod
 
 ```bash
 # Check pod logs
-kubectl logs -n airia-preprod -l app.kubernetes.io/name=airia-test-pod
+kubectl logs -n airia -l app.kubernetes.io/name=airia-test-pod
 
 # Check pod describe
-kubectl describe pod -n airia-preprod -l app.kubernetes.io/name=airia-test-pod
+kubectl describe pod -n airia -l app.kubernetes.io/name=airia-test-pod
 
 # Check configuration
-kubectl get configmap -n airia-preprod airia-test-pod-config -o yaml
-kubectl get secret -n airia-preprod airia-test-pod-auth -o yaml
+kubectl get configmap -n airia airia-test-pod-config -o yaml
+kubectl get secret -n airia airia-test-pod-auth -o yaml
 ```
 
 ## Security Considerations

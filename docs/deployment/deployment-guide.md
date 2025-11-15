@@ -137,7 +137,7 @@ resources:
 helm install airia-test-pod ./helm/airia-test-pod -f my-test-values.yaml
 
 # Wait for it to start (takes 1-2 minutes)
-kubectl get pods -n airia-preprod -w
+kubectl get pods -n airia -w
 ```
 
 ### Step 4: Access and Test
@@ -992,28 +992,28 @@ Expected response:
 ### View Logs
 ```bash
 # Follow application logs
-kubectl logs -f -n airia-preprod -l app.kubernetes.io/name=airia-test-pod
+kubectl logs -f -n airia -l app.kubernetes.io/name=airia-test-pod
 
 # Check pod status and events
-kubectl describe pod -n airia-preprod -l app.kubernetes.io/name=airia-test-pod
+kubectl describe pod -n airia -l app.kubernetes.io/name=airia-test-pod
 
 # Check ingress status
-kubectl get ingress -n airia-preprod
-kubectl describe ingress -n airia-preprod airia-test-pod
+kubectl get ingress -n airia
+kubectl describe ingress -n airia airia-test-pod
 ```
 
 ### Common Troubleshooting Commands
 
 **Pod Won't Start:**
 ```bash
-kubectl describe pod -n airia-preprod -l app.kubernetes.io/name=airia-test-pod
-kubectl logs -n airia-preprod -l app.kubernetes.io/name=airia-test-pod
+kubectl describe pod -n airia -l app.kubernetes.io/name=airia-test-pod
+kubectl logs -n airia -l app.kubernetes.io/name=airia-test-pod
 ```
 
 **Can't Access Web UI:**
 ```bash
 # Test with port-forward
-kubectl port-forward -n airia-preprod svc/airia-test-pod 8080:80
+kubectl port-forward -n airia svc/airia-test-pod 8080:80
 # Then open http://localhost:8080
 
 # Check ingress controller
@@ -1023,7 +1023,7 @@ kubectl get pods -n ingress-nginx
 **Authentication Issues:**
 ```bash
 # Verify secret exists
-kubectl get secret -n airia-preprod -l app.kubernetes.io/name=airia-test-pod
+kubectl get secret -n airia -l app.kubernetes.io/name=airia-test-pod
 ```
 
 ### API Access (Alternative to Web UI)
@@ -1071,7 +1071,7 @@ helm upgrade airia-test-pod ./helm/airia-test-pod -f my-test-values.yaml
 helm rollback airia-test-pod -n airia-preprod
 
 # Uninstall
-helm uninstall airia-test-pod -n airia-preprod
+helm uninstall airia-test-pod -n airia
 ```
 
 ### Using External Secrets
@@ -1098,16 +1098,16 @@ azure:
 ### Remove Test Pod
 ```bash
 # Helm installation
-helm uninstall airia-test-pod -n airia-preprod
+helm uninstall airia-test-pod -n airia
 
 # Raw Kubernetes manifests
-kubectl delete -f k8s/ -n airia-preprod
+kubectl delete -f k8s/ -n airia
 
 # Docker container
 docker stop airia-test-pod && docker rm airia-test-pod
 
 # Optional: Remove namespace
-kubectl delete namespace airia-preprod
+kubectl delete namespace airia
 ```
 
 ## Next Steps
@@ -1123,7 +1123,7 @@ After successful validation:
 
 When contacting support, please include:
 - Screenshot of test results
-- Pod logs: `kubectl logs -n airia-preprod -l app.kubernetes.io/name=airia-test-pod`
+- Pod logs: `kubectl logs -n airia -l app.kubernetes.io/name=airia-test-pod`
 - Your configuration (with sensitive data redacted)
 
 ---
