@@ -28,7 +28,7 @@ from .utils.sanitization import (InputSanitizer, sanitize_ai_prompt,
                                  sanitize_login_credentials,
                                  sanitize_user_input, validate_file_upload)
 
-app = FastAPI(title="Airia Infrastructure Test Pod", version="1.0.180")
+app = FastAPI(title="Airia Infrastructure Test Pod", version="1.0.181")
 
 # Setup standardized error handling
 setup_error_handlers(app)
