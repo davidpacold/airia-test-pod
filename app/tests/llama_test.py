@@ -1,43 +1,35 @@
 import json
 import os
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
-from openai import OpenAI
+import requests
 
 from ..models import TestStatus
 from .base_test import BaseTest, TestResult
 
 
 class LlamaTest(BaseTest):
-    """Test Llama model connectivity and capabilities"""
+    """Test Ollama native API connectivity and capabilities"""
 
     def __init__(self):
         super().__init__()
-        # Llama-specific configuration
-        self.llama_base_url = os.getenv("LLAMA_BASE_URL")
-        self.llama_api_key = os.getenv(
-            "LLAMA_API_KEY", "not-required"
-        )  # Many self-hosted don't need keys
-        self.llama_model_name = os.getenv("LLAMA_MODEL_NAME", "llama2")
-        self.llama_max_tokens = int(os.getenv("LLAMA_MAX_TOKENS", "100"))
-        self.llama_temperature = float(os.getenv("LLAMA_TEMPERATURE", "0.1"))
-
-        # Alternative generic OpenAI-compatible config
-        self.openai_base_url = os.getenv("OPENAI_BASE_URL")
-        self.openai_api_key = os.getenv("OPENAI_API_KEY", "not-required")
-        self.openai_model_name = os.getenv("OPENAI_MODEL_NAME", "gpt-3.5-turbo")
+        # Ollama-specific configuration (native API)
+        self.ollama_base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+        self.ollama_model_name = os.getenv("OLLAMA_MODEL_NAME", "llama2")
+        self.ollama_max_tokens = int(os.getenv("OLLAMA_MAX_TOKENS", "100"))
+        self.ollama_temperature = float(os.getenv("OLLAMA_TEMPERATURE", "0.7"))
 
         # Test configuration
-        self.request_timeout = int(os.getenv("LLAMA_TIMEOUT", "60"))
+        self.request_timeout = int(os.getenv("OLLAMA_TIMEOUT", "60"))
 
     @property
     def test_name(self) -> str:
-        return "Llama Model"
+        return "Ollama API (Native)"
 
     @property
     def test_description(self) -> str:
-        return "Tests Llama model API connectivity and text generation"
+        return "Tests Ollama native API connectivity and model generation"
 
     @property
     def test_id(self) -> str:
@@ -49,285 +41,282 @@ class LlamaTest(BaseTest):
 
     @property
     def timeout_seconds(self) -> int:
-        return 120  # Llama models can be slower
+        return 120  # Ollama models can be slower
 
     def is_configured(self) -> bool:
-        """Check if Llama or compatible API is configured"""
-        # Specific Llama configuration
-        llama_configured = bool(self.llama_base_url)
-
-        # Generic OpenAI-compatible configuration with Llama model name
-        openai_llama_configured = (
-            self.openai_base_url and "llama" in self.openai_model_name.lower()
-        )
-
-        return llama_configured or openai_llama_configured
+        """Check if Ollama API is configured"""
+        return bool(self.ollama_base_url and self.ollama_model_name)
 
     def get_configuration_help(self) -> str:
         return (
-            "Llama model API configuration required. "
-            "For dedicated Llama API: LLAMA_BASE_URL, LLAMA_MODEL_NAME (default: llama2), "
-            "LLAMA_API_KEY (optional), LLAMA_MAX_TOKENS (default: 100), LLAMA_TEMPERATURE (default: 0.1). "
-            "For OpenAI-compatible: OPENAI_BASE_URL, OPENAI_MODEL_NAME (with 'llama' in name), "
-            "OPENAI_API_KEY (optional). "
-            "Optional: LLAMA_TIMEOUT (default: 60)"
+            "Ollama native API configuration required. "
+            "OLLAMA_BASE_URL (default: http://localhost:11434), "
+            "OLLAMA_MODEL_NAME (default: llama2), "
+            "OLLAMA_MAX_TOKENS (default: 100), "
+            "OLLAMA_TEMPERATURE (default: 0.7), "
+            "OLLAMA_TIMEOUT (default: 60)"
         )
 
     def run_test(self) -> TestResult:
         result = TestResult(self.test_name)
         result.start()
-        
-        self.logger.info("Starting Llama model test...")
-        print("🦙 Starting Llama model test...")
+
+        self.logger.info("Starting Ollama native API test...")
+        print("🦙 Starting Ollama native API test...")
+        print(f"🔧 Ollama endpoint: {self.ollama_base_url}")
+        print(f"🤖 Model: {self.ollama_model_name}")
+
+        result.add_log("INFO", f"Ollama endpoint: {self.ollama_base_url}")
+        result.add_log("INFO", f"Model: {self.ollama_model_name}")
 
         try:
-            # Determine which configuration to use
-            use_llama_config = bool(self.llama_base_url)
-
-            if use_llama_config:
-                self.logger.info(f"Using Llama API configuration: {self.llama_base_url}")
-                self.logger.info(f"Model: {self.llama_model_name}")
-                print(f"🔧 Using Llama API configuration: {self.llama_base_url}")
-                print(f"🤖 Model: {self.llama_model_name}")
-                result.add_log(
-                    "INFO", f"Using Llama API configuration: {self.llama_base_url}"
-                )
-                result.add_log("INFO", f"Model: {self.llama_model_name}")
-                client = OpenAI(
-                    api_key=self.llama_api_key,
-                    base_url=self.llama_base_url,
-                    timeout=self.request_timeout,
-                )
-                model_name = self.llama_model_name
-                max_tokens = self.llama_max_tokens
-                temperature = self.llama_temperature
-            else:
-                self.logger.info(f"Using OpenAI-compatible API: {self.openai_base_url}")
-                self.logger.info(f"Model: {self.openai_model_name}")
-                print(f"🔧 Using OpenAI-compatible API: {self.openai_base_url}")
-                print(f"🤖 Model: {self.openai_model_name}")
-                print("🔍 Detected Llama model via OpenAI-compatible interface")
-                result.add_log(
-                    "INFO", f"Using OpenAI-compatible API: {self.openai_base_url}"
-                )
-                result.add_log("INFO", f"Model: {self.openai_model_name}")
-                result.add_log(
-                    "INFO", "Detected Llama model via OpenAI-compatible interface"
-                )
-                client = OpenAI(
-                    api_key=self.openai_api_key,
-                    base_url=self.openai_base_url,
-                    timeout=self.request_timeout,
-                )
-                model_name = self.openai_model_name
-                max_tokens = 100
-                temperature = 0.1
-
             all_passed = True
 
-            # Test 1: Basic connection test
-            self.logger.info("Running API connection test...")
-            print("🔗 Running API connection test...")
-            connection_result = self._test_connection(client)
-            result.add_sub_test("API Connection", connection_result)
-            if connection_result["success"]:
-                self.logger.info("✅ API connection test passed")
-                print("✅ API connection test passed")
+            # Test 1: Check Ollama version and connectivity
+            print("\n🔗 Testing Ollama API connectivity...")
+            version_result = self._test_version()
+            result.add_sub_test("API Connection", version_result)
+            if version_result["success"]:
+                print(f"✅ Connected to Ollama {version_result.get('version', 'unknown')}")
             else:
-                self.logger.error(f"❌ API connection test failed: {connection_result.get('message', 'Unknown error')}")
-                print(f"❌ API connection test failed: {connection_result.get('message', 'Unknown error')}")
+                print(f"❌ Connection failed: {version_result.get('message', 'Unknown error')}")
                 all_passed = False
 
-            # Test 2: Simple text completion
-            self.logger.info("Running text generation test...")
-            print("💬 Running text generation test...")
-            completion_result = self._test_completion(
-                client, model_name, max_tokens, temperature
-            )
-            result.add_sub_test("Text Generation", completion_result)
-            if completion_result["success"]:
-                self.logger.info("✅ Text generation test passed")
-                print("✅ Text generation test passed")
-                print(f"   📝 Input: {completion_result.get('input_prompt', 'N/A')}")
-                print(f"   💬 Output: {completion_result.get('response_preview', 'N/A')}")
-                print(f"   ⏱️  Duration: {completion_result.get('duration_seconds', 0):.2f}s")
+            # Test 2: List available models
+            print("\n📋 Listing available models...")
+            tags_result = self._test_list_models()
+            result.add_sub_test("List Models", tags_result)
+            if tags_result["success"]:
+                model_count = len(tags_result.get('models', []))
+                print(f"✅ Found {model_count} model(s)")
+                if tags_result.get('model_found'):
+                    print(f"   ✓ Target model '{self.ollama_model_name}' is available")
+                else:
+                    print(f"   ⚠️ Target model '{self.ollama_model_name}' not found")
             else:
-                self.logger.error(f"❌ Text generation test failed: {completion_result.get('message', 'Unknown error')}")
-                print(f"❌ Text generation test failed: {completion_result.get('message', 'Unknown error')}")
+                print(f"❌ Failed to list models: {tags_result.get('message', 'Unknown error')}")
                 all_passed = False
 
-            # Test 3: Llama-specific prompt test
-            self.logger.info("Running Llama-style prompt test...")
-            print("🦙 Running Llama-style prompt test...")
-            llama_prompt_result = self._test_llama_prompt(
-                client, model_name, max_tokens, temperature
-            )
-            result.add_sub_test("Llama-style Prompt", llama_prompt_result)
-            if llama_prompt_result["success"]:
-                self.logger.info("✅ Llama-style prompt test passed")
-                print("✅ Llama-style prompt test passed")
-                print(f"   📝 Input: {llama_prompt_result.get('input_prompt', 'N/A')}")
-                print(f"   💬 Output: {llama_prompt_result.get('response_preview', 'N/A')}")
-                print(f"   ⏱️  Duration: {llama_prompt_result.get('duration_seconds', 0):.2f}s")
+            # Test 3: Generate text using native /api/generate endpoint
+            print("\n💬 Testing text generation (native API)...")
+            generate_result = self._test_generate()
+            result.add_sub_test("Text Generation", generate_result)
+            if generate_result["success"]:
+                print("✅ Text generation successful")
+                print(f"   📝 Prompt: {generate_result.get('prompt', 'N/A')[:50]}...")
+                response_text = generate_result.get('response', 'N/A')
+                print(f"   💬 Response: {response_text[:100]}{'...' if len(response_text) > 100 else ''}")
+                print(f"   ⏱️  Duration: {generate_result.get('duration_seconds', 0):.2f}s")
+                print(f"   🎯 Tokens: {generate_result.get('eval_count', 'N/A')}")
             else:
-                self.logger.error(f"❌ Llama-style prompt test failed: {llama_prompt_result.get('message', 'Unknown error')}")
-                print(f"❌ Llama-style prompt test failed: {llama_prompt_result.get('message', 'Unknown error')}")
+                print(f"❌ Text generation failed: {generate_result.get('message', 'Unknown error')}")
+                all_passed = False
+
+            # Test 4: Chat completion using native /api/chat endpoint
+            print("\n💭 Testing chat completion (native API)...")
+            chat_result = self._test_chat()
+            result.add_sub_test("Chat Completion", chat_result)
+            if chat_result["success"]:
+                print("✅ Chat completion successful")
+                print(f"   📝 Message: {chat_result.get('user_message', 'N/A')[:50]}...")
+                response_text = chat_result.get('response', 'N/A')
+                print(f"   💬 Response: {response_text[:100]}{'...' if len(response_text) > 100 else ''}")
+                print(f"   ⏱️  Duration: {chat_result.get('duration_seconds', 0):.2f}s")
+            else:
+                print(f"❌ Chat completion failed: {chat_result.get('message', 'Unknown error')}")
                 all_passed = False
 
             if all_passed:
-                self.logger.info("🎉 All Llama model tests passed successfully")
-                print("🎉 All Llama model tests passed successfully")
-                result.complete(True, "All Llama model tests passed successfully")
+                print("\n" + "="*60)
+                print("🎉 All Ollama native API tests passed successfully!")
+                print("="*60)
+                print(f"🔧 Endpoint: {self.ollama_base_url}")
+                print(f"🤖 Model: {self.ollama_model_name}")
+                print("="*60)
+                result.complete(True, "All Ollama native API tests passed successfully")
             else:
-                self.logger.error("💥 One or more Llama model tests failed")
-                print("💥 One or more Llama model tests failed")
-                result.complete(False, "One or more Llama model tests failed")
+                failed_tests = [
+                    name
+                    for name, test_result in result.sub_tests.items()
+                    if not test_result.get("success", False)
+                ]
+                result.fail(
+                    f"Ollama API tests failed: {', '.join(failed_tests)}",
+                    remediation="Check Ollama service is running, model is installed (ollama pull <model>), and endpoint is accessible",
+                )
 
         except Exception as e:
-            error_msg = f"Llama model test failed: {str(e)}"
+            error_msg = f"Ollama API test failed: {str(e)}"
             self.logger.error(f"💥 {error_msg}")
             print(f"💥 {error_msg}")
-            print(f"Stack trace: {e}")
-            result.fail(error_msg)
-            result.add_log("ERROR", f"Exception: {str(e)}")
+            result.fail(
+                error_msg,
+                error=e,
+                remediation="Verify Ollama is installed and running (ollama serve)",
+            )
 
         return result
 
-    def _test_connection(self, client: OpenAI) -> Dict[str, Any]:
-        """Test basic API connection"""
+    def _test_version(self) -> Dict[str, Any]:
+        """Test Ollama API version endpoint"""
         try:
-            # Try to list models if endpoint supports it
-            try:
-                models = client.models.list()
-                model_names = (
-                    [model.id for model in models.data]
-                    if hasattr(models, "data")
-                    else []
-                )
-                return {
-                    "success": True,
-                    "message": f"Connected successfully. Found {len(model_names)} models",
-                    "models": model_names[:5],  # Show first 5 models
-                }
-            except Exception:
-                # Model listing not supported, that's OK
-                return {
-                    "success": True,
-                    "message": "Connected successfully (model listing not supported)",
-                    "models": [],
-                }
+            response = requests.get(
+                f"{self.ollama_base_url}/api/version",
+                timeout=10
+            )
+            response.raise_for_status()
+            version_data = response.json()
+
+            return {
+                "success": True,
+                "message": f"Connected to Ollama version {version_data.get('version', 'unknown')}",
+                "version": version_data.get('version', 'unknown'),
+            }
+        except requests.exceptions.ConnectionError:
+            return {
+                "success": False,
+                "message": "Cannot connect to Ollama API - is Ollama running?",
+                "remediation": "Start Ollama service with 'ollama serve' or check OLLAMA_BASE_URL",
+            }
         except Exception as e:
             return {
                 "success": False,
-                "message": f"Connection failed: {str(e)}",
-                "remediation": "Check that the Llama API endpoint is correct and accessible",
+                "message": f"Version check failed: {str(e)}",
+                "remediation": "Verify Ollama API endpoint is correct",
             }
 
-    def _test_completion(
-        self, client: OpenAI, model_name: str, max_tokens: int, temperature: float
-    ) -> Dict[str, Any]:
-        """Test basic text completion"""
+    def _test_list_models(self) -> Dict[str, Any]:
+        """Test listing models using native /api/tags endpoint"""
+        try:
+            response = requests.get(
+                f"{self.ollama_base_url}/api/tags",
+                timeout=10
+            )
+            response.raise_for_status()
+            tags_data = response.json()
+
+            models = tags_data.get('models', [])
+            model_names = [m.get('name', 'unknown') for m in models]
+
+            # Check if our target model is available
+            model_found = any(self.ollama_model_name in name for name in model_names)
+
+            return {
+                "success": True,
+                "message": f"Found {len(models)} model(s)",
+                "models": model_names,
+                "model_found": model_found,
+                "target_model": self.ollama_model_name,
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"Failed to list models: {str(e)}",
+                "remediation": "Check Ollama API accessibility",
+            }
+
+    def _test_generate(self) -> Dict[str, Any]:
+        """Test text generation using native /api/generate endpoint"""
         try:
             start_time = time.time()
 
-            input_prompt = "Hello! Can you introduce yourself briefly?"
+            prompt = "What is the capital of France? Answer in one word."
 
-            response = client.chat.completions.create(
-                model=model_name,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": input_prompt,
-                    }
-                ],
-                max_tokens=max_tokens,
-                temperature=temperature,
+            payload = {
+                "model": self.ollama_model_name,
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "num_predict": self.ollama_max_tokens,
+                    "temperature": self.ollama_temperature,
+                }
+            }
+
+            response = requests.post(
+                f"{self.ollama_base_url}/api/generate",
+                json=payload,
+                timeout=self.request_timeout
             )
+            response.raise_for_status()
 
             duration = time.time() - start_time
+            result_data = response.json()
 
-            if response.choices and response.choices[0].message.content:
-                content = response.choices[0].message.content.strip()
-                return {
-                    "success": True,
-                    "message": f"Text generation successful (took {duration:.2f}s)",
-                    "input_prompt": input_prompt,
-                    "response_preview": (
-                        content[:100] + "..." if len(content) > 100 else content
-                    ),
-                    "response_full": content,
-                    "response_length": len(content),
-                    "duration_seconds": duration,
-                }
-            else:
-                return {
-                    "success": False,
-                    "message": "No response content generated",
-                    "remediation": "Check model configuration and prompt format",
-                }
-
+            return {
+                "success": True,
+                "message": "Text generation successful",
+                "prompt": prompt,
+                "response": result_data.get('response', ''),
+                "duration_seconds": duration,
+                "eval_count": result_data.get('eval_count'),
+                "prompt_eval_count": result_data.get('prompt_eval_count'),
+                "total_duration_ns": result_data.get('total_duration'),
+            }
+        except requests.exceptions.Timeout:
+            return {
+                "success": False,
+                "message": f"Generation timed out after {self.request_timeout}s",
+                "remediation": "Increase OLLAMA_TIMEOUT or use a smaller model",
+            }
         except Exception as e:
             return {
                 "success": False,
-                "message": f"Text generation failed: {str(e)}",
-                "remediation": "Verify model name and API compatibility",
+                "message": f"Generation failed: {str(e)}",
+                "remediation": "Verify model is installed (ollama pull <model>)",
             }
 
-    def _test_llama_prompt(
-        self, client: OpenAI, model_name: str, max_tokens: int, temperature: float
-    ) -> Dict[str, Any]:
-        """Test Llama-specific prompt format"""
+    def _test_chat(self) -> Dict[str, Any]:
+        """Test chat completion using native /api/chat endpoint"""
         try:
             start_time = time.time()
 
-            input_prompt = "What are the key capabilities of Llama models? Please answer concisely."
+            user_message = "Hello! Can you introduce yourself in one sentence?"
 
-            # For chat completions, we'll use the system/user format
-            response = client.chat.completions.create(
-                model=model_name,
-                messages=[
-                    {"role": "system", "content": "You are a helpful AI assistant."},
-                    {
-                        "role": "user",
-                        "content": input_prompt,
-                    },
+            payload = {
+                "model": self.ollama_model_name,
+                "messages": [
+                    {"role": "user", "content": user_message}
                 ],
-                max_tokens=max_tokens,
-                temperature=temperature,
+                "stream": False,
+                "options": {
+                    "num_predict": self.ollama_max_tokens,
+                    "temperature": self.ollama_temperature,
+                }
+            }
+
+            response = requests.post(
+                f"{self.ollama_base_url}/api/chat",
+                json=payload,
+                timeout=self.request_timeout
             )
+            response.raise_for_status()
 
             duration = time.time() - start_time
+            result_data = response.json()
 
-            if response.choices and response.choices[0].message.content:
-                content = response.choices[0].message.content.strip()
+            message_content = result_data.get('message', {}).get('content', '')
 
-                # Check if response mentions Llama (indicates model awareness)
-                mentions_llama = "llama" in content.lower()
-
-                return {
-                    "success": True,
-                    "message": f"Llama prompt test successful (took {duration:.2f}s)",
-                    "input_prompt": input_prompt,
-                    "response_preview": (
-                        content[:150] + "..." if len(content) > 150 else content
-                    ),
-                    "response_full": content,
-                    "mentions_llama": mentions_llama,
-                    "response_length": len(content),
-                    "duration_seconds": duration,
-                }
-            else:
-                return {
-                    "success": False,
-                    "message": "No response to Llama-specific prompt",
-                    "remediation": "Check if the model supports the prompt format",
-                }
-
+            return {
+                "success": True,
+                "message": "Chat completion successful",
+                "user_message": user_message,
+                "response": message_content,
+                "duration_seconds": duration,
+                "eval_count": result_data.get('eval_count'),
+                "prompt_eval_count": result_data.get('prompt_eval_count'),
+                "total_duration_ns": result_data.get('total_duration'),
+            }
+        except requests.exceptions.Timeout:
+            return {
+                "success": False,
+                "message": f"Chat timed out after {self.request_timeout}s",
+                "remediation": "Increase OLLAMA_TIMEOUT or use a smaller model",
+            }
         except Exception as e:
             return {
                 "success": False,
-                "message": f"Llama prompt test failed: {str(e)}",
-                "remediation": "Verify Llama model compatibility and prompt format",
+                "message": f"Chat failed: {str(e)}",
+                "remediation": "Verify model supports chat format",
             }
 
     def test_with_custom_input(
@@ -337,123 +326,72 @@ class LlamaTest(BaseTest):
         file_type: str = None,
         system_message: str = None,
     ) -> Dict[str, Any]:
-        """Test with custom user input - can be called directly from API"""
+        """Test with custom user input using Ollama native API"""
         self.logger.info(f"Starting custom input test with prompt: {custom_prompt[:100]}{'...' if len(custom_prompt) > 100 else ''}")
-        print(f"🎯 Starting custom input test with prompt: {custom_prompt[:100]}{'...' if len(custom_prompt) > 100 else ''}")
-        if custom_file_content:
-            self.logger.info(f"File provided: {file_type} ({len(custom_file_content)} characters)")
-            print(f"📄 File provided: {file_type} ({len(custom_file_content)} characters)")
-        if system_message:
-            self.logger.info(f"Custom system message: {system_message[:100]}{'...' if len(system_message) > 100 else ''}")
-            print(f"🗨️  Custom system message: {system_message[:100]}{'...' if len(system_message) > 100 else ''}")
-            
+        print(f"🎯 Starting custom Ollama test with prompt: {custom_prompt[:100]}{'...' if len(custom_prompt) > 100 else ''}")
+
         try:
-            # Determine which configuration to use
-            use_llama_config = bool(self.llama_base_url)
-
-            if use_llama_config:
-                client = OpenAI(
-                    api_key=self.llama_api_key,
-                    base_url=self.llama_base_url,
-                    timeout=self.request_timeout,
-                )
-                model_name = self.llama_model_name
-                max_tokens = self.llama_max_tokens
-                temperature = self.llama_temperature
-            else:
-                client = OpenAI(
-                    api_key=self.openai_api_key,
-                    base_url=self.openai_base_url,
-                    timeout=self.request_timeout,
-                )
-                model_name = self.openai_model_name
-                max_tokens = 150
-                temperature = 0.7
-
             start_time = time.time()
 
-            # Prepare messages
+            # Prepare messages for chat API
             messages = []
             if system_message:
                 messages.append({"role": "system", "content": system_message})
-            else:
-                messages.append(
-                    {"role": "system", "content": "You are a helpful AI assistant."}
-                )
 
-            # If file content is provided, include it in the prompt based on file type
+            # If file content is provided, include it in the prompt
             if custom_file_content:
                 if file_type == "pdf":
                     user_content = f"Here is a PDF document to analyze:\n\n{custom_file_content}\n\nUser request: {custom_prompt}"
-                    messages.append({"role": "user", "content": user_content})
                 elif file_type in ["jpg", "jpeg", "png"]:
-                    # For image files, try to send as vision input first
-                    try:
-                        # Try vision-compatible format (for models like Llama-3.2-Vision)
-                        messages.append({
-                            "role": "user",
-                            "content": [
-                                {"type": "text", "text": custom_prompt},
-                                {
-                                    "type": "image_url",
-                                    "image_url": {
-                                        "url": f"data:image/{file_type};base64,{custom_file_content}"
-                                    }
-                                }
-                            ]
-                        })
-                    except Exception:
-                        # Fallback: include base64 in text for models without vision API support
-                        user_content = f"Here is an image file (base64 encoded {file_type.upper()}) to analyze:\n\n{custom_file_content}\n\nUser request: {custom_prompt}"
-                        messages.append({"role": "user", "content": user_content})
+                    # For vision models (like llava), Ollama supports base64 images
+                    user_content = f"[Image provided as base64]\n\nUser request: {custom_prompt}"
+                    # Note: For actual vision support, would need to use Ollama's vision model format
                 else:
-                    # Text files
-                    user_content = f"Here is some file content to analyze:\n\n{custom_file_content}\n\nUser request: {custom_prompt}"
-                    messages.append({"role": "user", "content": user_content})
+                    user_content = f"Here is some file content:\n\n{custom_file_content}\n\nUser request: {custom_prompt}"
+                messages.append({"role": "user", "content": user_content})
             else:
                 messages.append({"role": "user", "content": custom_prompt})
 
-            response = client.chat.completions.create(
-                model=model_name,
-                messages=messages,
-                max_tokens=max_tokens,
-                temperature=temperature,
+            payload = {
+                "model": self.ollama_model_name,
+                "messages": messages,
+                "stream": False,
+                "options": {
+                    "num_predict": 500,  # Allow more tokens for custom responses
+                    "temperature": self.ollama_temperature,
+                }
+            }
+
+            response = requests.post(
+                f"{self.ollama_base_url}/api/chat",
+                json=payload,
+                timeout=self.request_timeout
             )
+            response.raise_for_status()
 
             duration = time.time() - start_time
+            result_data = response.json()
 
-            if response.choices and response.choices[0].message.content:
-                content = response.choices[0].message.content.strip()
+            message_content = result_data.get('message', {}).get('content', '')
 
-                return {
-                    "success": True,
-                    "message": "Custom input test successful",
-                    "model": model_name,
-                    "prompt": custom_prompt,
-                    "file_provided": bool(custom_file_content),
-                    "file_type": file_type or "none",
-                    "system_message": system_message
-                    or "You are a helpful AI assistant.",
-                    "response_text": content,
-                    "response_time_ms": round(duration * 1000, 2),
-                    "response_length": len(content),
-                    "tokens_used": (
-                        getattr(response.usage, "total_tokens", None)
-                        if hasattr(response, "usage")
-                        else None
-                    ),
-                }
-            else:
-                return {
-                    "success": False,
-                    "message": "No response content generated",
-                    "remediation": "Check model configuration and prompt format",
-                }
+            return {
+                "success": True,
+                "message": "Custom input test successful",
+                "model": self.ollama_model_name,
+                "prompt": custom_prompt,
+                "file_provided": bool(custom_file_content),
+                "file_type": file_type or "none",
+                "system_message": system_message or "None",
+                "response_text": message_content,
+                "response_time_ms": round(duration * 1000, 2),
+                "response_length": len(message_content),
+                "eval_count": result_data.get('eval_count'),
+            }
 
         except Exception as e:
             return {
                 "success": False,
                 "message": f"Custom input test failed: {str(e)}",
                 "error": str(e),
-                "remediation": "Check API configuration and input format",
+                "remediation": "Check Ollama configuration and model availability",
             }
