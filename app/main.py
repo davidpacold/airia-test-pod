@@ -37,9 +37,9 @@ setup_error_handlers(app)
 logger = logging.getLogger(__name__)
 
 
-# Security headers middleware
+# Security headers and cache control middleware
 @app.middleware("http")
-async def add_security_headers(request: Request, call_next):
+async def add_security_and_cache_headers(request: Request, call_next):
     response = await call_next(request)
 
     # Basic security headers
@@ -47,6 +47,20 @@ async def add_security_headers(request: Request, call_next):
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+
+    # Cache control for static files
+    if request.url.path.startswith("/static/"):
+        # Check if URL has version query parameter (cache-busting)
+        if request.url.query and "v=" in request.url.query:
+            # Versioned static files - cache aggressively (1 year)
+            # Cloudflare and browsers can cache since URL changes when content changes
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        else:
+            # Non-versioned static files - shorter cache with revalidation
+            response.headers["Cache-Control"] = "public, max-age=3600, must-revalidate"
+
+        # Tell Cloudflare to respect query strings for caching
+        response.headers["Vary"] = "Accept-Encoding"
 
     return response
 
@@ -127,8 +141,9 @@ async def login_page(
 ):
     if current_user:
         return RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
+    settings = get_settings()
     return templates.TemplateResponse(
-        "login.html", {"request": request, "title": get_settings().app_name}
+        "login.html", {"request": request, "title": settings.app_name, "version": settings.version}
     )
 
 
@@ -178,9 +193,10 @@ async def login(request: Request, username: str = Form(...), password: str = For
 async def dashboard(request: Request, current_user: str = Depends(require_auth)):
     if isinstance(current_user, RedirectResponse):
         return current_user
+    settings = get_settings()
     return templates.TemplateResponse(
         "dashboard.html",
-        {"request": request, "title": get_settings().app_name, "username": current_user},
+        {"request": request, "title": settings.app_name, "username": current_user, "version": settings.version},
     )
 
 
