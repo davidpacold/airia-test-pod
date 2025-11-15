@@ -104,13 +104,14 @@ data:
   {{- end }}
   {{- end }}
   
-  {{- if .Values.config.llama.enabled }}
-  # Llama model configuration
-  llama-base-url: {{ .Values.config.llama.baseUrl | quote }}
-  llama-model-name: {{ .Values.config.llama.modelName | quote }}
-  llama-max-tokens: {{ .Values.config.llama.maxTokens | quote }}
-  llama-temperature: {{ .Values.config.llama.temperature | quote }}
-  llama-timeout: {{ .Values.config.llama.timeout | quote }}
+  {{- if or .Values.config.ollama.enabled .Values.config.llama.enabled }}
+  # Ollama native API configuration (supports legacy llama key for backwards compatibility)
+  {{- $ollamaConfig := .Values.config.ollama | default .Values.config.llama }}
+  ollama-base-url: {{ $ollamaConfig.baseUrl | quote }}
+  ollama-model-name: {{ $ollamaConfig.modelName | quote }}
+  ollama-max-tokens: {{ $ollamaConfig.maxTokens | quote }}
+  ollama-temperature: {{ $ollamaConfig.temperature | quote }}
+  ollama-timeout: {{ $ollamaConfig.timeout | quote }}
   {{- end }}
 
   {{- if .Values.config.gpu.enabled }}

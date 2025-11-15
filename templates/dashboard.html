@@ -99,16 +99,16 @@
                 <h2>🤖 AI & Machine Learning Tests</h2>
                 <div class="test-grid">
                     <div class="test-card" id="openai-card">
-                    <h3>AI Models (OpenAI/Llama) <span class="config-ref" title="Configuration: helm/airia-test-pod/values.yaml → config.openai">⚙️</span></h3>
-                    <p>Tests API connectivity and models</p>
+                    <h3>OpenAI-Compatible APIs <span class="config-ref" title="Configuration: helm/airia-test-pod/values.yaml → config.openai">⚙️</span></h3>
+                    <p>Tests Azure OpenAI and OpenAI-compatible endpoints</p>
                     <span class="test-status ready" id="openai-status">Ready to Test</span>
                     <button class="test-button" onclick="runTest('openai')" id="openai-btn">Run Test</button>
                     <div class="test-details" id="openai-details"></div>
                 </div>
                 
                 <div class="test-card" id="llama-card">
-                    <h3>Llama Model <span class="config-ref" title="Configuration: helm/airia-test-pod/values.yaml → config.llama">⚙️</span></h3>
-                    <p>Tests Llama model connectivity and text generation</p>
+                    <h3>Ollama API (Native) <span class="config-ref" title="Configuration: helm/airia-test-pod/values.yaml → config.ollama">⚙️</span></h3>
+                    <p>Tests Ollama native API and local LLM models</p>
                     <span class="test-status ready" id="llama-status">Ready to Test</span>
                     <button class="test-button" onclick="runTest('llama')" id="llama-btn">Run Test</button>
                     <div class="test-details" id="llama-details"></div>
@@ -168,8 +168,8 @@
                 <p>Test your AI models with custom prompts and file content</p>
                 <div class="test-grid">
                     <div class="test-card" id="custom-openai-card">
-                        <h3>Custom OpenAI Test</h3>
-                        <p>Send custom prompts and files to OpenAI models</p>
+                        <h3>Custom OpenAI-Compatible Test</h3>
+                        <p>Send custom prompts and files to Azure OpenAI or OpenAI-compatible APIs</p>
                         <form id="custom-openai-form" class="custom-test-form">
                             <div class="form-group">
                                 <label for="openai-prompt">Your Prompt:</label>
@@ -190,8 +190,8 @@
                     </div>
                     
                     <div class="test-card" id="custom-llama-card">
-                        <h3>Custom Llama Test</h3>
-                        <p>Send custom prompts and files to Llama models</p>
+                        <h3>Custom Ollama Test</h3>
+                        <p>Send custom prompts and files to Ollama native API</p>
                         <form id="custom-llama-form" class="custom-test-form">
                             <div class="form-group">
                                 <label for="llama-prompt">Your Prompt:</label>

@@ -42,11 +42,11 @@ class OpenAITest(BaseTest):
 
     @property
     def test_name(self) -> str:
-        return "AI Models (OpenAI/Llama)"
+        return "OpenAI-Compatible APIs"
 
     @property
     def test_description(self) -> str:
-        return "Tests AI model APIs: Azure OpenAI, OpenAI, Llama, and compatible APIs"
+        return "Tests Azure OpenAI and OpenAI-compatible API endpoints"
 
     @property
     def test_id(self) -> str:

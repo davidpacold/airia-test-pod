@@ -403,38 +403,44 @@ config:
     # modelName: "sentence-transformers/all-MiniLM-L6-v2"
 
   # ---------------------------------------------------------------------------
-  # SELF-HOSTED LLAMA MODEL TEST (Optional)
+  # OLLAMA NATIVE API TEST (Optional)
   # ---------------------------------------------------------------------------
-  # UI Card: "Self-hosted Llama Models"
-  # Tests: Text generation, chat completion, custom prompts
+  # UI Card: "Ollama API (Native)"
+  # Tests: Native Ollama API endpoints (/api/generate, /api/chat, /api/tags)
   # Supports custom prompts and file uploads (PDFs, images) through UI
   #
-  # Use Case: Test dedicated Llama-specific endpoints (non-OpenAI-compatible)
-  # Examples:
-  # - Ollama with Llama models
-  # - llama.cpp server
-  # - Custom Llama deployment endpoints
+  # Use Case: Test Ollama's native API (NOT OpenAI-compatible endpoints)
+  # This test uses Ollama's native REST API endpoints for maximum compatibility
+  # with Ollama-specific features.
   #
-  # IMPORTANT: If your Llama endpoint is OpenAI-compatible, use the 'openai' test
-  # above instead (set baseUrl to your Llama endpoint and modelName to llama model).
-  # Only use this test for Llama-SPECIFIC endpoints that don't follow OpenAI API format.
+  # API Endpoints Tested:
+  # - /api/version - Check Ollama version
+  # - /api/tags - List available models
+  # - /api/generate - Generate text completions
+  # - /api/chat - Chat completions with message history
+  #
+  # IMPORTANT: For OpenAI-compatible Ollama endpoints (/v1/*), use the 'openai'
+  # test above instead (set baseUrl to http://localhost:11434/v1).
   #
   # Set enabled: true to show this test in the UI
-  llama:
+  ollama:
     enabled: false
     baseUrl: "http://localhost:11434"  # Ollama default endpoint
-    apiKey: ""  # Optional, many local Llama servers don't require auth
-    modelName: "llama2"  # Or: llama3, codellama, mistral, etc.
-    maxTokens: 2048  # Maximum tokens to generate
+    modelName: "llama2"  # Or: llama3, llama3.1, codellama, mistral, phi, etc.
+    maxTokens: 100  # Maximum tokens to generate
     temperature: 0.7  # Creativity (0.0-1.0): lower = more deterministic
-    timeout: 30  # Request timeout in seconds
-    # Example for Ollama:
-    # baseUrl: "http://ollama-server:11434"
-    # modelName: "llama3:8b"
+    timeout: 60  # Request timeout in seconds
     #
-    # Example for llama.cpp server:
-    # baseUrl: "http://llama-cpp-server:8080"
-    # modelName: "llama-2-7b-chat"
+    # Common Ollama Models:
+    # - llama3.1:8b    - Meta Llama 3.1 (8 billion parameters)
+    # - llama2         - Meta Llama 2 (default)
+    # - codellama      - Code-specialized Llama model
+    # - mistral        - Mistral 7B
+    # - phi3           - Microsoft Phi-3
+    # - gemma2         - Google Gemma 2
+    #
+    # To install models: ollama pull <model-name>
+    # To list installed: ollama list
 
   # ╔═══════════════════════════════════════════════════════════════════════════╗
   # ║                         🔧 INFRASTRUCTURE TESTS                           ║
