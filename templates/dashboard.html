@@ -2623,21 +2623,20 @@
             html += `</div>`;
             html += `</div>`;
 
-            // Main message
             html += `<div class="result-message">`;
-            html += `<p><strong>📊 Result:</strong> ${result.message}</p>`;
+            html += `<p><strong>🗄️ Result:</strong> ${result.message}</p>`;
             html += `</div>`;
 
             // Database summary from details
             if (result.details) {
                 html += `<div class="database-summary">`;
-                html += `<h5>🗄️ Database Information</h5>`;
+                html += `<h5>📊 Database Connection</h5>`;
                 html += `<div class="summary-stats">`;
                 if (result.details.version) {
                     html += `<span class="stat-item"><strong>📌 Version:</strong> ${result.details.version}</span>`;
                 }
                 if (result.details.host) {
-                    html += `<span class="stat-item"><strong>🌐 Host:</strong> ${result.details.host}</span>`;
+                    html += `<span class="stat-item"><strong>🌐 Host:</strong> ${result.details.host}:${result.details.port || 5432}</span>`;
                 }
                 if (result.details.database) {
                     html += `<span class="stat-item"><strong>💾 Database:</strong> ${result.details.database}</span>`;
@@ -2646,7 +2645,7 @@
                     html += `<span class="stat-item"><strong>📚 Total Databases:</strong> ${result.details.database_count}</span>`;
                 }
                 if (result.details.extension_count !== undefined) {
-                    html += `<span class="stat-item"><strong>🔧 Extensions:</strong> ${result.details.extension_count} installed</span>`;
+                    html += `<span class="stat-item"><strong>🔧 Installed Extensions:</strong> ${result.details.extension_count}</span>`;
                 }
                 html += `</div>`;
                 html += `</div>`;
@@ -2733,14 +2732,14 @@
                 }
             }
 
-            // Sub-tests if available
+            // Sub-tests
             if (result.sub_tests) {
                 html += `<div class="sub-tests-section">`;
-                html += `<h5>🔍 Detailed Test Results:</h5>`;
+                html += `<h5>🔍 Database Operations:</h5>`;
                 html += `<div class="sub-tests-grid">`;
 
                 for (const [testName, testResult] of Object.entries(result.sub_tests)) {
-                    // Skip databases and extensions as they're already shown in the formatted sections above
+                    // Skip databases and extensions - they're shown in detailed sections above
                     if (testName === 'databases' || testName === 'extensions') {
                         continue;
                     }
