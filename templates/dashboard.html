@@ -1183,7 +1183,7 @@
                 if (result.prompt_response) {
                     html += `<div class="analysis-response">`;
                     html += `<h5>🔍 Analysis Response:</h5>`;
-                    html += `<div class="response-content">${result.prompt_response}</div>`;
+                    html += `<div class="response-content">${result.prompt_response.replace(/\n/g, '<br>')}</div>`;
                     html += `</div>`;
                 }
             }
