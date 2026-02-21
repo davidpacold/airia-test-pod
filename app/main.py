@@ -178,13 +178,16 @@ async def login(request: Request, username: str = Form(...), password: str = For
         data={"sub": username}, expires_delta=access_token_expires
     )
 
+    settings = get_settings()
     response = RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
     response.set_cookie(
         key="access_token",
         value=f"Bearer {access_token}",
         httponly=True,
-        max_age=get_settings().access_token_expire_minutes * 60,
-        expires=get_settings().access_token_expire_minutes * 60,
+        secure=settings.secure_cookies,
+        samesite="lax",
+        max_age=settings.access_token_expire_minutes * 60,
+        expires=settings.access_token_expire_minutes * 60,
     )
     return response
 
