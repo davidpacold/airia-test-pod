@@ -4,8 +4,6 @@ import os
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 
-# Test change to verify automated version workflow v1.0.155 -> v1.0.156
-
 import uvicorn
 from fastapi import (BackgroundTasks, Depends, FastAPI, File, Form,
                      HTTPException, Request, UploadFile, status)
@@ -65,9 +63,6 @@ async def add_security_and_cache_headers(request: Request, call_next):
     return response
 
 
-# Real-time updates will be implemented in a future version
-# For now, the application works perfectly with manual refresh
-
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
@@ -108,18 +103,7 @@ async def readiness_check():
 async def get_version():
     import os
     return {
-        "version": get_settings().version,
-        "image_tag": os.getenv("IMAGE_TAG", "unknown"),
-        "build_timestamp": os.getenv("BUILD_TIMESTAMP", "unknown"),
-        "deployment_time": os.getenv("BUILD_TIMESTAMP", "unknown")
-    }
-
-
-@app.get("/api/version")
-async def get_api_version():
-    import os
-    return {
-        "version": get_settings().version,
+        "version": get_settings().app_version,
         "image_tag": os.getenv("IMAGE_TAG", "unknown"),
         "build_timestamp": os.getenv("BUILD_TIMESTAMP", "unknown"),
         "deployment_time": os.getenv("BUILD_TIMESTAMP", "unknown")
@@ -143,7 +127,7 @@ async def login_page(
         return RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
     settings = get_settings()
     return templates.TemplateResponse(
-        "login.html", {"request": request, "title": settings.app_name, "version": settings.version}
+        "login.html", {"request": request, "title": settings.app_name, "version": settings.app_version}
     )
 
 
@@ -178,13 +162,16 @@ async def login(request: Request, username: str = Form(...), password: str = For
         data={"sub": username}, expires_delta=access_token_expires
     )
 
+    settings = get_settings()
     response = RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
     response.set_cookie(
         key="access_token",
         value=f"Bearer {access_token}",
         httponly=True,
-        max_age=get_settings().access_token_expire_minutes * 60,
-        expires=get_settings().access_token_expire_minutes * 60,
+        secure=settings.secure_cookies,
+        samesite="lax",
+        max_age=settings.access_token_expire_minutes * 60,
+        expires=settings.access_token_expire_minutes * 60,
     )
     return response
 
@@ -196,7 +183,7 @@ async def dashboard(request: Request, current_user: str = Depends(require_auth))
     settings = get_settings()
     return templates.TemplateResponse(
         "dashboard.html",
-        {"request": request, "title": settings.app_name, "username": current_user, "version": settings.version},
+        {"request": request, "title": settings.app_name, "username": current_user, "version": settings.app_version},
     )
 
 
@@ -249,16 +236,52 @@ async def get_test_summary(current_user: str = Depends(require_auth)):
     return test_runner.get_test_summary()
 
 
+@app.get("/api/readiness-gate")
+async def readiness_gate(current_user: str = Depends(require_auth)):
+    """Programmatic readiness gate for Airia installation.
+
+    Returns HTTP 200 if all non-skipped tests pass, HTTP 503 if any fail.
+    Uses cached results if tests were run within the last 5 minutes.
+    """
+    import asyncio
+
+    use_cached = False
+    with test_runner._lock:
+        if test_runner._last_run_time and test_runner.test_results:
+            age = (datetime.now(timezone.utc) - test_runner._last_run_time).total_seconds()
+            if age < 300:
+                use_cached = True
+
+    if not use_cached:
+        await asyncio.to_thread(test_runner.run_all_tests)
+
+    summary = test_runner.get_test_summary()
+    ready = summary.get("overall_status") == "passed"
+
+    response_data = {
+        "ready": ready,
+        "tests_passed": summary.get("passed_count", 0),
+        "tests_failed": summary.get("failed_count", 0),
+        "tests_skipped": summary.get("skipped_count", 0),
+        "last_run": summary.get("last_run"),
+    }
+
+    status_code = 200 if ready else 503
+    return JSONResponse(content=response_data, status_code=status_code)
+
+
 @app.post("/api/tests/run-all")
 async def run_all_tests(current_user: str = Depends(require_auth)):
     """Run all configured tests"""
-    return test_runner.run_all_tests()
+    import asyncio
+    return await asyncio.to_thread(test_runner.run_all_tests)
 
 
 @app.post("/api/tests/{test_id}")
 async def run_single_test(test_id: str, current_user: str = Depends(require_auth)):
     """Run a specific test"""
-    result = test_runner.run_test(test_id)
+    import asyncio
+    result = await asyncio.to_thread(test_runner.run_test, test_id)
     if not result:
         raise TestExecutionError(
             message=f"Test '{test_id}' not found",

@@ -40,28 +40,14 @@ class TestHealthEndpoints:
         assert "version" in data
         assert data["version"] == test_settings.version
 
-    def test_api_version_endpoint(self, client, test_settings):
-        """Test the /api/version endpoint."""
-        response = client.get("/api/version")
-
-        assert response.status_code == 200
-        data = response.json()
-
-        assert "version" in data
-        assert data["version"] == test_settings.version
-
     def test_version_endpoints_consistency(self, client):
-        """Test that all version endpoints return consistent data."""
+        """Test that version and health endpoints return consistent data."""
         version_response = client.get("/version")
-        api_version_response = client.get("/api/version")
         health_response = client.get("/health")
 
         version_data = version_response.json()
-        api_version_data = api_version_response.json()
         health_data = health_response.json()
 
-        # All should return the same version
-        assert version_data["version"] == api_version_data["version"]
         assert version_data["version"] == health_data["version"]
 
 

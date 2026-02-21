@@ -1,4 +1,5 @@
 import logging
+import threading
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -29,6 +30,8 @@ class TestRunner:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         self.test_results: Dict[str, Dict[str, Any]] = {}
+        self._lock = threading.Lock()
+        self._last_run_time: Optional[datetime] = None
         self._register_tests()
 
     def _register_tests(self):
@@ -99,8 +102,7 @@ class TestRunner:
         if not result:
             return None
 
-        # Store result
-        self.test_results[test_id] = {
+        stored = {
             "name": result.test_name,
             "status": result.status.value,
             "last_run": (
@@ -113,7 +115,10 @@ class TestRunner:
             "result": result.to_dict(),
         }
 
-        return self.test_results[test_id]
+        with self._lock:
+            self.test_results[test_id] = stored
+
+        return stored
 
     def run_all_tests(self, skip_optional: bool = False) -> Dict[str, Any]:
         """Run all configured tests"""
@@ -122,20 +127,21 @@ class TestRunner:
         start_time = datetime.now(timezone.utc)
         results = test_suite.run_all_tests(skip_optional=skip_optional)
 
-        # Update stored results
-        for test_id, result in results.items():
-            self.test_results[test_id] = {
-                "name": result.test_name,
-                "status": result.status.value,
-                "last_run": (
-                    result.end_time.isoformat()
-                    if result.end_time
-                    else datetime.now(timezone.utc).isoformat()
-                ),
-                "duration_seconds": result.duration_seconds,
-                "message": result.message,
-                "result": result.to_dict(),
-            }
+        with self._lock:
+            for test_id, result in results.items():
+                self.test_results[test_id] = {
+                    "name": result.test_name,
+                    "status": result.status.value,
+                    "last_run": (
+                        result.end_time.isoformat()
+                        if result.end_time
+                        else datetime.now(timezone.utc).isoformat()
+                    ),
+                    "duration_seconds": result.duration_seconds,
+                    "message": result.message,
+                    "result": result.to_dict(),
+                }
+            self._last_run_time = datetime.now(timezone.utc)
 
         # Calculate overall status
         all_passed = all(
@@ -195,7 +201,9 @@ class TestRunner:
 
     def clear_results(self):
         """Clear all test results"""
-        self.test_results.clear()
+        with self._lock:
+            self.test_results.clear()
+            self._last_run_time = None
         self.logger.info("Cleared all test results")
 
     def get_test_summary(self) -> Dict[str, Any]:
