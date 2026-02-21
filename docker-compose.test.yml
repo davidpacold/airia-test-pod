@@ -44,18 +44,6 @@ services:
     # Cassandra needs more resources
     mem_limit: 2g
 
-  redis:
-    image: redis:6-alpine
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-    networks:
-      - test_network
-
   # MinIO for S3-compatible storage testing
   minio:
     image: minio/minio:latest
@@ -112,8 +100,6 @@ services:
       - "8080:8080"
     depends_on:
       postgres:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     networks:
       - test_network
