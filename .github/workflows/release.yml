@@ -112,24 +112,25 @@ jobs:
         echo "🔍 VALIDATING VERSION CONSISTENCY BEFORE UPDATE"
         echo "============================================="
         
-        # Extract current versions from all key files (config.py now uses environment variable)
+        # Extract current versions from all key files
         HELM_VERSION=$(grep '^version:' helm/airia-test-pod/Chart.yaml | cut -d' ' -f2)
         HELM_APP_VERSION=$(grep '^appVersion:' helm/airia-test-pod/Chart.yaml | cut -d'"' -f2)
         APP_MAIN_VERSION=$(grep -o 'version="[^"]*"' app/main.py | cut -d'"' -f2)
+        APP_CONFIG_VERSION=$(grep -o 'app_version: str = "[^"]*"' app/config.py | cut -d'"' -f2)
         DASHBOARD_VERSION=$(grep 'textContent.*v[0-9]' templates/dashboard.html | grep -o "v[0-9][^']*" | cut -c2-)
         INDEX_VERSION=$(grep 'textContent.*v[0-9]' templates/index.html | grep -o "v[0-9][^']*" | cut -c2-)
-        
+
         echo "📊 CURRENT VERSION REFERENCES:"
         echo "- Helm Chart version: $HELM_VERSION"
         echo "- Helm appVersion: $HELM_APP_VERSION"
-        echo "- App config.py: uses environment variable (APP_VERSION)"
+        echo "- App config.py: $APP_CONFIG_VERSION"
         echo "- App main.py: $APP_MAIN_VERSION"
         echo "- Dashboard template: $DASHBOARD_VERSION"
         echo "- Index template: $INDEX_VERSION"
         echo ""
         
         # Check if all versions match (this validates current state is consistent)
-        VERSIONS_TO_CHECK=("$HELM_VERSION" "$HELM_APP_VERSION" "$APP_MAIN_VERSION" "$DASHBOARD_VERSION" "$INDEX_VERSION")
+        VERSIONS_TO_CHECK=("$HELM_VERSION" "$HELM_APP_VERSION" "$APP_MAIN_VERSION" "$APP_CONFIG_VERSION" "$DASHBOARD_VERSION" "$INDEX_VERSION")
         FIRST_VERSION="${VERSIONS_TO_CHECK[0]}"
         VERSIONS_CONSISTENT=true
         
@@ -165,7 +166,7 @@ jobs:
         
         # Update application version references
         sed -i "s/FastAPI(title=\"Airia Infrastructure Test Pod\", version=\"[^\"]*\")/FastAPI(title=\"Airia Infrastructure Test Pod\", version=\"$VERSION\")/" app/main.py
-        sed -i "s/version: str = os.getenv(\"APP_VERSION\", \"[^\"]*\")/version: str = os.getenv(\"APP_VERSION\", \"$VERSION\")/" app/config.py
+        sed -i "s/app_version: str = \"[^\"]*\"/app_version: str = \"$VERSION\"/" app/config.py
         echo "✅ Updated application version references"
         
         # Update template fallback versions
@@ -197,7 +198,7 @@ jobs:
           echo "ℹ️  No changes to commit"
         else
           git commit -m "Release v$VERSION: Update version references [skip ci]"
-          git push
+          git push origin HEAD:main
           echo "✅ All updates committed and pushed atomically"
           echo "   - Version references updated to $VERSION"
         fi
@@ -213,14 +214,14 @@ jobs:
         HELM_VERSION=$(grep '^version:' helm/airia-test-pod/Chart.yaml | cut -d' ' -f2)
         HELM_APP_VERSION=$(grep '^appVersion:' helm/airia-test-pod/Chart.yaml | cut -d'"' -f2)
         APP_MAIN_VERSION=$(grep -o 'version="[^"]*"' app/main.py | cut -d'"' -f2)
-        APP_CONFIG_VERSION=$(grep -o 'APP_VERSION", "[^"]*"' app/config.py | cut -d'"' -f3)
+        APP_CONFIG_VERSION=$(grep -o 'app_version: str = "[^"]*"' app/config.py | cut -d'"' -f2)
         DASHBOARD_VERSION=$(grep 'textContent.*v[0-9]' templates/dashboard.html | grep -o "v[0-9][^']*" | cut -c2-)
         INDEX_VERSION=$(grep 'textContent.*v[0-9]' templates/index.html | grep -o "v[0-9][^']*" | cut -c2-)
 
         echo "📋 UPDATED VERSION REFERENCES:"
         echo "- Helm Chart version: $HELM_VERSION"
         echo "- Helm appVersion: $HELM_APP_VERSION"
-        echo "- App config.py fallback: $APP_CONFIG_VERSION (environment variable APP_VERSION takes precedence)"
+        echo "- App config.py: $APP_CONFIG_VERSION"
         echo "- App main.py: $APP_MAIN_VERSION"
         echo "- Dashboard template: $DASHBOARD_VERSION"
         echo "- Index template: $INDEX_VERSION"
