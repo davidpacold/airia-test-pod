@@ -2,6 +2,7 @@ import logging
 import time
 import traceback
 from abc import ABC, abstractmethod
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError, as_completed
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
@@ -138,6 +139,11 @@ class BaseTest(ABC):
         """Maximum time the test should take"""
         return 30
 
+    @property
+    def max_retries(self) -> int:
+        """Number of retries on connection/timeout errors"""
+        return 1
+
     @abstractmethod
     def run_test(self) -> TestResult:
         """Run the test and return result"""
@@ -152,7 +158,7 @@ class BaseTest(ABC):
         return f"No configuration required for {self.test_name}"
 
     def execute(self) -> TestResult:
-        """Execute the test with proper error handling and logging"""
+        """Execute the test with timeout enforcement, retry logic, and error handling"""
         result = TestResult(self.test_name)
         result.start()
 
@@ -166,29 +172,68 @@ class BaseTest(ABC):
                 self.logger.warning(f"Skipping {self.test_name} - not configured")
                 return result
 
-            # Run the actual test with timeout
-            start_time = time.time()
-            test_result = self.run_test()
+            # Run with real timeout enforcement and retry logic
+            last_error = None
+            for attempt in range(1 + self.max_retries):
+                if attempt > 0:
+                    self.logger.info(
+                        f"Retrying {self.test_name} (attempt {attempt + 1}/{1 + self.max_retries})"
+                    )
+                    result.add_log(
+                        "INFO",
+                        f"Retrying (attempt {attempt + 1}/{1 + self.max_retries})",
+                    )
+                    time.sleep(2)
 
-            # Check for timeout
-            if time.time() - start_time > self.timeout_seconds:
-                result.fail(
-                    f"Test timed out after {self.timeout_seconds} seconds",
-                    remediation=f"Check network connectivity and increase timeout if needed",
-                )
-                self.logger.error(f"{self.test_name} timed out")
-                return result
+                try:
+                    with ThreadPoolExecutor(max_workers=1) as executor:
+                        future = executor.submit(self.run_test)
+                        test_result = future.result(timeout=self.timeout_seconds)
 
-            # Copy results from the test implementation
-            if isinstance(test_result, TestResult):
-                return test_result
+                    # Success - process result
+                    if isinstance(test_result, TestResult):
+                        return test_result
+                    else:
+                        result.complete(
+                            test_result.get("success", False),
+                            test_result.get("message", "Test completed"),
+                            test_result.get("details", {}),
+                        )
+                        break
+
+                except FutureTimeoutError:
+                    last_error = f"Test timed out after {self.timeout_seconds} seconds"
+                    self.logger.error(f"{self.test_name} timed out")
+                    continue
+
+                except Exception as e:
+                    last_error = e
+                    error_msg = str(e).lower()
+                    is_retryable = any(
+                        kw in error_msg
+                        for kw in ("connection", "timeout", "refused", "unreachable")
+                    )
+                    if not is_retryable or attempt >= self.max_retries:
+                        result.fail(
+                            f"Test failed with error: {str(e)}",
+                            error=e,
+                            remediation=self._get_error_remediation(e),
+                        )
+                        break
+                    continue
             else:
-                # Handle legacy format
-                result.complete(
-                    test_result.get("success", False),
-                    test_result.get("message", "Test completed"),
-                    test_result.get("details", {}),
-                )
+                # All retries exhausted
+                if isinstance(last_error, str):
+                    result.fail(
+                        last_error,
+                        remediation="Check network connectivity and increase timeout if needed",
+                    )
+                elif last_error:
+                    result.fail(
+                        f"Test failed after {1 + self.max_retries} attempts: {str(last_error)}",
+                        error=last_error,
+                        remediation=self._get_error_remediation(last_error),
+                    )
 
         except Exception as e:
             result.fail(
@@ -266,27 +311,59 @@ class TestSuite:
         return test.execute()
 
     def run_all_tests(self, skip_optional: bool = False) -> Dict[str, TestResult]:
-        """Run all tests in dependency order"""
+        """Run all tests, parallelizing independent tests"""
         results = {}
 
-        # Sort tests by dependencies (simple approach)
+        # Sort tests by dependencies
         test_order = self._resolve_dependencies()
 
-        for test_id in test_order:
-            test = self.tests[test_id]
+        # Group tests by dependency level for parallel execution
+        remaining = list(test_order)
+        while remaining:
+            # Find tests whose dependencies are all resolved
+            ready = []
+            deferred = []
+            for test_id in remaining:
+                test = self.tests[test_id]
+                if skip_optional and test.is_optional:
+                    continue
+                if not self._dependencies_met(test, results):
+                    deps_failed = any(
+                        dep_id in results
+                        and results[dep_id].status != TestStatus.PASSED
+                        for dep_id in test.depends_on
+                    )
+                    if deps_failed:
+                        result = TestResult(test.test_name)
+                        result.skip("Dependencies not met")
+                        results[test_id] = result
+                    else:
+                        deferred.append(test_id)
+                    continue
+                ready.append(test_id)
 
-            # Skip optional tests if requested
-            if skip_optional and test.is_optional:
-                continue
+            if not ready:
+                for test_id in deferred:
+                    result = TestResult(self.tests[test_id].test_name)
+                    result.skip("Dependencies not met")
+                    results[test_id] = result
+                break
 
-            # Check if dependencies passed
-            if not self._dependencies_met(test, results):
-                result = TestResult(test.test_name)
-                result.skip("Dependencies not met")
-                results[test_id] = result
-                continue
+            # Run ready tests in parallel
+            with ThreadPoolExecutor(max_workers=min(len(ready), 8)) as executor:
+                future_to_id = {
+                    executor.submit(self.tests[tid].execute): tid for tid in ready
+                }
+                for future in as_completed(future_to_id):
+                    test_id = future_to_id[future]
+                    try:
+                        results[test_id] = future.result()
+                    except Exception as e:
+                        result = TestResult(self.tests[test_id].test_name)
+                        result.fail(f"Unexpected error: {str(e)}", error=e)
+                        results[test_id] = result
 
-            results[test_id] = test.execute()
+            remaining = deferred
 
         return results
 
