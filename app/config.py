@@ -11,7 +11,7 @@ _DEFAULT_SECRET_KEY = "your-secret-key-here-change-in-production"
 
 class Settings(BaseSettings):
     app_name: str = "Airia Infrastructure Test Pod"
-    app_version: str = "1.0.196"
+    app_version: str = "1.0.197"
 
     auth_username: str = "admin"
     auth_password: str = "changeme"
