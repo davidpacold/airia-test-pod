@@ -4,8 +4,6 @@ import os
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 
-# Test change to verify automated version workflow v1.0.155 -> v1.0.156
-
 import uvicorn
 from fastapi import (BackgroundTasks, Depends, FastAPI, File, Form,
                      HTTPException, Request, UploadFile, status)
@@ -65,9 +63,6 @@ async def add_security_and_cache_headers(request: Request, call_next):
     return response
 
 
-# Real-time updates will be implemented in a future version
-# For now, the application works perfectly with manual refresh
-
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
@@ -106,17 +101,6 @@ async def readiness_check():
 
 @app.get("/version")
 async def get_version():
-    import os
-    return {
-        "version": get_settings().app_version,
-        "image_tag": os.getenv("IMAGE_TAG", "unknown"),
-        "build_timestamp": os.getenv("BUILD_TIMESTAMP", "unknown"),
-        "deployment_time": os.getenv("BUILD_TIMESTAMP", "unknown")
-    }
-
-
-@app.get("/api/version")
-async def get_api_version():
     import os
     return {
         "version": get_settings().app_version,

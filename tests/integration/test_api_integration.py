@@ -420,7 +420,6 @@ class TestPerformanceIntegration:
         endpoints_to_test = [
             "/health",
             "/version",
-            "/api/version",
         ]
 
         for endpoint in endpoints_to_test:
