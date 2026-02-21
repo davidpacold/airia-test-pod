@@ -239,13 +239,15 @@ async def get_test_summary(current_user: str = Depends(require_auth)):
 @app.post("/api/tests/run-all")
 async def run_all_tests(current_user: str = Depends(require_auth)):
     """Run all configured tests"""
-    return test_runner.run_all_tests()
+    import asyncio
+    return await asyncio.to_thread(test_runner.run_all_tests)
 
 
 @app.post("/api/tests/{test_id}")
 async def run_single_test(test_id: str, current_user: str = Depends(require_auth)):
     """Run a specific test"""
-    result = test_runner.run_test(test_id)
+    import asyncio
+    result = await asyncio.to_thread(test_runner.run_test, test_id)
     if not result:
         raise TestExecutionError(
             message=f"Test '{test_id}' not found",
