@@ -236,6 +236,40 @@ async def get_test_summary(current_user: str = Depends(require_auth)):
     return test_runner.get_test_summary()
 
 
+@app.get("/api/readiness-gate")
+async def readiness_gate(current_user: str = Depends(require_auth)):
+    """Programmatic readiness gate for Airia installation.
+
+    Returns HTTP 200 if all non-skipped tests pass, HTTP 503 if any fail.
+    Uses cached results if tests were run within the last 5 minutes.
+    """
+    import asyncio
+
+    use_cached = False
+    with test_runner._lock:
+        if test_runner._last_run_time and test_runner.test_results:
+            age = (datetime.now(timezone.utc) - test_runner._last_run_time).total_seconds()
+            if age < 300:
+                use_cached = True
+
+    if not use_cached:
+        await asyncio.to_thread(test_runner.run_all_tests)
+
+    summary = test_runner.get_test_summary()
+    ready = summary.get("overall_status") == "passed"
+
+    response_data = {
+        "ready": ready,
+        "tests_passed": summary.get("passed_count", 0),
+        "tests_failed": summary.get("failed_count", 0),
+        "tests_skipped": summary.get("skipped_count", 0),
+        "last_run": summary.get("last_run"),
+    }
+
+    status_code = 200 if ready else 503
+    return JSONResponse(content=response_data, status_code=status_code)
+
+
 @app.post("/api/tests/run-all")
 async def run_all_tests(current_user: str = Depends(require_auth)):
     """Run all configured tests"""
