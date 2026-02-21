@@ -108,7 +108,7 @@ async def readiness_check():
 async def get_version():
     import os
     return {
-        "version": get_settings().version,
+        "version": get_settings().app_version,
         "image_tag": os.getenv("IMAGE_TAG", "unknown"),
         "build_timestamp": os.getenv("BUILD_TIMESTAMP", "unknown"),
         "deployment_time": os.getenv("BUILD_TIMESTAMP", "unknown")
@@ -119,7 +119,7 @@ async def get_version():
 async def get_api_version():
     import os
     return {
-        "version": get_settings().version,
+        "version": get_settings().app_version,
         "image_tag": os.getenv("IMAGE_TAG", "unknown"),
         "build_timestamp": os.getenv("BUILD_TIMESTAMP", "unknown"),
         "deployment_time": os.getenv("BUILD_TIMESTAMP", "unknown")
@@ -143,7 +143,7 @@ async def login_page(
         return RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
     settings = get_settings()
     return templates.TemplateResponse(
-        "login.html", {"request": request, "title": settings.app_name, "version": settings.version}
+        "login.html", {"request": request, "title": settings.app_name, "version": settings.app_version}
     )
 
 
@@ -196,7 +196,7 @@ async def dashboard(request: Request, current_user: str = Depends(require_auth))
     settings = get_settings()
     return templates.TemplateResponse(
         "dashboard.html",
-        {"request": request, "title": settings.app_name, "username": current_user, "version": settings.version},
+        {"request": request, "title": settings.app_name, "username": current_user, "version": settings.app_version},
     )
 
 
