@@ -104,7 +104,7 @@ service:
 #       For the NGINX Ingress Controller deployment, see: ingress-nginx (line 477)
 #
 ingress:
-  enabled: true
+  enabled: false
   className: "nginx"
   annotations:
     # Disable SSL redirect (configure SSL at load balancer or reverse proxy level)
@@ -515,7 +515,7 @@ versionCheck:
 # in your cluster to avoid conflicts and duplicate load balancers.
 # ===============================================================================
 ingress-nginx:
-  enabled: true  # Set to false if you have an existing ingress controller
+  enabled: false  # Set to true only if you need a new ingress controller deployed
   controller:
     # Watch all ingresses in the cluster (not just those with ingressClassName)
     watchIngressWithoutClass: true
