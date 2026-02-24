@@ -13,7 +13,7 @@
 </head>
 <body>
     <!-- Notification System -->
-    <div class="notification-container" id="notificationContainer"></div>
+    <div class="notification-container" id="notificationContainer" role="alert" aria-live="polite"></div>
 
     <div class="container">
         <header class="dashboard-header">
@@ -35,7 +35,7 @@
             <div class="welcome-section">
                 <h2>Infrastructure Readiness Dashboard</h2>
                 <p>Validate your infrastructure before deploying the main application. Run tests to check connectivity to all required services.</p>
-                <button class="run-tests-button" onclick="runAllTests()" id="runAllTestsBtn">Run All Tests</button>
+                <button class="run-tests-button" onclick="runAllTests()" id="runAllTestsBtn" aria-label="Run all infrastructure tests">Run All Tests</button>
             </div>
 
             <!-- Storage Tests -->
@@ -179,7 +179,8 @@
                         <button class="test-button" onclick="runTest('dns')" id="dns-btn">Run Test</button>
                         <div class="test-details" id="dns-details"></div>
                         <div class="dns-adhoc">
-                            <input type="text" id="dns-hostname" placeholder="Resolve a hostname..." class="dns-input">
+                            <label for="dns-hostname" class="sr-only">Hostname to resolve</label>
+                            <input type="text" id="dns-hostname" placeholder="Resolve a hostname..." class="dns-input" aria-label="Hostname to resolve">
                             <button class="test-button test-button-sm" onclick="resolveDns()">Resolve</button>
                             <div id="dns-resolve-result" class="dns-result"></div>
                         </div>
