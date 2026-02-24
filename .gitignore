@@ -1,13 +1,3 @@
-# Test deployment files
-Test deploy/dpvalues.yaml
-
-# Helm custom values files (user-specific)
-*-values.yaml
-values-*.yaml
-!helm/*/values.yaml  # Don't ignore the chart's default values.yaml
-secrets.yaml
-*.secret.yaml
-
 # Python
 __pycache__/
 *.py[cod]
@@ -15,18 +5,28 @@ __pycache__/
 *.so
 .Python
 venv/
+.venv/
 env/
 ENV/
-.venv
 pip-log.txt
-pip-delete-this-directory.txt
-.pytest_cache/
-*.log
+*.egg-info/
+dist/
+build/
 
-# Environment variables
+# Testing
+.pytest_cache/
+.coverage
+coverage/
+htmlcov/
+*.cover
+test_results/
+
+# Environment & Secrets
 .env
 .env.local
 .env.*.local
+secrets.yaml
+*.secret.yaml
 
 # IDE
 .vscode/
@@ -39,41 +39,23 @@ pip-delete-this-directory.txt
 .DS_Store
 Thumbs.db
 
-# Docker
-*.pid
+# Logs
+*.log
 
-# Cassandra specific (if running local testing)
-cassandra_data/
-.cassandra/
+# Helm user values (keep chart defaults)
+*-values.yaml
+values-*.yaml
+!helm/*/values.yaml
 
-# Test outputs
-test_results/
-coverage/
-htmlcov/
-.coverage
-*.cover
+# Git worktrees
+.worktrees/
 
-# Build artifacts
-dist/
-build/
-*.egg-info/
+# Claude Code
+.claude/
 
 # Temporary files
 *.tmp
 *.temp
+*.pid
 tmp/
 temp/
-new_cookies.txt
-cookies.txt
-aws.yaml
-Azure-test.yaml
-
-# Helm packaged charts (should be built in CI/CD)
-*.tgz
-
-# Test/temporary files
-*_TEST.md
-VERSION_TEST.md
-
-# Git worktrees
-.worktrees/
