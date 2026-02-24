@@ -38,7 +38,6 @@ class TestService(BaseService):
         from ..tests.cassandra_test import CassandraTest
         from ..tests.document_intelligence_test import DocumentIntelligenceTest
         from ..tests.embedding_test import EmbeddingTest
-        from ..tests.llama_test import LlamaTest
         from ..tests.minio_test import MinioTest
         from ..tests.openai_test import OpenAITest
         from ..tests.postgres_test_v2 import PostgresTest
@@ -53,7 +52,6 @@ class TestService(BaseService):
             S3Test,
             MinioTest,
             OpenAITest,
-            LlamaTest,
             EmbeddingTest,
             DocumentIntelligenceTest,
             SSLTest,

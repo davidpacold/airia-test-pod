@@ -10,7 +10,6 @@ from .cassandra_test import CassandraTest
 from .document_intelligence_test import DocumentIntelligenceTest
 from .embedding_test import EmbeddingTest
 from .gpu_test import GPUTest
-from .llama_test import LlamaTest
 from .minio_test import MinioTest
 from .openai_test import OpenAITest
 from .postgres_test_v2 import PostgreSQLTestV2
@@ -63,10 +62,6 @@ class TestRunner:
         # Register Document Intelligence test
         doc_intel_test = DocumentIntelligenceTest()
         test_suite.register_test(doc_intel_test)
-
-        # Register Llama test
-        llama_test = LlamaTest()
-        test_suite.register_test(llama_test)
 
         # Register Minio test
         minio_test = MinioTest()
