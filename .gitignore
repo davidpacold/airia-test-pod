@@ -74,3 +74,6 @@ Azure-test.yaml
 # Test/temporary files
 *_TEST.md
 VERSION_TEST.md
+
+# Git worktrees
+.worktrees/
