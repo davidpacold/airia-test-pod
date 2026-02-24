@@ -352,6 +352,26 @@ async def clear_test_results(current_user: str = Depends(require_auth)):
     return {"message": "Test results cleared"}
 
 
+@app.post("/api/tests/dns/resolve")
+async def dns_resolve_adhoc(
+    request: Request, current_user: str = Depends(require_auth)
+):
+    """Resolve an ad-hoc hostname via DNS"""
+    from .tests.dns_test import DNSTest
+
+    body = await request.json()
+    hostname = body.get("hostname", "").strip()
+
+    if not hostname or not DNSTest.validate_hostname(hostname):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid hostname. Use alphanumeric characters, dots, and hyphens (max 253 chars).",
+        )
+
+    result = DNSTest.resolve_hostname(hostname)
+    return result
+
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=get_settings().port)
 
