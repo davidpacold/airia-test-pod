@@ -1,6 +1,8 @@
 import json
 import logging
 import os
+import threading
+import time
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 
@@ -25,6 +27,28 @@ from .utils.file_handler import FileUploadHandler
 from .utils.sanitization import (InputSanitizer, sanitize_ai_prompt,
                                  sanitize_login_credentials,
                                  sanitize_user_input, validate_file_upload)
+
+# Simple in-memory rate limiter for auth endpoints
+_rate_limit_lock = threading.Lock()
+_rate_limit_attempts: dict[str, list[float]] = {}
+_RATE_LIMIT_MAX = 10  # max attempts
+_RATE_LIMIT_WINDOW = 60  # per 60 seconds
+
+
+def _check_rate_limit(client_ip: str) -> bool:
+    """Returns True if request is allowed, False if rate limited."""
+    now = time.time()
+    with _rate_limit_lock:
+        attempts = _rate_limit_attempts.get(client_ip, [])
+        # Prune old entries
+        attempts = [t for t in attempts if now - t < _RATE_LIMIT_WINDOW]
+        if len(attempts) >= _RATE_LIMIT_MAX:
+            _rate_limit_attempts[client_ip] = attempts
+            return False
+        attempts.append(now)
+        _rate_limit_attempts[client_ip] = attempts
+        return True
+
 
 app = FastAPI(title="Airia Infrastructure Test Pod", version="1.0.198")
 
@@ -141,6 +165,12 @@ async def login_page(
 
 @app.post("/login")
 async def login(request: Request, username: str = Form(...), password: str = Form(...)):
+    if not _check_rate_limit(request.client.host):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many login attempts. Please try again later.",
+        )
+
     # Sanitize login credentials
     try:
         sanitized_username, sanitized_password = sanitize_login_credentials(
@@ -203,7 +233,13 @@ async def logout(request: Request):
 
 
 @app.post("/token")
-async def token(form_data: OAuth2PasswordRequestForm = Depends()):
+async def token(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
+    if not _check_rate_limit(request.client.host):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many login attempts. Please try again later.",
+        )
+
     # Sanitize credentials from OAuth form
     try:
         sanitized_username, sanitized_password = sanitize_login_credentials(
