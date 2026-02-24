@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     secure_cookies: bool = True
 
+    debug: bool = False
     port: int = 8080
 
     postgres_host: str = "localhost"

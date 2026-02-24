@@ -7,7 +7,6 @@ and standard HTTP errors, ensuring consistent error response format.
 
 import logging
 import traceback
-import os
 
 from fastapi import HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
@@ -153,15 +152,16 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
         exc_info=True,
     )
 
-    # Print to stdout for immediate visibility (will appear in kubectl logs)
-    print(f"ERROR: Unexpected exception in {request.method} {request.url}")
-    print(f"Exception type: {type(exc).__name__}")
-    print(f"Exception message: {str(exc)}")
-    print(f"Full traceback:")
-    print(tb_str)
+    # Log for immediate visibility (will appear in kubectl logs)
+    logger.error(f"Unexpected exception in {request.method} {request.url}")
+    logger.error(f"Exception type: {type(exc).__name__}")
+    logger.error(f"Exception message: {str(exc)}")
+    logger.error(f"Full traceback:")
+    logger.error(tb_str)
 
     # Check if we're in development/debug mode
-    is_debug = os.getenv("DEBUG", "false").lower() in ["true", "1", "yes"]
+    from ..config import get_settings
+    is_debug = get_settings().debug
     
     response_content = {
         "error": "An unexpected error occurred",

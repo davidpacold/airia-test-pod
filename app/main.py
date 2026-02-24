@@ -1,12 +1,14 @@
-import json
 import logging
 import os
+import threading
+import time
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional
+from typing import Optional
 
 import uvicorn
-from fastapi import (BackgroundTasks, Depends, FastAPI, File, Form,
-                     HTTPException, Request, UploadFile, status)
+from fastapi import (Depends, FastAPI, Form,
+                     HTTPException, Request, status)
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
@@ -14,25 +16,67 @@ from fastapi.templating import Jinja2Templates
 
 from .auth import (authenticate_user, create_access_token, get_current_user,
                    require_auth)
-from .config import get_settings
-from .exceptions import (ConfigurationError, ErrorCode,
-                         ServiceUnavailableError, TestExecutionError,
-                         TestPodException, ValidationError,
-                         setup_error_handlers)
-from .models import TestResult, TestStatus
+from .config import get_settings, _DEFAULT_SECRET_KEY
+from .exceptions import (ErrorCode, TestExecutionError,
+                         ValidationError, setup_error_handlers)
+from .models import TestStatus
 from .tests.test_runner import test_runner
-from .utils.file_handler import FileUploadHandler
-from .utils.sanitization import (InputSanitizer, sanitize_ai_prompt,
-                                 sanitize_login_credentials,
-                                 sanitize_user_input, validate_file_upload)
+from .utils.sanitization import (sanitize_login_credentials,
+                                 sanitize_user_input)
 
-app = FastAPI(title="Airia Infrastructure Test Pod", version="1.0.198")
+# Simple in-memory rate limiter for auth endpoints
+_rate_limit_lock = threading.Lock()
+_rate_limit_attempts: dict[str, list[float]] = {}
+_RATE_LIMIT_MAX = 10  # max attempts
+_RATE_LIMIT_WINDOW = 60  # per 60 seconds
+
+
+def _check_rate_limit(client_ip: str) -> bool:
+    """Returns True if request is allowed, False if rate limited."""
+    now = time.time()
+    with _rate_limit_lock:
+        attempts = _rate_limit_attempts.get(client_ip, [])
+        # Prune old entries
+        attempts = [t for t in attempts if now - t < _RATE_LIMIT_WINDOW]
+        if len(attempts) >= _RATE_LIMIT_MAX:
+            _rate_limit_attempts[client_ip] = attempts
+            return False
+        attempts.append(now)
+        _rate_limit_attempts[client_ip] = attempts
+        return True
+
+
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup validation and graceful shutdown."""
+    settings = get_settings()
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
+    logger.info(f"Starting Airia Test Pod v{settings.app_version}")
+
+    if settings.auth_password == "changeme":
+        logger.warning("Default password in use - change auth.password in production")
+
+    from .tests.base_test import test_suite
+    logger.info(f"Registered {len(test_suite.tests)} tests")
+    yield
+    # Graceful shutdown
+    logger.info("Shutting down - waiting for in-progress tests...")
+
+
+app = FastAPI(
+    title="Airia Infrastructure Test Pod",
+    version="1.0.198",
+    lifespan=lifespan,
+)
 
 # Setup standardized error handling
 setup_error_handlers(app)
-
-# Initialize logger
-logger = logging.getLogger(__name__)
 
 
 # Security headers and cache control middleware
@@ -45,6 +89,14 @@ async def add_security_and_cache_headers(request: Request, call_next):
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data:; "
+        "connect-src 'self'; "
+        "frame-ancestors 'none'"
+    )
 
     # Cache control for static files
     if request.url.path.startswith("/static/"):
@@ -133,6 +185,12 @@ async def login_page(
 
 @app.post("/login")
 async def login(request: Request, username: str = Form(...), password: str = Form(...)):
+    if not _check_rate_limit(request.client.host):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many login attempts. Please try again later.",
+        )
+
     # Sanitize login credentials
     try:
         sanitized_username, sanitized_password = sanitize_login_credentials(
@@ -195,7 +253,13 @@ async def logout(request: Request):
 
 
 @app.post("/token")
-async def token(form_data: OAuth2PasswordRequestForm = Depends()):
+async def token(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
+    if not _check_rate_limit(request.client.host):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many login attempts. Please try again later.",
+        )
+
     # Sanitize credentials from OAuth form
     try:
         sanitized_username, sanitized_password = sanitize_login_credentials(
@@ -313,242 +377,24 @@ async def clear_test_results(current_user: str = Depends(require_auth)):
     return {"message": "Test results cleared"}
 
 
-# Custom AI Model Testing Endpoints
-@app.post("/api/tests/openai/custom")
-async def test_openai_custom(
-    prompt: str = Form(...),
-    system_message: Optional[str] = Form(None),
-    file: Optional[UploadFile] = File(None),
-    current_user: str = Depends(require_auth),
+@app.post("/api/tests/dns/resolve")
+async def dns_resolve_adhoc(
+    request: Request, current_user: str = Depends(require_auth)
 ):
-    """Test OpenAI with custom prompt and optional file"""
-    try:
-        # Sanitize inputs
-        sanitized_prompt = sanitize_ai_prompt(prompt)
-        sanitized_system_message = None
-        if system_message:
-            sanitized_system_message = sanitize_user_input(system_message)
+    """Resolve an ad-hoc hostname via DNS"""
+    from .tests.dns_test import DNSTest
 
-        # Process file upload if provided
-        processed_file = await FileUploadHandler.process_ai_model_upload(file)
+    body = await request.json()
+    hostname = body.get("hostname", "").strip()
 
-        # Get OpenAI test instance
-        from .tests.openai_test import OpenAITest
-
-        openai_test = OpenAITest()
-
-        if not openai_test.is_configured():
-            raise ConfigurationError(
-                message="OpenAI test not configured",
-                error_code=ErrorCode.CONFIG_REQUIRED,
-                service_name="OpenAI",
-                remediation="Please configure OpenAI API key and endpoint in your environment variables",
-            )
-
-        # Run custom test with sanitized inputs
-        result = openai_test.test_with_custom_input(
-            custom_prompt=sanitized_prompt,
-            custom_file_content=processed_file.content if processed_file else None,
-            file_type=processed_file.file_type if processed_file else None,
-            system_message=sanitized_system_message,
+    if not hostname or not DNSTest.validate_hostname(hostname):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid hostname. Use alphanumeric characters, dots, and hyphens (max 253 chars).",
         )
 
-        return JSONResponse(content=result)
-
-    except (TestPodException, HTTPException):
-        # Let our custom exceptions and HTTP exceptions pass through
-        raise
-    except Exception as e:
-        raise TestExecutionError(
-            message=f"OpenAI custom test failed: {str(e)}",
-            error_code=ErrorCode.TEST_FAILED,
-            test_id="openai_custom",
-            service_name="OpenAI",
-            details={"original_error": str(e), "error_type": type(e).__name__},
-            remediation="Please check your OpenAI configuration and try again. If the problem persists, check the service status.",
-        )
-
-
-@app.post("/api/tests/llama/custom")
-async def test_llama_custom(
-    prompt: str = Form(...),
-    system_message: Optional[str] = Form(None),
-    file: Optional[UploadFile] = File(None),
-    current_user: str = Depends(require_auth),
-):
-    """Test Llama with custom prompt and optional file"""
-    try:
-        # Sanitize inputs
-        sanitized_prompt = sanitize_ai_prompt(prompt)
-        sanitized_system_message = None
-        if system_message:
-            sanitized_system_message = sanitize_user_input(system_message)
-
-        # Process file upload if provided
-        processed_file = await FileUploadHandler.process_ai_model_upload(file)
-
-        # Get Llama test instance
-        from .tests.llama_test import LlamaTest
-
-        llama_test = LlamaTest()
-
-        if not llama_test.is_configured():
-            raise ConfigurationError(
-                message="Llama test not configured",
-                error_code=ErrorCode.CONFIG_REQUIRED,
-                service_name="Llama",
-                remediation="Please configure Llama API key and endpoint in your environment variables",
-            )
-
-        # Run custom test with sanitized inputs
-        if hasattr(llama_test, "test_with_custom_input"):
-            result = llama_test.test_with_custom_input(
-                custom_prompt=sanitized_prompt,
-                custom_file_content=processed_file.content if processed_file else None,
-                file_type=processed_file.file_type if processed_file else None,
-                system_message=sanitized_system_message,
-            )
-        else:
-            raise TestExecutionError(
-                message="Custom input not yet implemented for Llama test",
-                error_code=ErrorCode.TEST_CONFIGURATION_ERROR,
-                test_id="llama_custom",
-                service_name="Llama",
-                remediation="Please contact support to enable custom input functionality for Llama",
-            )
-
-        return JSONResponse(content=result)
-
-    except (TestPodException, HTTPException):
-        # Let our custom exceptions and HTTP exceptions pass through
-        raise
-    except Exception as e:
-        raise TestExecutionError(
-            message=f"Llama custom test failed: {str(e)}",
-            error_code=ErrorCode.TEST_FAILED,
-            test_id="llama_custom",
-            service_name="Llama",
-            details={"original_error": str(e), "error_type": type(e).__name__},
-            remediation="Please check your Llama configuration and try again. If the problem persists, check the service status.",
-        )
-
-
-@app.post("/api/tests/docintel/custom")
-async def test_docintel_custom(
-    prompt: Optional[str] = Form(None),
-    file: UploadFile = File(...),  # File is required for Document Intelligence
-    current_user: str = Depends(require_auth),
-):
-    """Test Document Intelligence with custom file upload"""
-    try:
-        # Sanitize inputs
-        sanitized_prompt = None
-        if prompt:
-            sanitized_prompt = sanitize_ai_prompt(prompt)
-
-        # Process file upload (Document Intelligence requires a file)
-        processed_file = await FileUploadHandler.process_document_intel_upload(file)
-
-        # Get Document Intelligence test instance
-        from .tests.document_intelligence_test import DocumentIntelligenceTest
-
-        docintel_test = DocumentIntelligenceTest()
-
-        if not docintel_test.is_configured():
-            raise ConfigurationError(
-                message="Document Intelligence test not configured",
-                error_code=ErrorCode.CONFIG_REQUIRED,
-                service_name="DocumentIntelligence",
-                remediation="Please configure Azure Document Intelligence API key and endpoint in your environment variables",
-            )
-
-        # Read original file content for Document Intelligence API
-        await file.seek(0)  # Reset file pointer to beginning
-        content = await file.read()
-
-        # Run custom test with sanitized inputs
-        result = docintel_test.test_with_custom_file(
-            file_content=content,
-            file_type=processed_file.extension,
-            custom_prompt=sanitized_prompt,
-        )
-
-        return JSONResponse(content=result)
-
-    except (TestPodException, HTTPException):
-        # Let our custom exceptions and HTTP exceptions pass through
-        raise
-    except Exception as e:
-        raise TestExecutionError(
-            message=f"Document Intelligence custom test failed: {str(e)}",
-            error_code=ErrorCode.TEST_FAILED,
-            test_id="docintel_custom",
-            service_name="DocumentIntelligence",
-            details={"original_error": str(e), "error_type": type(e).__name__},
-            remediation="Please check your Document Intelligence configuration and try again. If the problem persists, check the service status.",
-        )
-
-
-@app.post("/api/tests/embeddings/custom")
-async def test_embeddings_custom(
-    text: str = Form(...),
-    batch_texts: Optional[str] = Form(None),  # Comma-separated additional texts
-    current_user: str = Depends(require_auth),
-):
-    """Test embedding generation with custom text input"""
-    try:
-        # Sanitize inputs
-        sanitized_text = sanitize_user_input(text)
-        sanitized_batch_texts = InputSanitizer.sanitize_batch_texts(batch_texts)
-
-        # Get Embedding test instance
-        from .tests.embedding_test import EmbeddingTest
-
-        embedding_test = EmbeddingTest()
-
-        if not embedding_test.is_configured():
-            raise ConfigurationError(
-                message="Embedding test not configured",
-                error_code=ErrorCode.CONFIG_REQUIRED,
-                service_name="Embeddings",
-                remediation="Please configure embedding API key and endpoint in your environment variables",
-            )
-
-        # Use sanitized batch texts
-        batch_text_list = sanitized_batch_texts if sanitized_batch_texts else None
-
-        # Run custom test with sanitized inputs (no file support)
-        result = embedding_test.test_with_custom_input(
-            custom_text=sanitized_text,
-            custom_file_content=None,
-            file_type=None,
-            batch_texts=batch_text_list,
-        )
-
-        return JSONResponse(content=result)
-
-    except (TestPodException, HTTPException):
-        # Let our custom exceptions and HTTP exceptions pass through
-        raise
-    except Exception as e:
-        raise TestExecutionError(
-            message=f"Embedding custom test failed: {str(e)}",
-            error_code=ErrorCode.TEST_FAILED,
-            test_id="embedding_custom",
-            service_name="Embeddings",
-            details={"original_error": str(e), "error_type": type(e).__name__},
-            remediation="Please check your embedding configuration and try again. If the problem persists, check the service status.",
-        )
-
-
-# Legacy endpoint for backward compatibility
-@app.post("/api/tests/postgres")
-async def run_postgres_test(current_user: str = Depends(require_auth)):
-    """Run PostgreSQL connectivity test - legacy endpoint"""
-    result = test_runner.run_test("postgresql")
-    if not result:
-        raise HTTPException(status_code=404, detail="PostgreSQL test not found")
-    return result.get("result", result)
+    result = DNSTest.resolve_hostname(hostname)
+    return result
 
 
 if __name__ == "__main__":

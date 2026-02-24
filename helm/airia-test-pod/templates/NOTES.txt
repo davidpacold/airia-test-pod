@@ -23,9 +23,11 @@
 
 2. Login credentials:
    Username: {{ .Values.config.auth.username }}
-   Password: {{ .Values.config.auth.password }}
+   Password: kubectl get secret {{ include "airia-test-pod.fullname" . }}-auth -n {{ include "airia-test-pod.namespace" . }} -o jsonpath='{.data.password}' | base64 -d
 
-3. Configured tests:
+3. Configured tests (16 total):
+
+   -- Databases --
 {{- if .Values.config.postgresql.enabled }}
    ✓ PostgreSQL Database Test
 {{- else }}
@@ -36,40 +38,66 @@
 {{- else }}
    ✗ Apache Cassandra Test (disabled)
 {{- end }}
+
+   -- Object Storage --
 {{- if .Values.config.blobStorage.enabled }}
    ✓ Azure Blob Storage Test
 {{- else }}
    ✗ Azure Blob Storage Test (disabled)
 {{- end }}
 {{- if .Values.config.minio.enabled }}
-   ✓ Minio Storage Test
+   ✓ MinIO Storage Test
 {{- else }}
-   ✗ Minio Storage Test (disabled)
+   ✗ MinIO Storage Test (disabled)
 {{- end }}
 {{- if .Values.config.s3.enabled }}
    ✓ Amazon S3 Storage Test
 {{- else }}
    ✗ Amazon S3 Storage Test (disabled)
 {{- end }}
-{{- if .Values.config.openai.enabled }}
-   ✓ Azure OpenAI / OpenAI-Compatible API Test
+
+   -- AI & Machine Learning --
+{{- if .Values.config.azureOpenai.enabled }}
+   ✓ Azure OpenAI Test
 {{- else }}
-   ✗ Azure OpenAI / OpenAI-Compatible API Test (disabled)
+   ✗ Azure OpenAI Test (disabled)
 {{- end }}
-{{- if or (and .Values.config.ollama .Values.config.ollama.enabled) (and .Values.config.llama .Values.config.llama.enabled) }}
-   ✓ Ollama Native API Test
+{{- if .Values.config.bedrock.enabled }}
+   ✓ AWS Bedrock Test
 {{- else }}
-   ✗ Ollama Native API Test (disabled)
+   ✗ AWS Bedrock Test (disabled)
 {{- end }}
-{{- if .Values.config.embeddings.enabled }}
-   ✓ Embedding Models Test
+{{- if .Values.config.openaiDirect.enabled }}
+   ✓ OpenAI Direct Test
 {{- else }}
-   ✗ Embedding Models Test (disabled)
+   ✗ OpenAI Direct Test (disabled)
+{{- end }}
+{{- if .Values.config.anthropic.enabled }}
+   ✓ Anthropic Test
+{{- else }}
+   ✗ Anthropic Test (disabled)
+{{- end }}
+{{- if .Values.config.gemini.enabled }}
+   ✓ Google Gemini Test
+{{- else }}
+   ✗ Google Gemini Test (disabled)
+{{- end }}
+{{- if .Values.config.mistral.enabled }}
+   ✓ Mistral AI Test
+{{- else }}
+   ✗ Mistral AI Test (disabled)
 {{- end }}
 {{- if .Values.config.documentIntelligence.enabled }}
    ✓ Document Intelligence Test
 {{- else }}
    ✗ Document Intelligence Test (disabled)
+{{- end }}
+
+   -- Infrastructure --
+{{- if .Values.config.dns.enabled }}
+   ✓ DNS Resolution Test
+{{- else }}
+   ✗ DNS Resolution Test (disabled)
 {{- end }}
 {{- if .Values.config.ssl.enabled }}
    ✓ SSL Certificate Test
@@ -77,6 +105,11 @@
    ✗ SSL Certificate Test (disabled)
 {{- end }}
    ✓ Kubernetes PVC Test (always enabled)
+{{- if .Values.config.gpu.enabled }}
+   ✓ GPU Detection Test
+{{- else }}
+   ✗ GPU Detection Test (disabled)
+{{- end }}
 
 4. To customize the configuration, create a values.yaml file with your settings and upgrade:
    helm upgrade {{ .Release.Name }} airia-test-pod/airia-test-pod -f values.yaml

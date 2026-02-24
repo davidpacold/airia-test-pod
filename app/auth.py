@@ -1,3 +1,5 @@
+import hmac
+import threading
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -21,23 +23,23 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
+_hash_lock = threading.Lock()
 _cached_password_hash = None
 
 
 def _get_password_hash_cached() -> str:
     global _cached_password_hash
-    if _cached_password_hash is None:
-        _cached_password_hash = get_password_hash(get_settings().auth_password)
-    return _cached_password_hash
+    with _hash_lock:
+        if _cached_password_hash is None:
+            _cached_password_hash = get_password_hash(get_settings().auth_password)
+        return _cached_password_hash
 
 
 def authenticate_user(username: str, password: str) -> bool:
     settings = get_settings()
-    if username == settings.auth_username and verify_password(
-        password, _get_password_hash_cached()
-    ):
-        return True
-    return False
+    username_match = hmac.compare_digest(username, settings.auth_username)
+    password_match = verify_password(password, _get_password_hash_cached())
+    return username_match and password_match
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):

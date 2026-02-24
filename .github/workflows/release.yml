@@ -169,8 +169,7 @@ jobs:
         sed -i "s/app_version: str = \"[^\"]*\"/app_version: str = \"$VERSION\"/" app/config.py
         echo "✅ Updated application version references"
         
-        # Update template fallback versions
-        sed -i "/FALLBACK_VERSION:/{ n; s/v[0-9][^']*'/v$VERSION'/; }" templates/dashboard.html
+        # Update template fallback versions (index.html still has inline version)
         sed -i "/FALLBACK_VERSION:/{ n; s/v[0-9][^']*'/v$VERSION'/; }" templates/index.html
         echo "✅ Updated template fallback versions"
         

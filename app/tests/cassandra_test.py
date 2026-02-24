@@ -178,12 +178,12 @@ class CassandraTest(BaseTest):
             if session:
                 try:
                     session.shutdown()
-                except:
+                except Exception:
                     pass
             if cluster:
                 try:
                     cluster.shutdown()
-                except:
+                except Exception:
                     pass
 
         return result

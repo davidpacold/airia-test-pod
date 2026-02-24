@@ -169,86 +169,117 @@ spec:
                   name: {{ include "airia-test-pod.fullname" . }}-config
                   key: blob-endpoint-suffix
             {{- end }}
-            {{- if .Values.config.openai.enabled }}
+            {{- if .Values.config.azureOpenai.enabled }}
             - name: AZURE_OPENAI_ENDPOINT
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-config
                   key: azure-openai-endpoint
-            - name: AZURE_OPENAI_DEPLOYMENT_NAME
+            - name: AZURE_OPENAI_API_KEY
               valueFrom:
-                configMapKeyRef:
-                  name: {{ include "airia-test-pod.fullname" . }}-config
-                  key: azure-openai-deployment-name
+                secretKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-azure-openai
+                  key: api-key
             - name: AZURE_OPENAI_API_VERSION
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-config
                   key: azure-openai-api-version
-            {{- if .Values.config.openai.embeddingDeployment }}
+            - name: AZURE_OPENAI_CHAT_DEPLOYMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: azure-openai-chat-deployment
             - name: AZURE_OPENAI_EMBEDDING_DEPLOYMENT
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-config
                   key: azure-openai-embedding-deployment
+            - name: AZURE_OPENAI_VISION_DEPLOYMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: azure-openai-vision-deployment
             {{- end }}
-            - name: AZURE_OPENAI_API_KEY
+            {{- if .Values.config.bedrock.enabled }}
+            - name: BEDROCK_REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: bedrock-region
+            - name: BEDROCK_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "airia-test-pod.fullname" . }}-openai
+                  name: {{ include "airia-test-pod.fullname" . }}-bedrock
+                  key: access-key-id
+            - name: BEDROCK_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-bedrock
+                  key: secret-access-key
+            - name: BEDROCK_CHAT_MODEL_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: bedrock-chat-model-id
+            - name: BEDROCK_EMBEDDING_MODEL_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: bedrock-embedding-model-id
+            - name: BEDROCK_VISION_MODEL_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: bedrock-vision-model-id
+            {{- end }}
+            {{- if .Values.config.openaiDirect.enabled }}
+            - name: OPENAI_DIRECT_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-openai-direct
                   key: api-key
-            {{- if .Values.config.openai.openaiBaseUrl }}
-            - name: OPENAI_BASE_URL
+            - name: OPENAI_DIRECT_MODEL
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-config
-                  key: openai-base-url
-            - name: OPENAI_API_KEY
-              value: {{ .Values.config.openai.openaiApiKey | default "not-required" | quote }}
+                  key: openai-direct-model
             {{- end }}
-            {{- if .Values.config.openai.openaiModelName }}
-            - name: OPENAI_MODEL_NAME
+            {{- if .Values.config.anthropic.enabled }}
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-anthropic
+                  key: api-key
+            - name: ANTHROPIC_MODEL
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-config
-                  key: openai-model-name
+                  key: anthropic-model
             {{- end }}
-            {{- if .Values.config.openai.openaiEmbeddingModel }}
-            - name: OPENAI_EMBEDDING_MODEL
+            {{- if .Values.config.gemini.enabled }}
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-gemini
+                  key: api-key
+            - name: GEMINI_MODEL
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-config
-                  key: openai-embedding-model
+                  key: gemini-model
             {{- end }}
-            - name: OPENAI_TIMEOUT
+            {{- if .Values.config.mistral.enabled }}
+            - name: MISTRAL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-mistral
+                  key: api-key
+            - name: MISTRAL_MODEL
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-config
-                  key: openai-timeout
-            - name: TEST_COMPLETION
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "airia-test-pod.fullname" . }}-config
-                  key: test-completion
-            - name: TEST_EMBEDDING
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "airia-test-pod.fullname" . }}-config
-                  key: test-embedding
-            {{- if .Values.config.openai.customPrompt }}
-            - name: OPENAI_CUSTOM_PROMPT
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "airia-test-pod.fullname" . }}-config
-                  key: openai-custom-prompt
-            {{- end }}
-            {{- if .Values.config.openai.customSystemMessage }}
-            - name: OPENAI_CUSTOM_SYSTEM_MESSAGE
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "airia-test-pod.fullname" . }}-config
-                  key: openai-custom-system-message
-            {{- end }}
+                  key: mistral-model
             {{- end }}
             {{- if .Values.config.documentIntelligence.enabled }}
             - name: AZURE_DOC_INTEL_ENDPOINT
@@ -359,64 +390,17 @@ spec:
                   key: session-token
             {{- end }}
             {{- end }}
-            {{- if .Values.config.embeddings.enabled }}
-            - name: EMBEDDING_BASE_URL
+            {{- if .Values.config.dns.enabled }}
+            - name: DNS_TEST_HOSTNAMES
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-config
-                  key: embedding-base-url
-            - name: EMBEDDING_MODEL_NAME
+                  key: dns-test-hostnames
+            - name: DNS_TEST_TIMEOUT
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-config
-                  key: embedding-model-name
-            {{- if .Values.config.embeddings.customHeaders }}
-            - name: EMBEDDING_CUSTOM_HEADERS
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "airia-test-pod.fullname" . }}-config
-                  key: embedding-custom-headers
-            {{- end }}
-            - name: EMBEDDING_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "airia-test-pod.fullname" . }}-embeddings
-                  key: api-key
-            {{- end }}
-            {{- if or (and .Values.config.ollama .Values.config.ollama.enabled) (and .Values.config.llama .Values.config.llama.enabled) }}
-            {{- $ollamaConfig := .Values.config.ollama | default .Values.config.llama }}
-            - name: OLLAMA_BASE_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "airia-test-pod.fullname" . }}-config
-                  key: ollama-base-url
-            - name: OLLAMA_MODEL_NAME
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "airia-test-pod.fullname" . }}-config
-                  key: ollama-model-name
-            - name: OLLAMA_MAX_TOKENS
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "airia-test-pod.fullname" . }}-config
-                  key: ollama-max-tokens
-            - name: OLLAMA_TEMPERATURE
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "airia-test-pod.fullname" . }}-config
-                  key: ollama-temperature
-            - name: OLLAMA_TIMEOUT
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "airia-test-pod.fullname" . }}-config
-                  key: ollama-timeout
-            {{- if $ollamaConfig.apiKey }}
-            - name: OLLAMA_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "airia-test-pod.fullname" . }}-llama
-                  key: api-key
-            {{- end }}
+                  key: dns-test-timeout
             {{- end }}
             {{- if .Values.config.gpu.enabled }}
             - name: GPU_REQUIRED
@@ -447,7 +431,7 @@ spec:
             failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /health/live
+              path: /health/ready
               port: http
               scheme: HTTP
             initialDelaySeconds: 10
@@ -465,8 +449,14 @@ spec:
             timeoutSeconds: 5
             successThreshold: 1
             failureThreshold: 12
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

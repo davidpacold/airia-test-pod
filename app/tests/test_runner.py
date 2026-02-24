@@ -5,23 +5,32 @@ from typing import Any, Dict, List, Optional
 
 from ..models import TestStatus
 from .base_test import TestResult, test_suite
-from .blob_storage_test import BlobStorageTest
-from .cassandra_test import CassandraTest
-from .document_intelligence_test import DocumentIntelligenceTest
-from .embedding_test import EmbeddingTest
-from .gpu_test import GPUTest
-from .llama_test import LlamaTest
-from .minio_test import MinioTest
-from .openai_test import OpenAITest
-from .postgres_test_v2 import PostgreSQLTestV2
-from .pvc_test import PVCTest
-from .s3_test import S3Test
-from .ssl_test import SSLTest
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+# Storage tests
+from .blob_storage_test import BlobStorageTest
+from .s3_test import S3Test
+from .minio_test import MinioTest
+
+# AI provider tests
+from .azure_openai_test import AzureOpenAITest
+from .bedrock_test import BedrockTest
+from .openai_direct_test import OpenAIDirectTest
+from .anthropic_test import AnthropicTest
+from .gemini_test import GeminiTest
+from .mistral_test import MistralTest
+
+# Document processing
+from .document_intelligence_test import DocumentIntelligenceTest
+
+# Database tests
+from .postgres_test_v2 import PostgreSQLTestV2
+from .cassandra_test import CassandraTest
+
+# Infrastructure tests
+from .pvc_test import PVCTest
+from .gpu_test import GPUTest
+from .dns_test import DNSTest
+from .ssl_test import SSLTest
 
 
 class TestRunner:
@@ -35,61 +44,40 @@ class TestRunner:
         self._register_tests()
 
     def _register_tests(self):
-        """Register all available tests"""
-        # Register PostgreSQL test
-        postgres_test = PostgreSQLTestV2()
-        test_suite.register_test(postgres_test)
-
-        # Register Blob Storage test
-        blob_storage_test = BlobStorageTest()
-        test_suite.register_test(blob_storage_test)
-
-        # Register PVC test
-        pvc_test = PVCTest()
-        test_suite.register_test(pvc_test)
-
-        # Register SSL test
-        ssl_test = SSLTest()
-        test_suite.register_test(ssl_test)
-
-        # Register GPU test
-        gpu_test = GPUTest()
-        test_suite.register_test(gpu_test)
-
-        # Register OpenAI test
-        openai_test = OpenAITest()
-        test_suite.register_test(openai_test)
-
-        # Register Document Intelligence test
-        doc_intel_test = DocumentIntelligenceTest()
-        test_suite.register_test(doc_intel_test)
-
-        # Register Llama test
-        llama_test = LlamaTest()
-        test_suite.register_test(llama_test)
-
-        # Register Minio test
-        minio_test = MinioTest()
-        test_suite.register_test(minio_test)
-
-        # Register S3 test
-        s3_test = S3Test()
-        test_suite.register_test(s3_test)
-
-        # Register Embedding test
-        embedding_test = EmbeddingTest()
-        test_suite.register_test(embedding_test)
-
-        # Register Cassandra test
-        cassandra_test = CassandraTest()
-        test_suite.register_test(cassandra_test)
-
+        """Register all 16 test cards"""
+        tests = [
+            # Storage (3)
+            BlobStorageTest(),
+            S3Test(),
+            MinioTest(),
+            # AI providers (6)
+            AzureOpenAITest(),
+            BedrockTest(),
+            OpenAIDirectTest(),
+            AnthropicTest(),
+            GeminiTest(),
+            MistralTest(),
+            # Document processing (1)
+            DocumentIntelligenceTest(),
+            # Databases (2)
+            PostgreSQLTestV2(),
+            CassandraTest(),
+            # Infrastructure (4)
+            PVCTest(),
+            GPUTest(),
+            DNSTest(),
+            SSLTest(),
+        ]
+        for test in tests:
+            test_suite.register_test(test)
         self.logger.info(f"Registered {len(test_suite.tests)} tests")
 
     def get_test_status(self) -> Dict[str, Any]:
         """Get current status of all tests"""
+        with self._lock:
+            results_copy = dict(self.test_results)
         return {
-            "tests": self.test_results,
+            "tests": results_copy,
             "available_tests": test_suite.list_tests(),
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
@@ -174,18 +162,22 @@ class TestRunner:
 
     def get_test_logs(self, test_id: str) -> List[Dict[str, Any]]:
         """Get logs for a specific test"""
-        if test_id not in self.test_results:
+        with self._lock:
+            test_result = self.test_results.get(test_id)
+        if not test_result:
             return []
 
-        result_data = self.test_results[test_id].get("result", {})
+        result_data = test_result.get("result", {})
         return result_data.get("logs", [])
 
     def get_remediation_suggestions(self, test_id: str) -> List[str]:
         """Get remediation suggestions for a failed test"""
-        if test_id not in self.test_results:
+        with self._lock:
+            test_result = self.test_results.get(test_id)
+        if not test_result:
             return []
 
-        result_data = self.test_results[test_id].get("result", {})
+        result_data = test_result.get("result", {})
         suggestions = []
 
         # Add specific remediation if available
@@ -208,18 +200,20 @@ class TestRunner:
 
     def get_test_summary(self) -> Dict[str, Any]:
         """Get a summary of all test results"""
-        if not self.test_results:
+        with self._lock:
+            results_copy = dict(self.test_results)
+        if not results_copy:
             return {"total_tests": 0, "last_run": None, "overall_status": "not_run"}
 
-        statuses = [result["status"] for result in self.test_results.values()]
+        statuses = [result["status"] for result in results_copy.values()]
         last_runs = [
             datetime.fromisoformat(result["last_run"])
-            for result in self.test_results.values()
+            for result in results_copy.values()
             if result["last_run"]
         ]
 
         return {
-            "total_tests": len(self.test_results),
+            "total_tests": len(results_copy),
             "passed_count": statuses.count("passed"),
             "failed_count": statuses.count("failed"),
             "skipped_count": statuses.count("skipped"),

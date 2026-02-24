@@ -32,38 +32,41 @@ data:
   blob-endpoint-suffix: {{ .Values.config.blobStorage.endpointSuffix | default "core.windows.net" | quote }}
   {{- end }}
   
-  {{- if .Values.config.openai.enabled }}
+  {{- if .Values.config.azureOpenai.enabled }}
   # Azure OpenAI configuration
-  azure-openai-endpoint: {{ .Values.config.openai.endpoint | quote }}
-  azure-openai-deployment-name: {{ .Values.config.openai.deploymentName | quote }}
-  azure-openai-api-version: {{ .Values.config.openai.apiVersion | default "2024-02-01" | quote }}
-  {{- if .Values.config.openai.embeddingDeployment }}
-  azure-openai-embedding-deployment: {{ .Values.config.openai.embeddingDeployment | quote }}
+  azure-openai-endpoint: {{ .Values.config.azureOpenai.endpoint | quote }}
+  azure-openai-api-version: {{ .Values.config.azureOpenai.apiVersion | default "2024-02-01" | quote }}
+  azure-openai-chat-deployment: {{ .Values.config.azureOpenai.chatDeployment | quote }}
+  azure-openai-embedding-deployment: {{ .Values.config.azureOpenai.embeddingDeployment | quote }}
+  azure-openai-vision-deployment: {{ .Values.config.azureOpenai.visionDeployment | quote }}
   {{- end }}
-  # Generic OpenAI configuration
-  {{- if .Values.config.openai.openaiBaseUrl }}
-  openai-base-url: {{ .Values.config.openai.openaiBaseUrl | quote }}
+
+  {{- if .Values.config.bedrock.enabled }}
+  # AWS Bedrock configuration
+  bedrock-region: {{ .Values.config.bedrock.region | quote }}
+  bedrock-chat-model-id: {{ .Values.config.bedrock.chatModelId | quote }}
+  bedrock-embedding-model-id: {{ .Values.config.bedrock.embeddingModelId | quote }}
+  bedrock-vision-model-id: {{ .Values.config.bedrock.visionModelId | quote }}
   {{- end }}
-  {{- if .Values.config.openai.openaiModelName }}
-  openai-model-name: {{ .Values.config.openai.openaiModelName | quote }}
+
+  {{- if .Values.config.openaiDirect.enabled }}
+  # OpenAI Direct configuration
+  openai-direct-model: {{ .Values.config.openaiDirect.model | quote }}
   {{- end }}
-  {{- if .Values.config.openai.openaiEmbeddingModel }}
-  openai-embedding-model: {{ .Values.config.openai.openaiEmbeddingModel | quote }}
+
+  {{- if .Values.config.anthropic.enabled }}
+  # Anthropic configuration
+  anthropic-model: {{ .Values.config.anthropic.model | quote }}
   {{- end }}
-  # Test configuration
-  openai-timeout: {{ .Values.config.openai.timeout | default 30 | quote }}
-  test-completion: {{ .Values.config.openai.testCompletion | default true | quote }}
-  {{- if .Values.config.embeddings.enabled }}
-  test-embedding: "false"  # Disable OpenAI embedding test when dedicated embeddings service is configured
-  {{- else }}
-  test-embedding: {{ .Values.config.openai.testEmbedding | default true | quote }}
+
+  {{- if .Values.config.gemini.enabled }}
+  # Google Gemini configuration
+  gemini-model: {{ .Values.config.gemini.model | quote }}
   {{- end }}
-  {{- if .Values.config.openai.customPrompt }}
-  openai-custom-prompt: {{ .Values.config.openai.customPrompt | quote }}
-  {{- end }}
-  {{- if .Values.config.openai.customSystemMessage }}
-  openai-custom-system-message: {{ .Values.config.openai.customSystemMessage | quote }}
-  {{- end }}
+
+  {{- if .Values.config.mistral.enabled }}
+  # Mistral AI configuration
+  mistral-model: {{ .Values.config.mistral.model | quote }}
   {{- end }}
   
   {{- if .Values.config.documentIntelligence.enabled }}
@@ -99,23 +102,10 @@ data:
   {{- end }}
   {{- end }}
   
-  {{- if .Values.config.embeddings.enabled }}
-  # Embedding model configuration
-  embedding-base-url: {{ .Values.config.embeddings.baseUrl | quote }}
-  embedding-model-name: {{ .Values.config.embeddings.modelName | quote }}
-  {{- if .Values.config.embeddings.customHeaders }}
-  embedding-custom-headers: {{ .Values.config.embeddings.customHeaders | quote }}
-  {{- end }}
-  {{- end }}
-  
-  {{- if or (and .Values.config.ollama .Values.config.ollama.enabled) (and .Values.config.llama .Values.config.llama.enabled) }}
-  # Ollama native API configuration (supports legacy llama key for backwards compatibility)
-  {{- $ollamaConfig := .Values.config.ollama | default .Values.config.llama }}
-  ollama-base-url: {{ $ollamaConfig.baseUrl | quote }}
-  ollama-model-name: {{ $ollamaConfig.modelName | quote }}
-  ollama-max-tokens: {{ $ollamaConfig.maxTokens | quote }}
-  ollama-temperature: {{ $ollamaConfig.temperature | quote }}
-  ollama-timeout: {{ $ollamaConfig.timeout | quote }}
+  {{- if .Values.config.dns.enabled }}
+  # DNS resolution test configuration
+  dns-test-hostnames: {{ .Values.config.dns.hostnames | quote }}
+  dns-test-timeout: {{ .Values.config.dns.timeout | default 10 | quote }}
   {{- end }}
 
   {{- if .Values.config.gpu.enabled }}

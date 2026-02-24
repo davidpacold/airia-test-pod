@@ -59,8 +59,9 @@ class PostgreSQLTestV2(BaseTest):
         result = TestResult(self.test_name)
         result.start()
 
+        conn = None
         try:
-            # Test 1: Connection
+            # Test 1: Connection (also establishes shared connection)
             connection_result = self._test_connection()
             result.add_sub_test("connection", connection_result)
 
@@ -71,15 +72,18 @@ class PostgreSQLTestV2(BaseTest):
                 )
                 return result
 
+            # Extract connection for reuse, keep clean result for serialization
+            conn = connection_result.pop("_conn")
+
             # Test 2: List databases
-            databases_result = self._test_list_databases()
+            databases_result = self._test_list_databases(conn)
             result.add_sub_test("databases", databases_result)
 
             # Test 3: List extensions
-            extensions_result = self._test_list_extensions()
+            extensions_result = self._test_list_extensions(conn)
             result.add_sub_test("extensions", extensions_result)
 
-            # Determine overall success (no longer checking for specific required extensions)
+            # Determine overall success
             all_critical_passed = (
                 connection_result["success"]
                 and databases_result["success"]
@@ -106,11 +110,17 @@ class PostgreSQLTestV2(BaseTest):
 
         except Exception as e:
             result.fail(f"PostgreSQL test failed: {str(e)}", error=e)
+        finally:
+            if conn:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
 
         return result
 
     def _test_connection(self) -> Dict[str, Any]:
-        """Test basic connection"""
+        """Test basic connection and return connection for reuse"""
         try:
             conn_params = self.get_connection_params()
             conn = psycopg2.connect(**conn_params)
@@ -120,7 +130,6 @@ class PostgreSQLTestV2(BaseTest):
             version = cursor.fetchone()[0]
 
             cursor.close()
-            conn.close()
 
             return {
                 "success": True,
@@ -131,6 +140,7 @@ class PostgreSQLTestV2(BaseTest):
                         k: v for k, v in conn_params.items() if k != "password"
                     },
                 },
+                "_conn": conn,
             }
         except Exception as e:
             return {
@@ -140,11 +150,9 @@ class PostgreSQLTestV2(BaseTest):
                 "error_type": type(e).__name__,
             }
 
-    def _test_list_databases(self) -> Dict[str, Any]:
+    def _test_list_databases(self, conn) -> Dict[str, Any]:
         """Test listing databases"""
         try:
-            conn_params = self.get_connection_params()
-            conn = psycopg2.connect(**conn_params)
             cursor = conn.cursor()
 
             cursor.execute(
@@ -167,7 +175,6 @@ class PostgreSQLTestV2(BaseTest):
                 )
 
             cursor.close()
-            conn.close()
 
             return {
                 "success": True,
@@ -181,11 +188,9 @@ class PostgreSQLTestV2(BaseTest):
                 "error": str(e),
             }
 
-    def _test_list_extensions(self) -> Dict[str, Any]:
+    def _test_list_extensions(self, conn) -> Dict[str, Any]:
         """Test listing extensions"""
         try:
-            conn_params = self.get_connection_params()
-            conn = psycopg2.connect(**conn_params)
             cursor = conn.cursor()
 
             # Get installed extensions
@@ -201,7 +206,7 @@ class PostgreSQLTestV2(BaseTest):
             for ext_name, ext_version in cursor.fetchall():
                 installed_extensions.append({"name": ext_name, "version": ext_version})
 
-            # Get all available extensions (no limit to ensure we catch all critical ones)
+            # Get all available extensions
             cursor.execute(
                 """
                 SELECT name, default_version, installed_version
@@ -221,7 +226,6 @@ class PostgreSQLTestV2(BaseTest):
                 )
 
             cursor.close()
-            conn.close()
 
             return {
                 "success": True,

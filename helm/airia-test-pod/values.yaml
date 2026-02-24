@@ -70,9 +70,9 @@ securityContext:
   capabilities:
     drop:
     - ALL
+  readOnlyRootFilesystem: true
   runAsNonRoot: true
   runAsUser: 1000
-  # readOnlyRootFilesystem: true  # Uncomment if your app doesn't need to write to disk
 
 # ---------------------------------------------------------------------------
 # SERVICE CONFIGURATION
@@ -320,40 +320,78 @@ config:
   # ╚═══════════════════════════════════════════════════════════════════════════╝
 
   # ---------------------------------------------------------------------------
-  # AZURE OPENAI & OPENAI-COMPATIBLE API TEST (Optional)
+  # AZURE OPENAI SERVICE TEST (Optional)
   # ---------------------------------------------------------------------------
-  # UI Card: "Azure OpenAI & OpenAI-Compatible APIs"
-  # Tests: Chat completion, embedding generation, API connectivity
-  # Supports custom prompts and file uploads (PDFs, images) through UI
-  #
-  # This test supports TWO configuration modes:
-  #
-  # MODE 1: Azure OpenAI (Azure-hosted)
-  # Use this for Microsoft Azure OpenAI Service
-  openai:
+  # UI Card: "Azure OpenAI"
+  # Tests: Chat completion, embedding generation, vision (full provider)
+  # Set enabled: true to show this test in the UI
+  azureOpenai:
     enabled: false
-    endpoint: "https://your-openai.openai.azure.com/"
+    endpoint: ""
     apiKey: ""
-    deploymentName: "gpt-35-turbo"  # Your Azure deployment name
-    embeddingDeployment: ""  # Optional: Azure embedding deployment (e.g., "text-embedding-ada-002")
-    # When embeddingDeployment is set, the test will also validate embedding generation
+    apiVersion: "2024-02-01"
+    chatDeployment: ""
+    embeddingDeployment: ""
+    visionDeployment: ""  # Optional
 
-  # MODE 2: Self-hosted OpenAI-Compatible API
-  # Use this for local LLMs (Ollama, vLLM, LocalAI, etc.) with OpenAI-compatible endpoints
-  # Uncomment and configure these instead of the Azure settings above:
-  # openai:
-  #   enabled: true
-  #   baseUrl: "http://your-llm-server:8080/v1"  # Your OpenAI-compatible endpoint
-  #   apiKey: "your-api-key"  # May not be required for local endpoints
-  #   modelName: "gpt-3.5-turbo"  # Model name to use
-  #
-  # Common self-hosted endpoints:
-  # - Ollama: http://localhost:11434/v1
-  # - vLLM: http://localhost:8000/v1
-  # - LocalAI: http://localhost:8080/v1
-  # - Text Generation Inference: http://localhost:8080/v1
-  #
-  # NOTE: For Llama-specific endpoints (non-OpenAI-compatible), use the 'llama' test below instead.
+  # ---------------------------------------------------------------------------
+  # AWS BEDROCK TEST (Optional)
+  # ---------------------------------------------------------------------------
+  # UI Card: "AWS Bedrock"
+  # Tests: Chat completion, embedding generation, vision (full provider)
+  # Set enabled: true to show this test in the UI
+  bedrock:
+    enabled: false
+    region: "us-east-1"
+    accessKeyId: ""
+    secretAccessKey: ""
+    chatModelId: ""
+    embeddingModelId: ""  # Optional
+    visionModelId: ""  # Optional
+
+  # ---------------------------------------------------------------------------
+  # OPENAI DIRECT API TEST (Optional)
+  # ---------------------------------------------------------------------------
+  # UI Card: "OpenAI Direct"
+  # Tests: Chat completion (chat-only provider)
+  # Set enabled: true to show this test in the UI
+  openaiDirect:
+    enabled: false
+    apiKey: ""
+    model: "gpt-4o-mini"
+
+  # ---------------------------------------------------------------------------
+  # ANTHROPIC API TEST (Optional)
+  # ---------------------------------------------------------------------------
+  # UI Card: "Anthropic"
+  # Tests: Chat completion (chat-only provider)
+  # Set enabled: true to show this test in the UI
+  anthropic:
+    enabled: false
+    apiKey: ""
+    model: "claude-sonnet-4-20250514"
+
+  # ---------------------------------------------------------------------------
+  # GOOGLE GEMINI API TEST (Optional)
+  # ---------------------------------------------------------------------------
+  # UI Card: "Google Gemini"
+  # Tests: Chat completion (chat-only provider)
+  # Set enabled: true to show this test in the UI
+  gemini:
+    enabled: false
+    apiKey: ""
+    model: "gemini-2.0-flash"
+
+  # ---------------------------------------------------------------------------
+  # MISTRAL AI API TEST (Optional)
+  # ---------------------------------------------------------------------------
+  # UI Card: "Mistral AI"
+  # Tests: Chat completion (chat-only provider)
+  # Set enabled: true to show this test in the UI
+  mistral:
+    enabled: false
+    apiKey: ""
+    model: "mistral-small-latest"
 
   # ---------------------------------------------------------------------------
   # AZURE DOCUMENT INTELLIGENCE TEST (Optional)
@@ -375,76 +413,20 @@ config:
     apiKey: ""
     model: "prebuilt-document"  # Options: prebuilt-document, prebuilt-invoice, prebuilt-receipt, etc.
 
-  # ---------------------------------------------------------------------------
-  # DEDICATED EMBEDDING MODEL TEST (Optional)
-  # ---------------------------------------------------------------------------
-  # UI Card: "Embedding Models"
-  # Tests: Text vectorization, batch embedding generation, similarity calculations
-  # Supports custom text input through UI for testing embeddings
-  #
-  # IMPORTANT: Only enable this if you have a SEPARATE embedding endpoint
-  # (not Azure OpenAI). Azure OpenAI embeddings are tested within the 'openai' test above.
-  #
-  # Use Case: Standalone embedding services separate from your chat/completion API
-  # Examples:
-  # - OpenAI's embedding API (separate from Azure)
-  # - Dedicated embedding servers (sentence-transformers, instructor-xl, etc.)
-  # - Custom embedding endpoints
-  #
-  # Set enabled: true to show this test in the UI
-  embeddings:
-    enabled: false
-    baseUrl: "https://api.openai.com/v1"  # OpenAI or custom embedding endpoint
-    apiKey: ""
-    modelName: "text-embedding-ada-002"  # Or: text-embedding-3-small, text-embedding-3-large
-    customHeaders: ""  # Optional: Header1:Value1,Header2:Value2
-    # Example for custom embedding server:
-    # baseUrl: "http://embedding-server:8080/v1"
-    # modelName: "sentence-transformers/all-MiniLM-L6-v2"
-
-  # ---------------------------------------------------------------------------
-  # OLLAMA NATIVE API TEST (Optional)
-  # ---------------------------------------------------------------------------
-  # UI Card: "Ollama API (Native)"
-  # Tests: Native Ollama API endpoints (/api/generate, /api/chat, /api/tags)
-  # Supports custom prompts and file uploads (PDFs, images) through UI
-  #
-  # Use Case: Test Ollama's native API (NOT OpenAI-compatible endpoints)
-  # This test uses Ollama's native REST API endpoints for maximum compatibility
-  # with Ollama-specific features.
-  #
-  # API Endpoints Tested:
-  # - /api/version - Check Ollama version
-  # - /api/tags - List available models
-  # - /api/generate - Generate text completions
-  # - /api/chat - Chat completions with message history
-  #
-  # IMPORTANT: For OpenAI-compatible Ollama endpoints (/v1/*), use the 'openai'
-  # test above instead (set baseUrl to http://localhost:11434/v1).
-  #
-  # Set enabled: true to show this test in the UI
-  ollama:
-    enabled: false
-    baseUrl: "http://localhost:11434"  # Ollama default endpoint
-    modelName: "llama2"  # Or: llama3, llama3.1, codellama, mistral, phi, etc.
-    maxTokens: 100  # Maximum tokens to generate
-    temperature: 0.7  # Creativity (0.0-1.0): lower = more deterministic
-    timeout: 60  # Request timeout in seconds
-    #
-    # Common Ollama Models:
-    # - llama3.1:8b    - Meta Llama 3.1 (8 billion parameters)
-    # - llama2         - Meta Llama 2 (default)
-    # - codellama      - Code-specialized Llama model
-    # - mistral        - Mistral 7B
-    # - phi3           - Microsoft Phi-3
-    # - gemma2         - Google Gemma 2
-    #
-    # To install models: ollama pull <model-name>
-    # To list installed: ollama list
-
   # ╔═══════════════════════════════════════════════════════════════════════════╗
   # ║                         🔧 INFRASTRUCTURE TESTS                           ║
   # ╚═══════════════════════════════════════════════════════════════════════════╝
+
+  # ---------------------------------------------------------------------------
+  # DNS RESOLUTION TEST (Optional)
+  # ---------------------------------------------------------------------------
+  # UI Card: "DNS Resolution"
+  # Tests: DNS resolution for specified hostnames
+  # Set enabled: true to show this test in the UI
+  dns:
+    enabled: false
+    hostnames: ""  # Comma-separated: "api.example.com,db.internal"
+    timeout: 10
 
   # ---------------------------------------------------------------------------
   # SSL CERTIFICATE TEST (Optional)
