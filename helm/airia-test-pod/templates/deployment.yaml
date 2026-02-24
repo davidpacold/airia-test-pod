@@ -204,7 +204,10 @@ spec:
                   name: {{ include "airia-test-pod.fullname" . }}-config
                   key: openai-base-url
             - name: OPENAI_API_KEY
-              value: {{ .Values.config.openai.openaiApiKey | default "not-required" | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-openai
+                  key: openai-api-key
             {{- end }}
             {{- if .Values.config.openai.openaiModelName }}
             - name: OPENAI_MODEL_NAME
@@ -447,7 +450,7 @@ spec:
             failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /health/live
+              path: /health/ready
               port: http
               scheme: HTTP
             initialDelaySeconds: 10

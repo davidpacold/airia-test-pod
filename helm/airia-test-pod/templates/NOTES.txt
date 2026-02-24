@@ -23,7 +23,7 @@
 
 2. Login credentials:
    Username: {{ .Values.config.auth.username }}
-   Password: {{ .Values.config.auth.password }}
+   Password: kubectl get secret {{ include "airia-test-pod.fullname" . }}-auth -n {{ include "airia-test-pod.namespace" . }} -o jsonpath='{.data.password}' | base64 -d
 
 3. Configured tests:
 {{- if .Values.config.postgresql.enabled }}
@@ -55,11 +55,6 @@
    ✓ Azure OpenAI / OpenAI-Compatible API Test
 {{- else }}
    ✗ Azure OpenAI / OpenAI-Compatible API Test (disabled)
-{{- end }}
-{{- if or (and .Values.config.ollama .Values.config.ollama.enabled) (and .Values.config.llama .Values.config.llama.enabled) }}
-   ✓ Ollama Native API Test
-{{- else }}
-   ✗ Ollama Native API Test (disabled)
 {{- end }}
 {{- if .Values.config.embeddings.enabled }}
    ✓ Embedding Models Test
