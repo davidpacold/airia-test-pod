@@ -327,6 +327,9 @@ a:hover { color: var(--c-primary-dark); }
 
 .sub-test-header { font-size: 0.9rem; margin-bottom: var(--sp-xs); }
 .sub-test-message { font-size: 0.85rem; color: var(--c-text-secondary); }
+@media (prefers-color-scheme: dark) {
+  .sub-test-message { color: #d1d5db; }
+}
 .sub-test-details {
   margin-top: var(--sp-sm);
   font-size: 0.8rem;

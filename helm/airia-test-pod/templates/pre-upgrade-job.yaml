@@ -23,9 +23,18 @@ spec:
     spec:
       restartPolicy: Never
       serviceAccountName: {{ include "airia-test-pod.serviceAccountName" . }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        fsGroup: 65534
       containers:
       - name: version-checker
         image: alpine/helm:3.17.1
+        securityContext:
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
         command:
         - /bin/sh
         - -c

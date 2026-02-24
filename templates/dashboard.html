@@ -43,7 +43,7 @@
                     <div class="test-card" id="blobstorage-card">
                         <h3>Azure Blob Storage</h3>
                         <p>Tests authentication and file operations</p>
-                        <span class="test-status ready" id="blobstorage-status">Ready to Test</span>
+                        <span class="test-status ready" id="blobstorage-status" aria-live="polite">Ready to Test</span>
                         <button class="test-button" onclick="runTest('blobstorage')" id="blobstorage-btn">Run Test</button>
                         <div class="test-details" id="blobstorage-details"></div>
                     </div>
@@ -51,7 +51,7 @@
                     <div class="test-card" id="s3-card">
                         <h3>Amazon S3 Storage</h3>
                         <p>Tests S3 connectivity and operations</p>
-                        <span class="test-status ready" id="s3-status">Ready to Test</span>
+                        <span class="test-status ready" id="s3-status" aria-live="polite">Ready to Test</span>
                         <button class="test-button" onclick="runTest('s3')" id="s3-btn">Run Test</button>
                         <div class="test-details" id="s3-details"></div>
                     </div>
@@ -59,7 +59,7 @@
                     <div class="test-card" id="minio-card">
                         <h3>MinIO Storage</h3>
                         <p>Tests S3-compatible storage connectivity</p>
-                        <span class="test-status ready" id="minio-status">Ready to Test</span>
+                        <span class="test-status ready" id="minio-status" aria-live="polite">Ready to Test</span>
                         <button class="test-button" onclick="runTest('minio')" id="minio-btn">Run Test</button>
                         <div class="test-details" id="minio-details"></div>
                     </div>
@@ -73,7 +73,7 @@
                     <div class="test-card" id="postgresqlv2-card">
                         <h3>PostgreSQL Database</h3>
                         <p>Tests connection, databases, and extensions</p>
-                        <span class="test-status ready" id="postgresqlv2-status">Ready to Test</span>
+                        <span class="test-status ready" id="postgresqlv2-status" aria-live="polite">Ready to Test</span>
                         <button class="test-button" onclick="runTest('postgresqlv2')" id="postgresqlv2-btn">Run Test</button>
                         <div class="test-details" id="postgresqlv2-details"></div>
                     </div>
@@ -81,7 +81,7 @@
                     <div class="test-card" id="cassandra-card">
                         <h3>Apache Cassandra</h3>
                         <p>Tests connectivity, keyspaces, and cluster health</p>
-                        <span class="test-status ready" id="cassandra-status">Ready to Test</span>
+                        <span class="test-status ready" id="cassandra-status" aria-live="polite">Ready to Test</span>
                         <button class="test-button" onclick="runTest('cassandra')" id="cassandra-btn">Run Test</button>
                         <div class="test-details" id="cassandra-details"></div>
                     </div>
@@ -95,7 +95,7 @@
                     <div class="test-card" id="azureopenai-card">
                         <h3>Azure OpenAI</h3>
                         <p>Tests Azure OpenAI endpoint connectivity</p>
-                        <span class="test-status ready" id="azureopenai-status">Ready to Test</span>
+                        <span class="test-status ready" id="azureopenai-status" aria-live="polite">Ready to Test</span>
                         <button class="test-button" onclick="runTest('azureopenai')" id="azureopenai-btn">Run Test</button>
                         <div class="test-details" id="azureopenai-details"></div>
                     </div>
@@ -103,7 +103,7 @@
                     <div class="test-card" id="openaidirect-card">
                         <h3>OpenAI Direct</h3>
                         <p>Tests OpenAI API connectivity</p>
-                        <span class="test-status ready" id="openaidirect-status">Ready to Test</span>
+                        <span class="test-status ready" id="openaidirect-status" aria-live="polite">Ready to Test</span>
                         <button class="test-button" onclick="runTest('openaidirect')" id="openaidirect-btn">Run Test</button>
                         <div class="test-details" id="openaidirect-details"></div>
                     </div>
@@ -111,7 +111,7 @@
                     <div class="test-card" id="anthropic-card">
                         <h3>Anthropic Claude</h3>
                         <p>Tests Anthropic API connectivity</p>
-                        <span class="test-status ready" id="anthropic-status">Ready to Test</span>
+                        <span class="test-status ready" id="anthropic-status" aria-live="polite">Ready to Test</span>
                         <button class="test-button" onclick="runTest('anthropic')" id="anthropic-btn">Run Test</button>
                         <div class="test-details" id="anthropic-details"></div>
                     </div>
@@ -119,7 +119,7 @@
                     <div class="test-card" id="bedrock-card">
                         <h3>AWS Bedrock</h3>
                         <p>Tests AWS Bedrock AI service</p>
-                        <span class="test-status ready" id="bedrock-status">Ready to Test</span>
+                        <span class="test-status ready" id="bedrock-status" aria-live="polite">Ready to Test</span>
                         <button class="test-button" onclick="runTest('bedrock')" id="bedrock-btn">Run Test</button>
                         <div class="test-details" id="bedrock-details"></div>
                     </div>
@@ -127,7 +127,7 @@
                     <div class="test-card" id="gemini-card">
                         <h3>Google Gemini</h3>
                         <p>Tests Google Gemini API connectivity</p>
-                        <span class="test-status ready" id="gemini-status">Ready to Test</span>
+                        <span class="test-status ready" id="gemini-status" aria-live="polite">Ready to Test</span>
                         <button class="test-button" onclick="runTest('gemini')" id="gemini-btn">Run Test</button>
                         <div class="test-details" id="gemini-details"></div>
                     </div>
@@ -135,7 +135,7 @@
                     <div class="test-card" id="mistral-card">
                         <h3>Mistral AI</h3>
                         <p>Tests Mistral API connectivity</p>
-                        <span class="test-status ready" id="mistral-status">Ready to Test</span>
+                        <span class="test-status ready" id="mistral-status" aria-live="polite">Ready to Test</span>
                         <button class="test-button" onclick="runTest('mistral')" id="mistral-btn">Run Test</button>
                         <div class="test-details" id="mistral-details"></div>
                     </div>
@@ -143,7 +143,7 @@
                     <div class="test-card" id="documentintelligence-card">
                         <h3>Document Intelligence</h3>
                         <p>Tests document processing API</p>
-                        <span class="test-status ready" id="documentintelligence-status">Ready to Test</span>
+                        <span class="test-status ready" id="documentintelligence-status" aria-live="polite">Ready to Test</span>
                         <button class="test-button" onclick="runTest('documentintelligence')" id="documentintelligence-btn">Run Test</button>
                         <div class="test-details" id="documentintelligence-details"></div>
                     </div>
@@ -157,7 +157,7 @@
                     <div class="test-card" id="pvc-card">
                         <h3>Kubernetes PVC</h3>
                         <p>Tests storage class and permissions</p>
-                        <span class="test-status ready" id="pvc-status">Ready to Test</span>
+                        <span class="test-status ready" id="pvc-status" aria-live="polite">Ready to Test</span>
                         <button class="test-button" onclick="runTest('pvc')" id="pvc-btn">Run Test</button>
                         <div class="test-details" id="pvc-details"></div>
                     </div>
@@ -165,7 +165,7 @@
                     <div class="test-card" id="gpu-card">
                         <h3>GPU Detection</h3>
                         <p>Validates GPU availability, driver, and CUDA</p>
-                        <span class="test-status ready" id="gpu-status">Ready to Test</span>
+                        <span class="test-status ready" id="gpu-status" aria-live="polite">Ready to Test</span>
                         <button class="test-button" onclick="runTest('gpu')" id="gpu-btn">Run Test</button>
                         <div class="test-details" id="gpu-details"></div>
                     </div>
@@ -173,7 +173,7 @@
                     <div class="test-card" id="dns-card">
                         <h3>DNS Resolution</h3>
                         <p>Tests DNS resolution for configured hosts</p>
-                        <span class="test-status ready" id="dns-status">Ready to Test</span>
+                        <span class="test-status ready" id="dns-status" aria-live="polite">Ready to Test</span>
                         <button class="test-button" onclick="runTest('dns')" id="dns-btn">Run Test</button>
                         <div class="test-details" id="dns-details"></div>
                         <div class="dns-adhoc">
@@ -187,7 +187,7 @@
                     <div class="test-card" id="ssl-card">
                         <h3>SSL Certificates</h3>
                         <p>Validates certificate chains and expiry</p>
-                        <span class="test-status ready" id="ssl-status">Ready to Test</span>
+                        <span class="test-status ready" id="ssl-status" aria-live="polite">Ready to Test</span>
                         <button class="test-button" onclick="runTest('ssl')" id="ssl-btn">Run Test</button>
                         <div class="test-details" id="ssl-details"></div>
                     </div>

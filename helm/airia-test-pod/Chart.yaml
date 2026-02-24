@@ -10,9 +10,9 @@ keywords:
 - validation
 - azure
 - kubernetes
-home: https://github.com/airia/test-pod
+home: https://github.com/davidpacold/airia-test-pod
 sources:
-- https://github.com/airia/test-pod
+- https://github.com/davidpacold/airia-test-pod
 maintainers:
 - name: Airia Team
   email: support@airia.com

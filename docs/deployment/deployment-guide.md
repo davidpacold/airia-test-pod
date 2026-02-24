@@ -17,7 +17,7 @@ The Airia Infrastructure Test Pod validates that your environment is ready for t
 ### Optional Services
 - **Azure Document Intelligence** - Document processing API
 - **Self-hosted OpenAI-compatible models** - Local LLM deployments
-- **Self-hosted Llama-compatible models** - Ollama or similar
+- **Ollama Native API** - Local LLM server with native API endpoints
 - **SSL Certificate Chains** - Validates complete certificate chains
 
 ## Prerequisites
@@ -83,11 +83,11 @@ config:
     accountKey: "your-storage-key"
     containerName: "test-container"
     
-  openai:
+  azureOpenai:
     enabled: true  # Set to false to skip
     endpoint: "https://your-openai.openai.azure.com/"
     apiKey: "your-openai-key"
-    deploymentName: "gpt-35-turbo"
+    chatDeployment: "gpt-35-turbo"
     
   documentIntelligence:
     enabled: false  # Set to true if you want to test this
@@ -397,11 +397,11 @@ config:
     containerName: "test-container"                    # Container name for test operations
     
   # Azure OpenAI Testing
-  openai:
-    enabled: false                                     # Enable/disable OpenAI tests
-    endpoint: "https://your-openai.openai.azure.com/"  # OpenAI endpoint URL (must end with /)
-    apiKey: ""                                         # OpenAI API key
-    deploymentName: "gpt-35-turbo"                     # Model deployment name in Azure OpenAI
+  azureOpenai:
+    enabled: false                                     # Enable/disable Azure OpenAI tests
+    endpoint: "https://your-openai.openai.azure.com/"  # Azure OpenAI endpoint URL (must end with /)
+    apiKey: ""                                         # Azure OpenAI API key
+    chatDeployment: "gpt-35-turbo"                     # Chat model deployment name
     embeddingDeployment: ""                            # Optional embedding model deployment
     
   # Azure Document Intelligence (Optional)
@@ -442,14 +442,6 @@ config:
     bucketName: "test-bucket"                          # S3 bucket name
     endpointUrl: ""                                    # Optional custom endpoint
     
-  # Embedding Models (Optional)
-  embeddings:
-    enabled: false                                     # Enable/disable embedding tests
-    baseUrl: "https://api.openai.com/v1"               # OpenAI or custom endpoint
-    apiKey: ""                                         # API key
-    modelName: "text-embedding-ada-002"                # Model name
-    customHeaders: ""                                  # Optional: Header1:Value1,Header2:Value2
-
 # =============================================================================
 # KUBERNETES DEPLOYMENT CONFIGURATION
 # =============================================================================
@@ -482,7 +474,7 @@ service:
 
 # Ingress Configuration
 ingress:
-  enabled: true                                        # Enable ingress (default: true)
+  enabled: false                                       # Enable ingress (default: false)
   className: "nginx"                                   # Ingress class name
   annotations:                                         # Ingress annotations
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
@@ -586,11 +578,11 @@ config:
     accountName: "yourstorageaccount"
     accountKey: "your-storage-key"
     containerName: "test-container"
-  openai:
+  azureOpenai:
     enabled: true
     endpoint: "https://your-openai.openai.azure.com/"
     apiKey: "your-openai-key"
-    deploymentName: "gpt-35-turbo"
+    chatDeployment: "gpt-35-turbo"
 
 ingress:
   enabled: true
@@ -959,18 +951,11 @@ config:
     endpoint: "https://your-doc-intel.cognitiveservices.azure.com/"
     apiKey: "your-api-key"
   
-  # Self-hosted Llama models
-  llama:
+  # Ollama Native API
+  ollama:
     enabled: true
-    baseUrl: "http://localhost:8000/v1/"
-    modelName: "llama2-7b"
-    apiKey: "your-key-if-needed"  # optional
-  
-  # OpenAI-compatible APIs
-  openaiCompatible:
-    enabled: true
-    baseUrl: "http://your-llama-server:8000/v1/"
-    modelName: "llama-2-7b-chat"  # Must contain "llama" in name
+    baseUrl: "http://ollama-server:11434"
+    modelName: "llama3.1:8b"
 ```
 
 ## Monitoring and Troubleshooting

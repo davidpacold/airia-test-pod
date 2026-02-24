@@ -157,7 +157,7 @@ resources:
 autoscaling:
   enabled: false
   minReplicas: 1
-  maxReplicas: 100
+  maxReplicas: 3
   targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
 
@@ -182,7 +182,7 @@ affinity: {}
 #     Enable: postgresql, blobStorage, openai, documentIntelligence
 #
 # 3️⃣  Self-hosted AI Stack:
-#     Enable: postgresql, s3, openai (with baseUrl), or llama
+#     Enable: postgresql, s3, openaiDirect, or ollama
 #
 # 4️⃣  Minimal Validation:
 #     kubernetes test is always enabled automatically

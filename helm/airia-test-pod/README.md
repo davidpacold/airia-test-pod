@@ -57,11 +57,11 @@ config:
     containerName: "test-container"
 
   # Enable and configure Azure OpenAI testing
-  openai:
+  azureOpenai:
     enabled: true
     endpoint: "https://your-openai.openai.azure.com/"
     apiKey: "your-api-key"
-    deploymentName: "gpt-35-turbo"
+    chatDeployment: "gpt-35-turbo"
 
   # Enable and configure Document Intelligence testing
   documentIntelligence:
@@ -166,10 +166,10 @@ kubectl get ingress -n airia
 #### Azure OpenAI Testing
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `config.openai.enabled` | Enable OpenAI testing | `false` |
-| `config.openai.endpoint` | Azure OpenAI endpoint | `""` |
-| `config.openai.apiKey` | Azure OpenAI API key | `""` |
-| `config.openai.deploymentName` | Model deployment name | `gpt-35-turbo` |
+| `config.azureOpenai.enabled` | Enable Azure OpenAI testing | `false` |
+| `config.azureOpenai.endpoint` | Azure OpenAI endpoint | `""` |
+| `config.azureOpenai.apiKey` | Azure OpenAI API key | `""` |
+| `config.azureOpenai.chatDeployment` | Chat model deployment name | `""` |
 
 #### Document Intelligence Testing
 | Parameter | Description | Default |
@@ -194,7 +194,7 @@ kubectl get ingress -n airia
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `ingress.enabled` | Enable ingress | `true` |
+| `ingress.enabled` | Enable ingress | `false` |
 | `ingress.className` | Ingress class name | `nginx` |
 | `ingress.hosts` | List of hostnames | See values.yaml |
 | `service.type` | Service type (`ClusterIP`, `NodePort`, `LoadBalancer`) | `ClusterIP` |
@@ -274,4 +274,4 @@ kubectl get secret -n airia airia-test-pod-auth -o yaml
 
 ## Support
 
-For support and documentation, visit: https://github.com/airia/test-pod
+For support and documentation, visit: https://github.com/davidpacold/airia-test-pod

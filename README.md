@@ -30,7 +30,7 @@ helm upgrade airia-test-pod \
 
 ```bash
 # Port forward to access the web interface
-kubectl port-forward -n airia svc/airia-test-pod 8080:80
+kubectl port-forward -n default svc/airia-test-pod 8080:80
 
 # Open your browser
 open http://localhost:8080
@@ -173,23 +173,11 @@ helm upgrade airia-test-pod \
 ```bash
 helm upgrade --install airia-test-pod \
   oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
-  --set config.openai.enabled=true \
-  --set config.openai.endpoint="https://your-openai.openai.azure.com/" \
-  --set config.openai.apiKey="your-openai-key" \
-  --set config.openai.deploymentName="gpt-35-turbo" \
-  --set config.openai.embeddingDeploymentName="text-embedding-ada-002" \
-  --namespace default
-```
-
-#### **Self-hosted OpenAI-Compatible API**
-For local LLMs or alternative OpenAI-compatible endpoints:
-```bash
-helm upgrade --install airia-test-pod \
-  oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
-  --set config.openai.enabled=true \
-  --set config.openai.baseUrl="http://your-llm-server:8080/v1" \
-  --set config.openai.apiKey="your-api-key" \
-  --set config.openai.modelName="gpt-3.5-turbo" \
+  --set config.azureOpenai.enabled=true \
+  --set config.azureOpenai.endpoint="https://your-openai.openai.azure.com/" \
+  --set config.azureOpenai.apiKey="your-openai-key" \
+  --set config.azureOpenai.chatDeployment="gpt-35-turbo" \
+  --set config.azureOpenai.embeddingDeployment="text-embedding-ada-002" \
   --namespace default
 ```
 
@@ -217,19 +205,16 @@ helm upgrade --install airia-test-pod \
   --namespace default
 ```
 
-#### **Dedicated Embedding Models**
-For separate embedding endpoints (not Azure OpenAI):
+#### **OpenAI Direct API**
+For direct OpenAI API access:
 ```bash
 helm upgrade --install airia-test-pod \
   oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
-  --set config.embeddings.enabled=true \
-  --set config.embeddings.baseUrl="https://api.openai.com/v1" \
-  --set config.embeddings.apiKey="your-embedding-api-key" \
-  --set config.embeddings.modelName="text-embedding-ada-002" \
+  --set config.openaiDirect.enabled=true \
+  --set config.openaiDirect.apiKey="your-openai-api-key" \
+  --set config.openaiDirect.model="gpt-4o-mini" \
   --namespace default
 ```
-
-> **💡 Tip:** Azure OpenAI includes embeddings by default. Use the dedicated Embedding test only if you have a separate embedding endpoint (non-Azure).
 
 ### **4. GPU Detection**
 ```bash
@@ -266,20 +251,13 @@ config:
 
   # AI & Machine Learning
 
-  # Option 1: Azure OpenAI (includes chat + embeddings)
-  openai:
+  # Azure OpenAI (includes chat + embeddings)
+  azureOpenai:
     enabled: true
     endpoint: "https://your-openai.openai.azure.com/"
     apiKey: "your-openai-key"
-    deploymentName: "gpt-35-turbo"
-    embeddingDeploymentName: "text-embedding-ada-002"  # Optional
-
-  # Option 2: Self-hosted OpenAI-compatible API
-  # openai:
-  #   enabled: true
-  #   baseUrl: "http://your-llm-server:8080/v1"
-  #   apiKey: "your-api-key"
-  #   modelName: "gpt-3.5-turbo"
+    chatDeployment: "gpt-35-turbo"
+    embeddingDeployment: "text-embedding-ada-002"  # Optional
 
   # Ollama native API (separate from OpenAI)
   ollama:
@@ -295,13 +273,6 @@ config:
     enabled: true
     endpoint: "https://your-docintel.cognitiveservices.azure.com/"
     apiKey: "your-doc-intel-key"
-
-  # Dedicated Embedding endpoint (only if NOT using Azure OpenAI embeddings)
-  embeddings:
-    enabled: false  # Set to true only for non-Azure embedding endpoints
-    baseUrl: "https://api.openai.com/v1"
-    apiKey: "your-embedding-api-key"
-    modelName: "text-embedding-ada-002"
 
   # GPU Detection
   gpu:
@@ -475,5 +446,11 @@ kubectl rollout restart -n airia deployment/airia-test-pod
 Made with ❤️ for DevOps teams everywhere
 
 </div>
-# Force version sync build Tue Sep  9 15:14:59 EDT 2025
-# Final version sync build Tue Sep  9 15:31:16 EDT 2025
+
+## 🧹 Clean Up
+
+When you're done testing, remove the test pod:
+
+```bash
+helm uninstall airia-test-pod
+```

@@ -1,0 +1,21 @@
+# basic-values.yaml - Minimal configuration for Airia Test Pod
+# Copy and customize for your environment
+
+# Authentication
+auth:
+  username: admin
+  password: changeme  # CHANGE THIS
+
+# PostgreSQL (optional)
+config:
+  postgres:
+    host: your-postgres-host
+    user: postgres
+    password: your-password
+    database: postgres
+
+  # Azure OpenAI (optional)
+  azureOpenai:
+    endpoint: https://your-resource.openai.azure.com
+    apiKey: your-api-key
+    deploymentName: gpt-4

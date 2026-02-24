@@ -11,10 +11,6 @@ rules:
 - apiGroups: [""]
   resources: ["persistentvolumeclaims"]
   verbs: ["get", "list", "create", "delete"]
-# Allow reading storage classes
-- apiGroups: ["storage.k8s.io"]
-  resources: ["storageclasses"]
-  verbs: ["get", "list"]
 # Allow reading pods and services for health checks
 - apiGroups: [""]
   resources: ["pods", "services"]
@@ -35,5 +31,34 @@ subjects:
 roleRef:
   kind: Role
   name: {{ include "airia-test-pod.fullname" . }}-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "airia-test-pod.fullname" . }}-clusterrole
+  labels:
+    {{- include "airia-test-pod.labels" . | nindent 4 }}
+rules:
+# storageclasses is cluster-scoped and requires a ClusterRole
+- apiGroups: ["storage.k8s.io"]
+  resources: ["storageclasses"]
+  verbs: ["get", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "airia-test-pod.fullname" . }}-clusterrolebinding
+  labels:
+    {{- include "airia-test-pod.labels" . | nindent 4 }}
+subjects:
+- kind: ServiceAccount
+  name: {{ include "airia-test-pod.serviceAccountName" . }}
+  namespace: {{ include "airia-test-pod.namespace" . }}
+roleRef:
+  kind: ClusterRole
+  name: {{ include "airia-test-pod.fullname" . }}-clusterrole
   apiGroup: rbac.authorization.k8s.io
 {{- end }}

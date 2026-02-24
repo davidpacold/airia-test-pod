@@ -23,7 +23,7 @@ spec:
         {{- end }}
       labels:
         {{- include "airia-test-pod.labels" . | nindent 8 }}
-        app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+        app.kubernetes.io/version: {{ .Values.image.tag | default .Chart.AppVersion | quote }}
         release.airia.com/version: {{ .Chart.AppVersion | quote }}
         release.airia.com/tag: {{ .Values.image.tag | quote }}
     spec:
