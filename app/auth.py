@@ -4,7 +4,6 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import Depends, HTTPException, Request, status
-from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -104,6 +103,10 @@ async def require_auth(
                 detail="Not authenticated",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        # For web requests, redirect to login
-        return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
+        # For web requests, raise 303 with Location header (converted to redirect by exception handler)
+        raise HTTPException(
+            status_code=status.HTTP_303_SEE_OTHER,
+            detail="Not authenticated",
+            headers={"Location": "/login"},
+        )
     return current_user

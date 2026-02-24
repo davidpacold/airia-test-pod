@@ -6,10 +6,8 @@
     <title>Dashboard - {{ title }}</title>
     <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}?v={{ version }}">
     <script src="{{ url_for('static', path='/vendor/axios.min.js') }}"></script>
-    <script>axios.defaults.withCredentials = true;</script>
     <script src="{{ url_for('static', path='/critical-extensions.js') }}?v={{ version }}"></script>
-    <script>window.APP_VERSION = '{{ version }}';</script>
-    <script src="{{ url_for('static', path='/dashboard.js') }}?v={{ version }}"></script>
+    <script src="{{ url_for('static', path='/dashboard.js') }}?v={{ version }}" data-app-version="{{ version }}"></script>
 </head>
 <body>
     <!-- Notification System -->

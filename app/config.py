@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     cassandra_keyspace: str = ""
     cassandra_datacenter: str = "datacenter1"
     cassandra_use_ssl: bool = False
+    cassandra_verify_ssl: bool = True
 
     gpu_required: bool = False
     gpu_min_memory_gb: int = 0

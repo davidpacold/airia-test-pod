@@ -1,6 +1,15 @@
 /* Airia Test Pod - Dashboard JavaScript */
 'use strict';
 
+/* ── Initialization (moved from inline scripts) ───────────── */
+axios.defaults.withCredentials = true;
+(function() {
+  var scriptEl = document.currentScript || document.querySelector('script[data-app-version]');
+  if (scriptEl && scriptEl.dataset.appVersion) {
+    window.APP_VERSION = scriptEl.dataset.appVersion;
+  }
+})();
+
 /* ── XSS helper ─────────────────────────────────────────────── */
 function esc(str) {
   if (str == null) return '';

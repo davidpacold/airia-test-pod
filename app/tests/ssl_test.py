@@ -296,8 +296,8 @@ class SSLTest(BaseTest):
                     "valid_from": cert.not_valid_before_utc.isoformat(),
                     "valid_until": cert.not_valid_after_utc.isoformat(),
                     "days_until_expiry": (
-                        cert.not_valid_after_utc.replace(tzinfo=None)
-                        - datetime.datetime.now()
+                        cert.not_valid_after_utc
+                        - datetime.datetime.now(datetime.timezone.utc)
                     ).days,
                     "san_names": san_list,
                     "cert_chain": cert_chain,

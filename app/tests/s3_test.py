@@ -262,7 +262,7 @@ class S3Test(BaseTest):
                         Bucket=bucket["Name"]
                     )
                     location = location_response.get("LocationConstraint", "us-east-1")
-                except:
+                except Exception:
                     location = "unknown"
 
                 buckets.append(
@@ -340,7 +340,7 @@ class S3Test(BaseTest):
                     Bucket=self.bucket_name
                 )
                 bucket_region = location_response.get("LocationConstraint", "us-east-1")
-            except:
+            except Exception:
                 bucket_region = "unknown"
 
             return {
@@ -421,7 +421,7 @@ class S3Test(BaseTest):
             # Try to clean up the test file if it was created
             try:
                 s3_client.delete_object(Bucket=self.bucket_name, Key=test_key)
-            except:
+            except Exception:
                 pass  # Ignore cleanup errors
 
             return {
@@ -435,7 +435,7 @@ class S3Test(BaseTest):
             try:
                 s3_client = self._get_s3_client()
                 s3_client.delete_object(Bucket=self.bucket_name, Key=test_key)
-            except:
+            except Exception:
                 pass  # Ignore cleanup errors
 
             return {

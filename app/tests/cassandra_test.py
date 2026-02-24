@@ -84,8 +84,12 @@ class CassandraTest(BaseTest):
         # Add SSL if configured
         if self.settings.cassandra_use_ssl:
             ssl_context = ssl.create_default_context()
-            ssl_context.check_hostname = False
-            ssl_context.verify_mode = ssl.CERT_NONE
+            if self.settings.cassandra_verify_ssl:
+                ssl_context.verify_mode = ssl.CERT_REQUIRED
+                ssl_context.check_hostname = True
+            else:
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = ssl.CERT_NONE
             config["ssl_context"] = ssl_context
 
         return config
