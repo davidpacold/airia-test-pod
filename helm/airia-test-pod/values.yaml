@@ -70,9 +70,9 @@ securityContext:
   capabilities:
     drop:
     - ALL
+  readOnlyRootFilesystem: true
   runAsNonRoot: true
   runAsUser: 1000
-  # readOnlyRootFilesystem: true  # Uncomment if your app doesn't need to write to disk
 
 # ---------------------------------------------------------------------------
 # SERVICE CONFIGURATION

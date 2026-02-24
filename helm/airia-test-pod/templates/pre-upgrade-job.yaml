@@ -3,6 +3,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: {{ include "airia-test-pod.fullname" . }}-version-check
+  namespace: {{ include "airia-test-pod.namespace" . }}
   labels:
     {{- include "airia-test-pod.labels" . | nindent 4 }}
     app.kubernetes.io/component: version-check
@@ -24,7 +25,7 @@ spec:
       serviceAccountName: {{ include "airia-test-pod.serviceAccountName" . }}
       containers:
       - name: version-checker
-        image: alpine/helm:latest
+        image: alpine/helm:3.17.1
         command:
         - /bin/sh
         - -c
