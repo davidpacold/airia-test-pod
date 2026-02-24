@@ -5,16 +5,31 @@ from typing import Any, Dict, List, Optional
 
 from ..models import TestStatus
 from .base_test import TestResult, test_suite
+
+# Storage tests
 from .blob_storage_test import BlobStorageTest
-from .cassandra_test import CassandraTest
-from .document_intelligence_test import DocumentIntelligenceTest
-from .embedding_test import EmbeddingTest
-from .gpu_test import GPUTest
-from .minio_test import MinioTest
-from .openai_test import OpenAITest
-from .postgres_test_v2 import PostgreSQLTestV2
-from .pvc_test import PVCTest
 from .s3_test import S3Test
+from .minio_test import MinioTest
+
+# AI provider tests
+from .azure_openai_test import AzureOpenAITest
+from .bedrock_test import BedrockTest
+from .openai_direct_test import OpenAIDirectTest
+from .anthropic_test import AnthropicTest
+from .gemini_test import GeminiTest
+from .mistral_test import MistralTest
+
+# Document processing
+from .document_intelligence_test import DocumentIntelligenceTest
+
+# Database tests
+from .postgres_test_v2 import PostgreSQLTestV2
+from .cassandra_test import CassandraTest
+
+# Infrastructure tests
+from .pvc_test import PVCTest
+from .gpu_test import GPUTest
+from .dns_test import DNSTest
 from .ssl_test import SSLTest
 
 # Configure logging
@@ -34,51 +49,32 @@ class TestRunner:
         self._register_tests()
 
     def _register_tests(self):
-        """Register all available tests"""
-        # Register PostgreSQL test
-        postgres_test = PostgreSQLTestV2()
-        test_suite.register_test(postgres_test)
-
-        # Register Blob Storage test
-        blob_storage_test = BlobStorageTest()
-        test_suite.register_test(blob_storage_test)
-
-        # Register PVC test
-        pvc_test = PVCTest()
-        test_suite.register_test(pvc_test)
-
-        # Register SSL test
-        ssl_test = SSLTest()
-        test_suite.register_test(ssl_test)
-
-        # Register GPU test
-        gpu_test = GPUTest()
-        test_suite.register_test(gpu_test)
-
-        # Register OpenAI test
-        openai_test = OpenAITest()
-        test_suite.register_test(openai_test)
-
-        # Register Document Intelligence test
-        doc_intel_test = DocumentIntelligenceTest()
-        test_suite.register_test(doc_intel_test)
-
-        # Register Minio test
-        minio_test = MinioTest()
-        test_suite.register_test(minio_test)
-
-        # Register S3 test
-        s3_test = S3Test()
-        test_suite.register_test(s3_test)
-
-        # Register Embedding test
-        embedding_test = EmbeddingTest()
-        test_suite.register_test(embedding_test)
-
-        # Register Cassandra test
-        cassandra_test = CassandraTest()
-        test_suite.register_test(cassandra_test)
-
+        """Register all 16 test cards"""
+        tests = [
+            # Storage (3)
+            BlobStorageTest(),
+            S3Test(),
+            MinioTest(),
+            # AI providers (6)
+            AzureOpenAITest(),
+            BedrockTest(),
+            OpenAIDirectTest(),
+            AnthropicTest(),
+            GeminiTest(),
+            MistralTest(),
+            # Document processing (1)
+            DocumentIntelligenceTest(),
+            # Databases (2)
+            PostgreSQLTestV2(),
+            CassandraTest(),
+            # Infrastructure (4)
+            PVCTest(),
+            GPUTest(),
+            DNSTest(),
+            SSLTest(),
+        ]
+        for test in tests:
+            test_suite.register_test(test)
         self.logger.info(f"Registered {len(test_suite.tests)} tests")
 
     def get_test_status(self) -> Dict[str, Any]:

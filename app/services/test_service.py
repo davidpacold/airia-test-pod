@@ -34,28 +34,40 @@ class TestService(BaseService):
     async def _register_all_tests(self) -> None:
         """Register all available test implementations."""
         # Import and register all test classes
+        from ..tests.anthropic_test import AnthropicTest
+        from ..tests.azure_openai_test import AzureOpenAITest
+        from ..tests.bedrock_test import BedrockTest
         from ..tests.blob_storage_test import BlobStorageTest
         from ..tests.cassandra_test import CassandraTest
+        from ..tests.dns_test import DNSTest
         from ..tests.document_intelligence_test import DocumentIntelligenceTest
-        from ..tests.embedding_test import EmbeddingTest
+        from ..tests.gemini_test import GeminiTest
         from ..tests.minio_test import MinioTest
-        from ..tests.openai_test import OpenAITest
-        from ..tests.postgres_test_v2 import PostgresTest
+        from ..tests.mistral_test import MistralTest
+        from ..tests.openai_direct_test import OpenAIDirectTest
+        from ..tests.postgres_test_v2 import PostgreSQLTestV2
         from ..tests.pvc_test import PVCTest
         from ..tests.s3_test import S3Test
         from ..tests.ssl_test import SSLTest
+        from ..tests.gpu_test import GPUTest
 
         test_classes = [
-            PostgresTest,
-            CassandraTest,
             BlobStorageTest,
             S3Test,
             MinioTest,
-            OpenAITest,
-            EmbeddingTest,
+            AzureOpenAITest,
+            BedrockTest,
+            OpenAIDirectTest,
+            AnthropicTest,
+            GeminiTest,
+            MistralTest,
             DocumentIntelligenceTest,
-            SSLTest,
+            PostgreSQLTestV2,
+            CassandraTest,
             PVCTest,
+            GPUTest,
+            DNSTest,
+            SSLTest,
         ]
 
         for test_class in test_classes:
