@@ -18,14 +18,12 @@ spec:
         {{- if .Chart.AppVersion }}
         app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
         {{- end }}
-        # Force pod recreation when using latest tag to ensure newest image is pulled
-        deployment.kubernetes.io/revision: {{ now | date "2006-01-02T15:04:05Z07:00" | quote }}
         {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
       labels:
         {{- include "airia-test-pod.labels" . | nindent 8 }}
-        app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+        app.kubernetes.io/version: {{ .Values.image.tag | default .Chart.AppVersion | quote }}
         release.airia.com/version: {{ .Chart.AppVersion | quote }}
         release.airia.com/tag: {{ .Values.image.tag | quote }}
     spec:
@@ -53,8 +51,6 @@ spec:
               value: {{ .Chart.AppVersion | quote }}
             - name: IMAGE_TAG
               value: {{ .Values.image.tag | quote }}
-            - name: BUILD_TIMESTAMP
-              value: {{ now | date "2006-01-02T15:04:05Z07:00" | quote }}
             - name: AUTH_USERNAME
               valueFrom:
                 secretKeyRef:

@@ -8,7 +8,6 @@ from botocore.config import Config
 from botocore.exceptions import (ClientError, EndpointConnectionError,
                                  NoCredentialsError)
 
-from ..models import TestStatus
 from .base_test import BaseTest, TestResult
 
 
@@ -152,7 +151,7 @@ class MinioTest(BaseTest):
             aws_access_key_id=self.access_key,
             aws_secret_access_key=self.secret_key,
             config=config,
-            verify=self.secure,  # SSL verification
+            verify=True,  # Always verify SSL certificates when SSL is enabled
         )
 
     def _test_connection(self) -> Dict[str, Any]:
@@ -291,7 +290,7 @@ class MinioTest(BaseTest):
     def _test_file_operations(self) -> Dict[str, Any]:
         """Test file upload, download, and delete operations"""
         test_key = f"test-file-{uuid.uuid4().hex[:8]}.txt"
-        test_content = f"Minio test file created at {datetime.now().isoformat()}"
+        test_content = f"Minio test file created at {datetime.now(timezone.utc).isoformat()}"
 
         try:
             s3_client = self._get_s3_client()
@@ -336,7 +335,7 @@ class MinioTest(BaseTest):
             # Try to clean up the test file if it was created
             try:
                 s3_client.delete_object(Bucket=self.bucket_name, Key=test_key)
-            except:
+            except Exception:
                 pass  # Ignore cleanup errors
 
             return {
@@ -350,7 +349,7 @@ class MinioTest(BaseTest):
             try:
                 s3_client = self._get_s3_client()
                 s3_client.delete_object(Bucket=self.bucket_name, Key=test_key)
-            except:
+            except Exception:
                 pass  # Ignore cleanup errors
 
             return {

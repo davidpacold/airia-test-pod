@@ -35,6 +35,15 @@ def _check_rate_limit(client_ip: str) -> bool:
     """Returns True if request is allowed, False if rate limited."""
     now = time.time()
     with _rate_limit_lock:
+        # Prune stale IP keys when dict exceeds 100 entries to prevent memory leak
+        if len(_rate_limit_attempts) > 100:
+            stale_ips = [
+                ip for ip, timestamps in _rate_limit_attempts.items()
+                if all(now - t >= _RATE_LIMIT_WINDOW for t in timestamps)
+            ]
+            for ip in stale_ips:
+                del _rate_limit_attempts[ip]
+
         attempts = _rate_limit_attempts.get(client_ip, [])
         # Prune old entries
         attempts = [t for t in attempts if now - t < _RATE_LIMIT_WINDOW]
@@ -44,6 +53,13 @@ def _check_rate_limit(client_ip: str) -> bool:
         attempts.append(now)
         _rate_limit_attempts[client_ip] = attempts
         return True
+
+
+def _get_client_ip(request: Request) -> str:
+    """Safely extract client IP, handling proxied requests."""
+    if request.client:
+        return request.client.host
+    return request.headers.get("X-Forwarded-For", "unknown").split(",")[0].strip()
 
 
 logger = logging.getLogger(__name__)
@@ -71,12 +87,23 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Airia Infrastructure Test Pod",
-    version="1.0.198",
+    version="2.0.0",
     lifespan=lifespan,
 )
 
 # Setup standardized error handling
 setup_error_handlers(app)
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """Convert 303 HTTPExceptions with Location headers into RedirectResponses."""
+    if exc.status_code == status.HTTP_303_SEE_OTHER and exc.headers and "Location" in exc.headers:
+        return RedirectResponse(url=exc.headers["Location"], status_code=status.HTTP_303_SEE_OTHER)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+    )
 
 
 # Security headers and cache control middleware
@@ -117,6 +144,7 @@ async def add_security_and_cache_headers(request: Request, call_next):
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
+templates.env.autoescape = True
 
 # Health check endpoints
 
@@ -153,12 +181,10 @@ async def readiness_check():
 
 @app.get("/version")
 async def get_version():
-    import os
     return {
-        "version": get_settings().app_version,
+        "version": os.getenv("APP_VERSION", get_settings().app_version),
         "image_tag": os.getenv("IMAGE_TAG", "unknown"),
         "build_timestamp": os.getenv("BUILD_TIMESTAMP", "unknown"),
-        "deployment_time": os.getenv("BUILD_TIMESTAMP", "unknown")
     }
 
 
@@ -185,7 +211,7 @@ async def login_page(
 
 @app.post("/login")
 async def login(request: Request, username: str = Form(...), password: str = Form(...)):
-    if not _check_rate_limit(request.client.host):
+    if not _check_rate_limit(_get_client_ip(request)):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Too many login attempts. Please try again later.",
@@ -217,7 +243,7 @@ async def login(request: Request, username: str = Form(...), password: str = For
 
     access_token_expires = timedelta(minutes=get_settings().access_token_expire_minutes)
     access_token = create_access_token(
-        data={"sub": username}, expires_delta=access_token_expires
+        data={"sub": sanitized_username}, expires_delta=access_token_expires
     )
 
     settings = get_settings()
@@ -236,8 +262,6 @@ async def login(request: Request, username: str = Form(...), password: str = For
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request, current_user: str = Depends(require_auth)):
-    if isinstance(current_user, RedirectResponse):
-        return current_user
     settings = get_settings()
     return templates.TemplateResponse(
         "dashboard.html",
@@ -254,7 +278,7 @@ async def logout(request: Request):
 
 @app.post("/token")
 async def token(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
-    if not _check_rate_limit(request.client.host):
+    if not _check_rate_limit(_get_client_ip(request)):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Too many login attempts. Please try again later.",
@@ -283,7 +307,7 @@ async def token(request: Request, form_data: OAuth2PasswordRequestForm = Depends
     settings = get_settings()
     access_token_expires = timedelta(minutes=get_settings().access_token_expire_minutes)
     access_token = create_access_token(
-        data={"sub": form_data.username}, expires_delta=access_token_expires
+        data={"sub": sanitized_username}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
 

@@ -2,7 +2,6 @@ import os
 import subprocess
 from typing import Any, Dict
 
-from ..models import TestStatus
 from .base_test import BaseTest, TestResult
 
 
@@ -299,17 +298,10 @@ class GPUTest(BaseTest):
             }
 
     def _test_cuda_version(self) -> Dict[str, Any]:
-        """Test CUDA version"""
+        """Test CUDA version using a single nvidia-smi call"""
         try:
+            # Single call to get both compute capability and full output for CUDA version
             result = subprocess.run(
-                ["nvidia-smi", "--query-gpu=compute_cap", "--format=csv,noheader"],
-                capture_output=True,
-                text=True,
-                timeout=10,
-            )
-
-            # Also try to get CUDA version from nvidia-smi output
-            cuda_result = subprocess.run(
                 ["nvidia-smi"],
                 capture_output=True,
                 text=True,
@@ -317,16 +309,24 @@ class GPUTest(BaseTest):
             )
 
             cuda_version = "Unknown"
-            if cuda_result.returncode == 0:
-                # Parse CUDA version from nvidia-smi output
-                for line in cuda_result.stdout.split("\n"):
+            compute_capability = None
+
+            if result.returncode == 0:
+                # Parse CUDA version from nvidia-smi output header
+                for line in result.stdout.split("\n"):
                     if "CUDA Version:" in line:
                         cuda_version = line.split("CUDA Version:")[1].strip().split()[0]
                         break
 
-            compute_capability = None
-            if result.returncode == 0:
-                compute_capability = result.stdout.strip().split("\n")[0]
+            # Get compute capability via query flag (lightweight additional call)
+            cap_result = subprocess.run(
+                ["nvidia-smi", "--query-gpu=compute_cap", "--format=csv,noheader"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if cap_result.returncode == 0:
+                compute_capability = cap_result.stdout.strip().split("\n")[0]
 
             return {
                 "success": True,

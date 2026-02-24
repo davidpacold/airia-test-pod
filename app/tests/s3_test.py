@@ -8,7 +8,6 @@ from botocore.config import Config
 from botocore.exceptions import (ClientError, EndpointConnectionError,
                                  NoCredentialsError)
 
-from ..models import TestStatus
 from .base_test import BaseTest, TestResult
 
 
@@ -262,7 +261,7 @@ class S3Test(BaseTest):
                         Bucket=bucket["Name"]
                     )
                     location = location_response.get("LocationConstraint", "us-east-1")
-                except:
+                except Exception:
                     location = "unknown"
 
                 buckets.append(
@@ -340,7 +339,7 @@ class S3Test(BaseTest):
                     Bucket=self.bucket_name
                 )
                 bucket_region = location_response.get("LocationConstraint", "us-east-1")
-            except:
+            except Exception:
                 bucket_region = "unknown"
 
             return {
@@ -371,7 +370,7 @@ class S3Test(BaseTest):
     def _test_file_operations(self) -> Dict[str, Any]:
         """Test file upload, download, and delete operations"""
         test_key = f"test-file-{uuid.uuid4().hex[:8]}.txt"
-        test_content = f"Amazon S3 test file created at {datetime.now().isoformat()}"
+        test_content = f"Amazon S3 test file created at {datetime.now(timezone.utc).isoformat()}"
 
         try:
             s3_client = self._get_s3_client()
@@ -421,7 +420,7 @@ class S3Test(BaseTest):
             # Try to clean up the test file if it was created
             try:
                 s3_client.delete_object(Bucket=self.bucket_name, Key=test_key)
-            except:
+            except Exception:
                 pass  # Ignore cleanup errors
 
             return {
@@ -435,7 +434,7 @@ class S3Test(BaseTest):
             try:
                 s3_client = self._get_s3_client()
                 s3_client.delete_object(Bucket=self.bucket_name, Key=test_key)
-            except:
+            except Exception:
                 pass  # Ignore cleanup errors
 
             return {

@@ -22,14 +22,26 @@ TEST_IMAGE_PATH = os.path.join(
 )
 
 
-def load_test_image_base64() -> str:
-    """Load the bundled test image as a base64 string."""
+def load_test_image_base64() -> Optional[str]:
+    """Load the bundled test image as a base64 string.
+
+    Returns None if the test image file does not exist.
+    """
+    if not os.path.isfile(TEST_IMAGE_PATH):
+        logger.warning("Test image not found at %s", TEST_IMAGE_PATH)
+        return None
     with open(TEST_IMAGE_PATH, "rb") as f:
         return base64.b64encode(f.read()).decode("utf-8")
 
 
-def load_test_image_bytes() -> bytes:
-    """Load the bundled test image as raw bytes."""
+def load_test_image_bytes() -> Optional[bytes]:
+    """Load the bundled test image as raw bytes.
+
+    Returns None if the test image file does not exist.
+    """
+    if not os.path.isfile(TEST_IMAGE_PATH):
+        logger.warning("Test image not found at %s", TEST_IMAGE_PATH)
+        return None
     with open(TEST_IMAGE_PATH, "rb") as f:
         return f.read()
 
@@ -73,14 +85,14 @@ class BaseAIProviderTest(BaseTest):
                 latency = round(time.time() - start, 2)
                 chat_result["latency_seconds"] = latency
                 result.add_sub_test("chat", {
-                    "status": "passed",
+                    "success": True,
                     "message": chat_result.get("message", "Chat test passed"),
                     **chat_result,
                 })
                 passed += 1
             except Exception as e:
                 result.add_sub_test("chat", {
-                    "status": "failed",
+                    "success": False,
                     "message": f"Chat test failed: {e}",
                 })
                 failed += 1
@@ -93,14 +105,14 @@ class BaseAIProviderTest(BaseTest):
                 latency = round(time.time() - start, 2)
                 emb_result["latency_seconds"] = latency
                 result.add_sub_test("embedding", {
-                    "status": "passed",
+                    "success": True,
                     "message": emb_result.get("message", "Embedding test passed"),
                     **emb_result,
                 })
                 passed += 1
             except Exception as e:
                 result.add_sub_test("embedding", {
-                    "status": "failed",
+                    "success": False,
                     "message": f"Embedding test failed: {e}",
                 })
                 failed += 1
@@ -113,14 +125,14 @@ class BaseAIProviderTest(BaseTest):
                 latency = round(time.time() - start, 2)
                 vis_result["latency_seconds"] = latency
                 result.add_sub_test("vision", {
-                    "status": "passed",
+                    "success": True,
                     "message": vis_result.get("message", "Vision test passed"),
                     **vis_result,
                 })
                 passed += 1
             except Exception as e:
                 result.add_sub_test("vision", {
-                    "status": "failed",
+                    "success": False,
                     "message": f"Vision test failed: {e}",
                 })
                 failed += 1

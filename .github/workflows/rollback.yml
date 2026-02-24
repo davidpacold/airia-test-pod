@@ -1,4 +1,4 @@
-name: 🔄 Rollback Deployment
+name: Rollback Deployment
 
 on:
   workflow_dispatch:
@@ -23,172 +23,205 @@ on:
         required: false
         default: '300'
 
+permissions:
+  contents: read
+  packages: write
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   rollback-validation:
-    name: 🔍 Pre-Rollback Validation
+    name: Pre-Rollback Validation
     runs-on: ubuntu-latest
     outputs:
       current_revision: ${{ steps.current.outputs.revision }}
       target_revision: ${{ steps.target.outputs.revision }}
       rollback_available: ${{ steps.validate.outputs.available }}
-    
+
     steps:
       - name: Check inputs
+        env:
+          INPUT_NAMESPACE: ${{ github.event.inputs.namespace }}
+          INPUT_RELEASE_NAME: ${{ github.event.inputs.release_name }}
+          INPUT_REVISION: ${{ github.event.inputs.revision }}
+          INPUT_REASON: ${{ github.event.inputs.reason }}
         run: |
-          echo "🔄 Rollback Request Details:"
-          echo "Namespace: ${{ github.event.inputs.namespace }}"
-          echo "Release: ${{ github.event.inputs.release_name }}"
-          echo "Target Revision: ${{ github.event.inputs.revision || 'Previous' }}"
-          echo "Reason: ${{ github.event.inputs.reason }}"
-      
+          echo "Rollback Request Details:"
+          echo "Namespace: $INPUT_NAMESPACE"
+          echo "Release: $INPUT_RELEASE_NAME"
+          echo "Target Revision: ${INPUT_REVISION:-Previous}"
+          echo "Reason: $INPUT_REASON"
+
       - name: Get current revision
         id: current
         run: |
           echo "revision=1" >> $GITHUB_OUTPUT
           echo "Current revision: 1"
-      
+
       - name: Determine target revision
         id: target
+        env:
+          INPUT_REVISION: ${{ github.event.inputs.revision }}
         run: |
-          if [ -n "${{ github.event.inputs.revision }}" ]; then
-            echo "revision=${{ github.event.inputs.revision }}" >> $GITHUB_OUTPUT
-            echo "Target revision: ${{ github.event.inputs.revision }}"
+          if [ -n "$INPUT_REVISION" ]; then
+            echo "revision=$INPUT_REVISION" >> $GITHUB_OUTPUT
+            echo "Target revision: $INPUT_REVISION"
           else
             echo "revision=0" >> $GITHUB_OUTPUT
             echo "Target revision: Previous (0)"
           fi
-      
+
       - name: Validate rollback availability
         id: validate
         run: |
           # In a real environment, this would check Helm history
           echo "available=true" >> $GITHUB_OUTPUT
-          echo "✅ Rollback validation passed"
+          echo "Rollback validation passed"
 
   rollback:
-    name: 🔄 Execute Rollback
+    name: Execute Rollback
     runs-on: ubuntu-latest
     needs: rollback-validation
     if: needs.rollback-validation.outputs.rollback_available == 'true'
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Create rollback manifest
+        env:
+          INPUT_NAMESPACE: ${{ github.event.inputs.namespace }}
+          INPUT_REASON: ${{ github.event.inputs.reason }}
+          CURRENT_REVISION: ${{ needs.rollback-validation.outputs.current_revision }}
+          TARGET_REVISION: ${{ needs.rollback-validation.outputs.target_revision }}
         run: |
           cat > rollback-manifest.yaml << EOF
           apiVersion: v1
           kind: ConfigMap
           metadata:
             name: rollback-info-$(date +%s)
-            namespace: ${{ github.event.inputs.namespace }}
+            namespace: ${INPUT_NAMESPACE}
             annotations:
               rollback.airia.com/timestamp: "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
               rollback.airia.com/triggered-by: "${{ github.actor }}"
-              rollback.airia.com/reason: "${{ github.event.inputs.reason }}"
-              rollback.airia.com/from-revision: "${{ needs.rollback-validation.outputs.current_revision }}"
-              rollback.airia.com/to-revision: "${{ needs.rollback-validation.outputs.target_revision }}"
+              rollback.airia.com/reason: "${INPUT_REASON}"
+              rollback.airia.com/from-revision: "${CURRENT_REVISION}"
+              rollback.airia.com/to-revision: "${TARGET_REVISION}"
               rollback.airia.com/workflow-run: "${{ github.run_id }}"
           data:
             rollback_details: |
               Rollback executed at: $(date -u)
-              From revision: ${{ needs.rollback-validation.outputs.current_revision }}
-              To revision: ${{ needs.rollback-validation.outputs.target_revision }}
+              From revision: ${CURRENT_REVISION}
+              To revision: ${TARGET_REVISION}
               Triggered by: ${{ github.actor }}
-              Reason: ${{ github.event.inputs.reason }}
+              Reason: ${INPUT_REASON}
               GitHub Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           EOF
-          
-          echo "📄 Rollback manifest created"
-      
+
+          echo "Rollback manifest created"
+
       - name: Simulate Helm rollback
+        env:
+          INPUT_RELEASE_NAME: ${{ github.event.inputs.release_name }}
+          INPUT_NAMESPACE: ${{ github.event.inputs.namespace }}
+          TARGET_REVISION: ${{ needs.rollback-validation.outputs.target_revision }}
         run: |
-          echo "🔄 Executing Helm rollback..."
-          echo "helm rollback ${{ github.event.inputs.release_name }} ${{ needs.rollback-validation.outputs.target_revision }} --namespace ${{ github.event.inputs.namespace }}"
-          
+          echo "Executing Helm rollback..."
+          echo "helm rollback $INPUT_RELEASE_NAME $TARGET_REVISION --namespace $INPUT_NAMESPACE"
+
           # Simulate rollback success
           sleep 2
-          echo "✅ Helm rollback completed successfully"
-      
+          echo "Helm rollback completed successfully"
+
       - name: Wait for deployment rollback
+        env:
+          INPUT_RELEASE_NAME: ${{ github.event.inputs.release_name }}
+          INPUT_NAMESPACE: ${{ github.event.inputs.namespace }}
         run: |
-          echo "⏳ Waiting for deployment to rollback..."
-          echo "kubectl rollout status deployment/${{ github.event.inputs.release_name }} -n ${{ github.event.inputs.namespace }} --timeout=300s"
-          
+          echo "Waiting for deployment to rollback..."
+          echo "kubectl rollout status deployment/$INPUT_RELEASE_NAME -n $INPUT_NAMESPACE --timeout=300s"
+
           # Simulate deployment rollback
           sleep 3
-          echo "✅ Deployment rollback completed"
+          echo "Deployment rollback completed"
 
   health-validation:
-    name: 🏥 Post-Rollback Health Check
+    name: Post-Rollback Health Check
     runs-on: ubuntu-latest
     needs: [rollback-validation, rollback]
-    
+
     steps:
       - name: Wait for application startup
         run: |
-          echo "⏳ Waiting for application to start after rollback..."
+          echo "Waiting for application to start after rollback..."
           sleep 10
-          echo "✅ Application startup period completed"
-      
+          echo "Application startup period completed"
+
       - name: Health check validation
+        env:
+          INPUT_HEALTH_CHECK_TIMEOUT: ${{ github.event.inputs.health_check_timeout }}
         run: |
-          echo "🏥 Running health checks..."
-          timeout=${{ github.event.inputs.health_check_timeout }}
-          
+          echo "Running health checks..."
+          timeout=${INPUT_HEALTH_CHECK_TIMEOUT}
+
           # Simulate health check (in real environment, would use kubectl or direct HTTP)
           for i in {1..5}; do
             echo "Health check attempt $i/5..."
-            # kubectl exec deployment/${{ github.event.inputs.release_name }} -n ${{ github.event.inputs.namespace }} -- curl -f http://localhost:8080/health/live
-            
+
             if [ $i -eq 5 ]; then
-              echo "✅ Health checks passed - rollback successful"
+              echo "Health checks passed - rollback successful"
               break
             fi
             sleep 5
           done
-      
+
       - name: Validate service endpoints
+        env:
+          INPUT_RELEASE_NAME: ${{ github.event.inputs.release_name }}
+          INPUT_NAMESPACE: ${{ github.event.inputs.namespace }}
         run: |
-          echo "🔍 Validating service endpoints..."
-          # kubectl get service ${{ github.event.inputs.release_name }}-service -n ${{ github.event.inputs.namespace }}
-          # kubectl get ingress -n ${{ github.event.inputs.namespace }}
-          echo "✅ Service endpoints validated"
-      
+          echo "Validating service endpoints..."
+          # kubectl get service $INPUT_RELEASE_NAME-service -n $INPUT_NAMESPACE
+          # kubectl get ingress -n $INPUT_NAMESPACE
+          echo "Service endpoints validated"
+
       - name: Generate rollback report
+        env:
+          INPUT_NAMESPACE: ${{ github.event.inputs.namespace }}
+          INPUT_RELEASE_NAME: ${{ github.event.inputs.release_name }}
+          INPUT_REASON: ${{ github.event.inputs.reason }}
+          CURRENT_REVISION: ${{ needs.rollback-validation.outputs.current_revision }}
+          TARGET_REVISION: ${{ needs.rollback-validation.outputs.target_revision }}
         run: |
           cat > rollback-report.md << EOF
-          # 🔄 Rollback Report
-          
+          # Rollback Report
+
           **Execution Time:** $(date -u)
           **Triggered By:** ${{ github.actor }}
-          **Reason:** ${{ github.event.inputs.reason }}
-          
+          **Reason:** ${INPUT_REASON}
+
           ## Rollback Details
-          - **Namespace:** ${{ github.event.inputs.namespace }}
-          - **Release:** ${{ github.event.inputs.release_name }}
-          - **From Revision:** ${{ needs.rollback-validation.outputs.current_revision }}
-          - **To Revision:** ${{ needs.rollback-validation.outputs.target_revision }}
+          - **Namespace:** ${INPUT_NAMESPACE}
+          - **Release:** ${INPUT_RELEASE_NAME}
+          - **From Revision:** ${CURRENT_REVISION}
+          - **To Revision:** ${TARGET_REVISION}
           - **GitHub Run:** [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-          
+
           ## Health Check Results
-          - ✅ Application startup: PASSED
-          - ✅ Health endpoints: PASSED
-          - ✅ Service validation: PASSED
-          
+          - Application startup: PASSED
+          - Health endpoints: PASSED
+          - Service validation: PASSED
+
           ## Status
-          **✅ ROLLBACK SUCCESSFUL**
-          
+          **ROLLBACK SUCCESSFUL**
+
           The application has been successfully rolled back and is operating normally.
           EOF
-          
-          echo "📊 Rollback report generated"
-      
+
+          echo "Rollback report generated"
+
       - name: Upload rollback report
         uses: actions/upload-artifact@v4
         with:
@@ -197,39 +230,47 @@ jobs:
           retention-days: 30
 
   notify:
-    name: 📢 Rollback Notification
+    name: Rollback Notification
     runs-on: ubuntu-latest
     needs: [rollback-validation, rollback, health-validation]
     if: always()
-    
+
     steps:
       - name: Determine rollback status
         id: status
+        env:
+          HEALTH_RESULT: ${{ needs.health-validation.result }}
         run: |
-          if [[ "${{ needs.health-validation.result }}" == "success" ]]; then
+          if [[ "$HEALTH_RESULT" == "success" ]]; then
             echo "success=true" >> $GITHUB_OUTPUT
-            echo "message=✅ Rollback completed successfully" >> $GITHUB_OUTPUT
+            echo "message=Rollback completed successfully" >> $GITHUB_OUTPUT
             echo "color=good" >> $GITHUB_OUTPUT
           else
             echo "success=false" >> $GITHUB_OUTPUT
-            echo "message=❌ Rollback failed or incomplete" >> $GITHUB_OUTPUT
+            echo "message=Rollback failed or incomplete" >> $GITHUB_OUTPUT
             echo "color=danger" >> $GITHUB_OUTPUT
           fi
-      
+
       - name: Send rollback notifications
+        env:
+          INPUT_NAMESPACE: ${{ github.event.inputs.namespace }}
+          INPUT_RELEASE_NAME: ${{ github.event.inputs.release_name }}
+          INPUT_REASON: ${{ github.event.inputs.reason }}
+          CURRENT_REVISION: ${{ needs.rollback-validation.outputs.current_revision }}
+          TARGET_REVISION: ${{ needs.rollback-validation.outputs.target_revision }}
         run: |
-          echo "📢 Sending rollback notifications..."
-          
+          echo "Sending rollback notifications..."
+
           # Create Slack notification for rollback
           cat > rollback-slack.json << EOF
           {
-            "text": "🔄 Airia Test Pod Rollback ${{ steps.status.outputs.success == 'true' && 'Completed' || 'Failed' }}",
+            "text": "Airia Test Pod Rollback ${{ steps.status.outputs.success == 'true' && 'Completed' || 'Failed' }}",
             "blocks": [
               {
                 "type": "header",
                 "text": {
                   "type": "plain_text",
-                  "text": "🔄 Rollback ${{ steps.status.outputs.success == 'true' && 'Completed' || 'Failed' }}: airia-test-pod"
+                  "text": "Rollback ${{ steps.status.outputs.success == 'true' && 'Completed' || 'Failed' }}: airia-test-pod"
                 }
               },
               {
@@ -245,11 +286,11 @@ jobs:
                   },
                   {
                     "type": "mrkdwn",
-                    "text": "*Namespace:*\n${{ github.event.inputs.namespace }}"
+                    "text": "*Namespace:*\n${INPUT_NAMESPACE}"
                   },
                   {
                     "type": "mrkdwn",
-                    "text": "*Release:*\n${{ github.event.inputs.release_name }}"
+                    "text": "*Release:*\n${INPUT_RELEASE_NAME}"
                   }
                 ]
               },
@@ -257,7 +298,7 @@ jobs:
                 "type": "section",
                 "text": {
                   "type": "mrkdwn",
-                  "text": "*Reason:* ${{ github.event.inputs.reason }}\n*From Revision:* ${{ needs.rollback-validation.outputs.current_revision }} → *To Revision:* ${{ needs.rollback-validation.outputs.target_revision }}"
+                  "text": "*Reason:* ${INPUT_REASON}\n*From Revision:* ${CURRENT_REVISION} -> *To Revision:* ${TARGET_REVISION}"
                 }
               },
               {
@@ -276,7 +317,7 @@ jobs:
             ]
           }
           EOF
-          
+
           # Create Teams notification for rollback
           cat > rollback-teams.json << EOF
           {
@@ -286,7 +327,7 @@ jobs:
             "themeColor": "${{ steps.status.outputs.color == 'good' && '00FF00' || 'FF0000' }}",
             "sections": [
               {
-                "activityTitle": "🔄 Airia Test Pod Rollback",
+                "activityTitle": "Airia Test Pod Rollback",
                 "activitySubtitle": "${{ steps.status.outputs.message }}",
                 "facts": [
                   {
@@ -295,22 +336,22 @@ jobs:
                   },
                   {
                     "name": "Namespace",
-                    "value": "${{ github.event.inputs.namespace }}"
+                    "value": "${INPUT_NAMESPACE}"
                   },
                   {
                     "name": "Release",
-                    "value": "${{ github.event.inputs.release_name }}"
+                    "value": "${INPUT_RELEASE_NAME}"
                   },
                   {
-                    "name": "From → To Revision",
-                    "value": "${{ needs.rollback-validation.outputs.current_revision }} → ${{ needs.rollback-validation.outputs.target_revision }}"
+                    "name": "From -> To Revision",
+                    "value": "${CURRENT_REVISION} -> ${TARGET_REVISION}"
                   },
                   {
                     "name": "Time",
                     "value": "$(date -u +%Y-%m-%d\ %H:%M\ UTC)"
                   }
                 ],
-                "text": "**Reason:** ${{ github.event.inputs.reason }}"
+                "text": "**Reason:** ${INPUT_REASON}"
               }
             ],
             "potentialAction": [
@@ -327,90 +368,40 @@ jobs:
             ]
           }
           EOF
-          
-          echo "📱 Rollback notifications would be sent to:"
+
+          echo "Rollback notifications would be sent to:"
           echo "- Slack: SLACK_WEBHOOK_URL (if configured)"
           echo "- Teams: TEAMS_WEBHOOK_URL (if configured)"
           echo "- Email: NOTIFICATION_EMAIL_LIST (if configured)"
-          
-          # In real environment, send notifications:
-          # curl -X POST -H 'Content-type: application/json' --data @rollback-slack.json ${{ secrets.SLACK_WEBHOOK_URL }}
-          # curl -X POST -H 'Content-type: application/json' --data @rollback-teams.json ${{ secrets.TEAMS_WEBHOOK_URL }}
-      
+
       - name: Create notification summary
+        env:
+          INPUT_NAMESPACE: ${{ github.event.inputs.namespace }}
+          INPUT_RELEASE_NAME: ${{ github.event.inputs.release_name }}
+          INPUT_REASON: ${{ github.event.inputs.reason }}
+          CURRENT_REVISION: ${{ needs.rollback-validation.outputs.current_revision }}
+          TARGET_REVISION: ${{ needs.rollback-validation.outputs.target_revision }}
         run: |
           cat >> $GITHUB_STEP_SUMMARY << EOF
-          # 🔄 Rollback Summary
-          
+          # Rollback Summary
+
           ${{ steps.status.outputs.message }}
-          
+
           **Details:**
-          - **Namespace:** ${{ github.event.inputs.namespace }}
-          - **Release:** ${{ github.event.inputs.release_name }}
+          - **Namespace:** ${INPUT_NAMESPACE}
+          - **Release:** ${INPUT_RELEASE_NAME}
           - **Triggered By:** ${{ github.actor }}
-          - **Reason:** ${{ github.event.inputs.reason }}
-          - **From Revision:** ${{ needs.rollback-validation.outputs.current_revision }}
-          - **To Revision:** ${{ needs.rollback-validation.outputs.target_revision }}
-          
+          - **Reason:** ${INPUT_REASON}
+          - **From Revision:** ${CURRENT_REVISION}
+          - **To Revision:** ${TARGET_REVISION}
+
           **Execution Time:** $(date -u)
           **GitHub Run:** [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-          
-          ## 📢 Notifications
-          
-          Rollback status notifications have been generated for:
-          - 📱 Slack (webhook required)
-          - 📧 Microsoft Teams (webhook required)  
-          - ✉️ Email (SMTP configuration required)
-          EOF
 
-  # Auto-rollback trigger job (for use by other workflows)
-  auto-rollback-check:
-    name: 🤖 Auto-Rollback Health Check
-    runs-on: ubuntu-latest
-    if: github.event_name != 'workflow_dispatch'
-    
-    steps:
-      - name: Health check after deployment
-        run: |
-          echo "🏥 Performing post-deployment health check..."
-          
-          # This would be called by release.yml workflow
-          # Check application health for 5 minutes after deployment
-          timeout=300
-          interval=30
-          attempts=$((timeout / interval))
-          
-          for i in $(seq 1 $attempts); do
-            echo "Health check attempt $i/$attempts..."
-            
-            # In real environment, check actual health endpoints
-            # curl -f http://service-url/health/live && curl -f http://service-url/health/ready
-            
-            if [ $i -eq $attempts ]; then
-              echo "❌ Health checks failed - triggering auto-rollback"
-              echo "auto_rollback_needed=true" >> $GITHUB_OUTPUT
-              exit 1
-            fi
-            
-            echo "✅ Health check passed"
-            break
-          done
-      
-      - name: Trigger automatic rollback
-        if: failure()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const response = await github.rest.actions.createWorkflowDispatch({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id: 'rollback.yml',
-              ref: 'main',
-              inputs: {
-                namespace: 'default',
-                release_name: 'airia-test-pod',
-                reason: 'Automatic rollback due to failed health checks'
-              }
-            });
-            
-            console.log('✅ Auto-rollback workflow triggered');
+          ## Notifications
+
+          Rollback status notifications have been generated for:
+          - Slack (webhook required)
+          - Microsoft Teams (webhook required)
+          - Email (SMTP configuration required)
+          EOF

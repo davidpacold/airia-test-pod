@@ -34,10 +34,11 @@ SECURE_COOKIES=false uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
 Each test inherits from `BaseTest` (app/tests/base_test.py). Tests are registered in `TestRunner._register_tests()`. The `execute()` method handles timeout enforcement (ThreadPoolExecutor), retry logic, and error handling. Tests run concurrently when using "Run All". Results are stored in the TestRunner singleton with thread-safe locking.
 
 ## Release Workflow
-- Version is tracked in: Chart.yaml, app/main.py, app/config.py
+- App version is static (2.0.0) in config.py; runtime version from APP_VERSION env var
+- Chart version is managed by release workflow in Chart.yaml
 - `.github/workflows/release.yml` builds Docker image + Helm chart
 - Published to OCI registry: `oci://ghcr.io/davidpacold/airia-test-pod/charts`
-- Triggered by tag push (`git tag v1.0.X && git push origin v1.0.X`)
+- Triggered by workflow_dispatch or tag push (`git tag v1.0.X && git push origin v1.0.X`)
 
 ## Conventions
 - Test classes: one per service, inherit BaseTest, implement run_test()

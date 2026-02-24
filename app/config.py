@@ -11,7 +11,7 @@ _DEFAULT_SECRET_KEY = "your-secret-key-here-change-in-production"
 
 class Settings(BaseSettings):
     app_name: str = "Airia Infrastructure Test Pod"
-    app_version: str = "1.0.198"
+    app_version: str = "2.0.0"
 
     auth_username: str = "admin"
     auth_password: str = "changeme"
@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     cassandra_keyspace: str = ""
     cassandra_datacenter: str = "datacenter1"
     cassandra_use_ssl: bool = False
+    cassandra_verify_ssl: bool = True
 
     gpu_required: bool = False
     gpu_min_memory_gb: int = 0

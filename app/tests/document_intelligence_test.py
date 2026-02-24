@@ -7,7 +7,6 @@ from typing import Any, Dict, List, Optional
 from azure.ai.formrecognizer import DocumentAnalysisClient
 from azure.core.credentials import AzureKeyCredential
 
-from ..models import TestStatus
 from .base_test import BaseTest, TestResult
 
 
@@ -89,14 +88,14 @@ class DocumentIntelligenceTest(BaseTest):
             if self.test_document_url:
                 # Test with provided URL
                 self.logger.info(f"Testing document analysis with URL: {self.test_document_url}")
-                analysis_result = self._test_document_analysis_url(
-                    client, self.test_document_url
+                analysis_result = self._test_document_analysis(
+                    client, document_url=self.test_document_url
                 )
                 result.add_sub_test("Document Analysis (URL)", analysis_result)
             else:
                 # Test with sample content
                 self.logger.info("Testing document analysis with sample content...")
-                analysis_result = self._test_document_analysis_content(client)
+                analysis_result = self._test_document_analysis(client)
                 result.add_sub_test("Document Analysis (Sample)", analysis_result)
 
             if analysis_result["success"]:
@@ -162,27 +161,23 @@ class DocumentIntelligenceTest(BaseTest):
         return result
 
     def _test_connectivity(self, client: DocumentAnalysisClient) -> Dict[str, Any]:
-        """Test basic API connectivity"""
+        """Test basic API connectivity with a lightweight HTTP request."""
+        import urllib.request
+        import urllib.error
+
         try:
             start_time = time.time()
 
-            # Try to analyze a minimal document to test connectivity
-            # Using the smallest possible document content
-            minimal_content = self.sample_pdf_content
+            # Use a lightweight HEAD-style GET to the endpoint root to verify reachability
+            # rather than submitting a full document and cancelling
+            url = self.endpoint.rstrip("/") + "/formrecognizer/documentModels?api-version=2023-07-31"
+            req = urllib.request.Request(url, method="GET")
+            req.add_header("Ocp-Apim-Subscription-Key", self.api_key)
 
-            # Start the analysis (this tests connectivity)
-            poller = client.begin_analyze_document(
-                model_id=self.model_id, document=minimal_content
-            )
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                status_code = resp.status
 
-            # Don't wait for completion, just test that we can start the operation
             duration = time.time() - start_time
-
-            # Cancel the operation to avoid unnecessary processing
-            try:
-                poller.cancel()
-            except:
-                pass  # Cancel might not be supported, that's okay
 
             return {
                 "success": True,
@@ -192,14 +187,41 @@ class DocumentIntelligenceTest(BaseTest):
                 "response_time_ms": round(duration * 1000, 2),
             }
 
+        except urllib.error.HTTPError as e:
+            duration = time.time() - start_time
+            # A 401/403 means the endpoint is reachable but credentials are wrong
+            # A 404 means the endpoint path is wrong but service is reachable
+            if e.code in (401, 403):
+                return {
+                    "success": False,
+                    "message": f"Authentication failed (HTTP {e.code})",
+                    "error": str(e),
+                    "endpoint": self.endpoint,
+                    "response_time_ms": round(duration * 1000, 2),
+                    "remediation": "Check API key - authentication failed",
+                }
+            elif e.code == 404:
+                return {
+                    "success": False,
+                    "message": f"Endpoint not found (HTTP {e.code})",
+                    "error": str(e),
+                    "endpoint": self.endpoint,
+                    "response_time_ms": round(duration * 1000, 2),
+                    "remediation": "Check API endpoint URL",
+                }
+            return {
+                "success": False,
+                "message": f"Connectivity test failed (HTTP {e.code}): {str(e)}",
+                "error": str(e),
+                "remediation": "Check API endpoint and credentials",
+            }
+
         except Exception as e:
             error_msg = str(e)
             remediation = "Check API endpoint and credentials"
 
-            if "401" in error_msg or "unauthorized" in error_msg.lower():
-                remediation = "Check API key - authentication failed"
-            elif "404" in error_msg or "not found" in error_msg.lower():
-                remediation = "Check API endpoint URL and model ID"
+            if "timeout" in error_msg.lower():
+                remediation = "Connection timed out - check network connectivity"
             elif "quota" in error_msg.lower() or "rate" in error_msg.lower():
                 remediation = "API rate limit or quota exceeded"
 
@@ -210,68 +232,32 @@ class DocumentIntelligenceTest(BaseTest):
                 "remediation": remediation,
             }
 
-    def _test_document_analysis_url(
-        self, client: DocumentAnalysisClient, document_url: str
+    def _test_document_analysis(
+        self,
+        client: DocumentAnalysisClient,
+        document_url: str = None,
+        document_content: bytes = None,
     ) -> Dict[str, Any]:
-        """Test document analysis with a URL"""
+        """Test document analysis with either a URL or direct content.
+
+        Args:
+            client: The DocumentAnalysisClient instance
+            document_url: URL of the document to analyze (mutually exclusive with document_content)
+            document_content: Raw bytes of the document to analyze
+        """
+        source_type = "URL" if document_url else "sample"
         try:
             start_time = time.time()
 
-            # Start document analysis
-            poller = client.begin_analyze_document(
-                model_id=self.model_id, document_url=document_url
-            )
-
-            # Wait for completion with timeout
-            result_doc = poller.result()
-            duration = time.time() - start_time
-
-            # Extract basic information
-            page_count = len(result_doc.pages)
-            content_length = len(result_doc.content) if result_doc.content else 0
-
-            # Extract content preview
-            content_preview = ""
-            if result_doc.content:
-                content_preview = result_doc.content[:200] if len(result_doc.content) > 200 else result_doc.content
-
-            return {
-                "success": True,
-                "message": f"Successfully analyzed document from URL",
-                "document_url": document_url,
-                "model": self.model_id,
-                "page_count": page_count,
-                "content_length": content_length,
-                "content_preview": content_preview,
-                "processing_time_ms": round(duration * 1000, 2),
-                "has_content": bool(result_doc.content),
-                "table_count": len(result_doc.tables) if result_doc.tables else 0,
-                "paragraph_count": len(result_doc.paragraphs) if result_doc.paragraphs else 0,
-            }
-
-        except Exception as e:
-            error_msg = str(e)
-            return {
-                "success": False,
-                "message": f"Document analysis failed: {error_msg}",
-                "error": error_msg,
-                "remediation": "Check document URL accessibility and format support",
-            }
-
-    def _test_document_analysis_content(
-        self, client: DocumentAnalysisClient
-    ) -> Dict[str, Any]:
-        """Test document analysis with sample content"""
-        try:
-            start_time = time.time()
-
-            # Use minimal PDF content for testing
-            document_content = self.sample_pdf_content
-
-            # Start document analysis
-            poller = client.begin_analyze_document(
-                model_id=self.model_id, document=document_content
-            )
+            # Start document analysis with either URL or content
+            if document_url:
+                poller = client.begin_analyze_document(
+                    model_id=self.model_id, document_url=document_url
+                )
+            else:
+                poller = client.begin_analyze_document(
+                    model_id=self.model_id, document=document_content or self.sample_pdf_content
+                )
 
             # Wait for completion
             result_doc = poller.result()
@@ -286,9 +272,9 @@ class DocumentIntelligenceTest(BaseTest):
             if result_doc.content:
                 content_preview = result_doc.content[:200] if len(result_doc.content) > 200 else result_doc.content
 
-            return {
+            result = {
                 "success": True,
-                "message": f"Successfully analyzed sample document",
+                "message": f"Successfully analyzed document from {source_type}",
                 "model": self.model_id,
                 "page_count": page_count,
                 "content_length": content_length,
@@ -297,16 +283,27 @@ class DocumentIntelligenceTest(BaseTest):
                 "has_content": bool(result_doc.content),
                 "table_count": len(result_doc.tables) if result_doc.tables else 0,
                 "paragraph_count": len(result_doc.paragraphs) if result_doc.paragraphs else 0,
-                "document_type": "sample_pdf",
             }
+
+            if document_url:
+                result["document_url"] = document_url
+            else:
+                result["document_type"] = "sample_pdf"
+
+            return result
 
         except Exception as e:
             error_msg = str(e)
+            remediation = (
+                "Check document URL accessibility and format support"
+                if document_url
+                else "Check model availability and document format support"
+            )
             return {
                 "success": False,
-                "message": f"Sample document analysis failed: {error_msg}",
+                "message": f"Document analysis failed ({source_type}): {error_msg}",
                 "error": error_msg,
-                "remediation": "Check model availability and document format support",
+                "remediation": remediation,
             }
 
     def _test_model_info(self, client: DocumentAnalysisClient) -> Dict[str, Any]:

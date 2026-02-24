@@ -42,12 +42,13 @@ class InputSanitizer:
         if not text:
             return text
 
-        # HTML escape to prevent XSS
-        sanitized = html.escape(text, quote=True)
-
-        # Remove dangerous patterns
+        # Remove dangerous patterns first (before escaping, so regexes can match raw HTML)
+        sanitized = text
         for pattern in InputSanitizer.DANGEROUS_PATTERNS:
             sanitized = re.sub(pattern, "", sanitized, flags=re.IGNORECASE | re.DOTALL)
+
+        # HTML escape to prevent XSS
+        sanitized = html.escape(sanitized, quote=True)
 
         # Remove null bytes and control characters (except newlines and tabs)
         sanitized = "".join(

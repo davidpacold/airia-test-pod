@@ -112,6 +112,6 @@
 {{- end }}
 
 4. To customize the configuration, create a values.yaml file with your settings and upgrade:
-   helm upgrade {{ .Release.Name }} airia-test-pod/airia-test-pod -f values.yaml
+   helm upgrade {{ .Release.Name }} oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod -f values.yaml
 
-For more information, visit: https://github.com/airia/test-pod
+For more information, visit: https://github.com/davidpacold/airia-test-pod
