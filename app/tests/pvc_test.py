@@ -6,7 +6,6 @@ from typing import Any, Dict, Optional
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 
-from ..models import TestStatus
 from .base_test import BaseTest, TestResult
 
 
@@ -18,6 +17,7 @@ class PVCTest(BaseTest):
         self.namespace = os.getenv("KUBERNETES_NAMESPACE", "default")
         self.storage_class = os.getenv("STORAGE_CLASS", "default")
         self.test_pvc_size = os.getenv("TEST_PVC_SIZE", "1Gi")
+        self._k8s_configured: Optional[bool] = None
 
     @property
     def test_name(self) -> str:
@@ -35,19 +35,24 @@ class PVCTest(BaseTest):
     def timeout_seconds(self) -> int:
         return 60  # PVC operations can take longer
 
-    def is_configured(self) -> bool:
-        """Check if Kubernetes is accessible"""
+    def _load_k8s_config(self) -> bool:
+        """Load Kubernetes config once and cache the result."""
+        if self._k8s_configured is not None:
+            return self._k8s_configured
         try:
-            # Try to load in-cluster config first (when running in pod)
             config.load_incluster_config()
-            return True
+            self._k8s_configured = True
         except config.ConfigException:
             try:
-                # Fall back to kubeconfig (for local testing)
                 config.load_kube_config()
-                return True
+                self._k8s_configured = True
             except (config.ConfigException, FileNotFoundError):
-                return False
+                self._k8s_configured = False
+        return self._k8s_configured
+
+    def is_configured(self) -> bool:
+        """Check if Kubernetes is accessible"""
+        return self._load_k8s_config()
 
     def get_configuration_help(self) -> str:
         return (
@@ -62,13 +67,9 @@ class PVCTest(BaseTest):
         result.start()
 
         try:
-            # Load Kubernetes config
-            try:
-                config.load_incluster_config()
-                result.add_log("INFO", "Using in-cluster Kubernetes config")
-            except config.ConfigException:
-                config.load_kube_config()
-                result.add_log("INFO", "Using kubeconfig file")
+            # Kubernetes config was already loaded by is_configured() / _load_k8s_config()
+            self._load_k8s_config()
+            result.add_log("INFO", "Kubernetes config loaded")
 
             # Create API client
             v1 = client.CoreV1Api()

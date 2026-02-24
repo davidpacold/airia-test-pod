@@ -60,7 +60,7 @@ const notify = new NotificationManager('notificationContainer');
 /* ── API Error Handler ──────────────────────────────────────── */
 function handleApiError(error, context) {
   const s = error.response?.status;
-  let title, msg, det;
+  let title, msg;
   if (s === 401 || s === 403) {
     title = 'Authentication Required';
     msg = 'Session expired. Redirecting to login\u2026';
@@ -76,7 +76,7 @@ function handleApiError(error, context) {
   } else {
     title = 'Error'; msg = error.response?.data?.detail || error.message || 'Unknown error';
   }
-  notify.error(title, msg, det);
+  notify.error(title, msg);
 }
 
 /* ── Shared formatting helpers ──────────────────────────────── */
@@ -176,9 +176,10 @@ const FORMATTERS = {
       if (critical.length > 0) {
         h += '<div class="critical-ext-check">';
         critical.forEach(ext => {
-          const found = installed.some(e => e.name === ext);
+          const extName = typeof ext === 'object' ? ext.name : ext;
+          const found = installed.some(e => e.name === extName);
           h += '<span class="ext-badge ' + (found ? 'ext-ok' : 'ext-missing') + '">' +
-            (found ? '\u2705' : '\u274C') + ' ' + esc(ext) + '</span> ';
+            (found ? '\u2705' : '\u274C') + ' ' + esc(extName) + '</span> ';
         });
         h += '</div>';
       }

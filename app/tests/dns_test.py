@@ -63,9 +63,8 @@ class DNSTest(BaseTest):
 
         for hostname in self.hostnames:
             resolution = self.resolve_hostname(hostname)
-            status = "passed" if resolution["resolved"] else "failed"
             result.add_sub_test(hostname, {
-                "status": status,
+                "success": resolution["resolved"],
                 "message": resolution["message"],
                 **resolution,
             })
@@ -115,4 +114,4 @@ class DNSTest(BaseTest):
         """Validate hostname format: alphanumeric + dots + hyphens, max 253 chars."""
         if not hostname or len(hostname) > 253:
             return False
-        return bool(re.match(r'^[a-zA-Z0-9][a-zA-Z0-9.\-]*[a-zA-Z0-9]$', hostname))
+        return bool(re.match(r'^[a-zA-Z0-9](?:[a-zA-Z0-9.\-]*[a-zA-Z0-9])?$', hostname))

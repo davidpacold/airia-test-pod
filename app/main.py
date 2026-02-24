@@ -144,6 +144,7 @@ async def add_security_and_cache_headers(request: Request, call_next):
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
+templates.env.autoescape = True
 
 # Health check endpoints
 
@@ -180,7 +181,6 @@ async def readiness_check():
 
 @app.get("/version")
 async def get_version():
-    import os
     return {
         "version": get_settings().app_version,
         "image_tag": os.getenv("IMAGE_TAG", "unknown"),

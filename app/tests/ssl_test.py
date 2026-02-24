@@ -71,10 +71,8 @@ class SSLTest(BaseTest):
                     url_result = self._test_single_url(url)
                     test_name = f"SSL Check: {url}"
 
-                    if url_result["success"]:
-                        result.add_sub_test(test_name, url_result)
-                    else:
-                        result.add_sub_test(test_name, url_result)
+                    result.add_sub_test(test_name, url_result)
+                    if not url_result["success"]:
                         all_passed = False
                         failed_urls.append(url)
 
@@ -694,15 +692,20 @@ class SSLTest(BaseTest):
             }
 
     def _check_certificate_signature_from_info(self, cert_info):
-        """Check certificate signature using cert_info data"""
+        """Check certificate signature using cert_info data.
+
+        Note: Full cryptographic signature verification is not implemented.
+        This check returns an informational result with issuer details.
+        """
         try:
-            # For now, just return success since we have valid cert info
-            # In production, you'd want to verify the signature cryptographically
             return {
                 "success": True,
-                "message": "Certificate signature validation passed",
-                "warning": False,
-                "details": {"issuer": cert_info.get("issuer", "Unknown")},
+                "message": "Certificate signature check skipped (cryptographic verification not implemented)",
+                "warning": True,
+                "details": {
+                    "issuer": cert_info.get("issuer", "Unknown"),
+                    "note": "Signature validation requires full chain verification which is not yet implemented",
+                },
             }
         except Exception as e:
             return {

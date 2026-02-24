@@ -91,7 +91,13 @@ class BedrockTest(BaseAIProviderTest):
             accept="application/json",
         )
         result = json.loads(response["body"].read())
-        embedding = result.get("embedding", [])
+        # Support multiple provider response formats:
+        # - Titan: {"embedding": [...]}
+        # - Cohere: {"embeddings": [[...]]}
+        embedding = result.get("embedding") or []
+        if not embedding and "embeddings" in result:
+            embeddings = result["embeddings"]
+            embedding = embeddings[0] if embeddings else []
         dims = len(embedding)
         return {
             "message": f"Embedding generated: {dims} dimensions",

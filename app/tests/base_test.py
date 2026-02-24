@@ -326,6 +326,9 @@ class TestSuite:
             for test_id in remaining:
                 test = self.tests[test_id]
                 if skip_optional and test.is_optional:
+                    skip_result = TestResult(test.test_name)
+                    skip_result.skip("Optional test skipped")
+                    results[test_id] = skip_result
                     continue
                 if not self._dependencies_met(test, results):
                     deps_failed = any(

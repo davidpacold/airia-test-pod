@@ -220,7 +220,9 @@ class TestRunner:
             "last_run": max(last_runs).isoformat() if last_runs else None,
             "overall_status": (
                 "passed"
-                if all(s == "passed" or s == "skipped" for s in statuses)
+                if all(s in ("passed", "skipped") for s in statuses)
+                else "running"
+                if any(s in ("pending", "running") for s in statuses)
                 else "failed"
             ),
         }

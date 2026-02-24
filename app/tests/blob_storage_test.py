@@ -63,7 +63,7 @@ class BlobStorageTest(BaseTest):
         blob_service_client = None
 
         try:
-            # Test 1: Create Blob Service Client
+            # Test 1: Create Blob Service Client (reuse for all subsequent tests)
             client_result = self._test_create_client()
             result.add_sub_test("client_creation", client_result)
 
@@ -74,7 +74,7 @@ class BlobStorageTest(BaseTest):
                 )
                 return result
 
-            blob_service_client = self.get_blob_service_client()
+            blob_service_client = client_result.get("_client") or self.get_blob_service_client()
 
             # Test 2: Check/Create Container
             container_result = self._test_container_operations(blob_service_client)
@@ -129,7 +129,7 @@ class BlobStorageTest(BaseTest):
         return result
 
     def _test_create_client(self) -> Dict[str, Any]:
-        """Test creating Blob Service Client"""
+        """Test creating Blob Service Client and return it for reuse."""
         try:
             blob_service_client = self.get_blob_service_client()
 
@@ -139,6 +139,7 @@ class BlobStorageTest(BaseTest):
             return {
                 "success": True,
                 "message": "Successfully created Blob Storage client",
+                "_client": blob_service_client,
                 "details": {
                     "account_name": self.settings.blob_account_name,
                     "account_kind": account_info.get("account_kind"),
