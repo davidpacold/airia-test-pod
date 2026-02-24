@@ -32,11 +32,6 @@ from .gpu_test import GPUTest
 from .dns_test import DNSTest
 from .ssl_test import SSLTest
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-
 
 class TestRunner:
     """Manages test execution and results"""
