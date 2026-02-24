@@ -2,6 +2,7 @@ import logging
 import os
 import threading
 import time
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -15,7 +16,7 @@ from fastapi.templating import Jinja2Templates
 
 from .auth import (authenticate_user, create_access_token, get_current_user,
                    require_auth)
-from .config import get_settings
+from .config import get_settings, _DEFAULT_SECRET_KEY
 from .exceptions import (ErrorCode, TestExecutionError,
                          ValidationError, setup_error_handlers)
 from .models import TestStatus
@@ -45,13 +46,37 @@ def _check_rate_limit(client_ip: str) -> bool:
         return True
 
 
-app = FastAPI(title="Airia Infrastructure Test Pod", version="1.0.198")
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup validation and graceful shutdown."""
+    settings = get_settings()
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
+    logger.info(f"Starting Airia Test Pod v{settings.app_version}")
+
+    if settings.auth_password == "changeme":
+        logger.warning("Default password in use - change auth.password in production")
+
+    from .tests.base_test import test_suite
+    logger.info(f"Registered {len(test_suite.tests)} tests")
+    yield
+    # Graceful shutdown
+    logger.info("Shutting down - waiting for in-progress tests...")
+
+
+app = FastAPI(
+    title="Airia Infrastructure Test Pod",
+    version="1.0.198",
+    lifespan=lifespan,
+)
 
 # Setup standardized error handling
 setup_error_handlers(app)
-
-# Initialize logger
-logger = logging.getLogger(__name__)
 
 
 # Security headers and cache control middleware
