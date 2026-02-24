@@ -87,7 +87,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Airia Infrastructure Test Pod",
-    version="1.0.198",
+    version="2.0.0",
     lifespan=lifespan,
 )
 
@@ -182,10 +182,9 @@ async def readiness_check():
 @app.get("/version")
 async def get_version():
     return {
-        "version": get_settings().app_version,
+        "version": os.getenv("APP_VERSION", get_settings().app_version),
         "image_tag": os.getenv("IMAGE_TAG", "unknown"),
         "build_timestamp": os.getenv("BUILD_TIMESTAMP", "unknown"),
-        "deployment_time": os.getenv("BUILD_TIMESTAMP", "unknown")
     }
 
 

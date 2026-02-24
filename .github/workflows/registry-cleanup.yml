@@ -25,6 +25,10 @@ on:
         default: 'false'
         type: boolean
 
+permissions:
+  contents: read
+  packages: write
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
@@ -268,7 +272,11 @@ jobs:
           UNTAGGED_IMAGES=${{ needs.analyze-images.outputs.untagged_images }}
           
           ESTIMATED_DELETION=$((OLD_IMAGES + UNTAGGED_IMAGES))
-          DELETION_PERCENTAGE=$((ESTIMATED_DELETION * 100 / TOTAL_IMAGES))
+          if [ "$TOTAL_IMAGES" -eq 0 ]; then
+            DELETION_PERCENTAGE=0
+          else
+            DELETION_PERCENTAGE=$((ESTIMATED_DELETION * 100 / TOTAL_IMAGES))
+          fi
           
           echo "📊 Safety analysis:"
           echo "- Total images: $TOTAL_IMAGES"
@@ -346,7 +354,7 @@ jobs:
           echo "🎯 DRY RUN COMPLETED - No images were actually deleted"
       
       - name: Execute cleanup (real)
-        if: github.event.inputs.dry_run != 'true'
+        if: github.event.inputs.dry_run == 'false' && github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
