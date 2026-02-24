@@ -88,8 +88,10 @@ class TestRunner:
 
     def get_test_status(self) -> Dict[str, Any]:
         """Get current status of all tests"""
+        with self._lock:
+            results_copy = dict(self.test_results)
         return {
-            "tests": self.test_results,
+            "tests": results_copy,
             "available_tests": test_suite.list_tests(),
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
@@ -174,18 +176,22 @@ class TestRunner:
 
     def get_test_logs(self, test_id: str) -> List[Dict[str, Any]]:
         """Get logs for a specific test"""
-        if test_id not in self.test_results:
+        with self._lock:
+            test_result = self.test_results.get(test_id)
+        if not test_result:
             return []
 
-        result_data = self.test_results[test_id].get("result", {})
+        result_data = test_result.get("result", {})
         return result_data.get("logs", [])
 
     def get_remediation_suggestions(self, test_id: str) -> List[str]:
         """Get remediation suggestions for a failed test"""
-        if test_id not in self.test_results:
+        with self._lock:
+            test_result = self.test_results.get(test_id)
+        if not test_result:
             return []
 
-        result_data = self.test_results[test_id].get("result", {})
+        result_data = test_result.get("result", {})
         suggestions = []
 
         # Add specific remediation if available
@@ -208,18 +214,20 @@ class TestRunner:
 
     def get_test_summary(self) -> Dict[str, Any]:
         """Get a summary of all test results"""
-        if not self.test_results:
+        with self._lock:
+            results_copy = dict(self.test_results)
+        if not results_copy:
             return {"total_tests": 0, "last_run": None, "overall_status": "not_run"}
 
-        statuses = [result["status"] for result in self.test_results.values()]
+        statuses = [result["status"] for result in results_copy.values()]
         last_runs = [
             datetime.fromisoformat(result["last_run"])
-            for result in self.test_results.values()
+            for result in results_copy.values()
             if result["last_run"]
         ]
 
         return {
-            "total_tests": len(self.test_results),
+            "total_tests": len(results_copy),
             "passed_count": statuses.count("passed"),
             "failed_count": statuses.count("failed"),
             "skipped_count": statuses.count("skipped"),
