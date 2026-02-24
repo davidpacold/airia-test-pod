@@ -21,3 +21,7 @@ pypdf==5.4.0
 pillow==12.1.1
 python-magic==0.4.27
 psutil==7.2.2
+anthropic==0.42.0
+google-generativeai==0.8.4
+mistralai==1.6.0
+dnspython==2.7.0
