@@ -9,7 +9,6 @@ from urllib.parse import urlparse
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 
-from ..models import TestStatus
 from .base_test import BaseTest, TestResult
 
 
@@ -22,7 +21,6 @@ class SSLTest(BaseTest):
         urls_env = os.getenv("SSL_TEST_URLS", "")
         self.test_urls = [url.strip() for url in urls_env.split(",") if url.strip()]
         self.timeout_seconds_connect = int(os.getenv("SSL_CONNECT_TIMEOUT", "10"))
-        self.warning_days = int(os.getenv("SSL_WARNING_DAYS", "30"))
 
     @property
     def test_name(self) -> str:
@@ -455,121 +453,6 @@ class SSLTest(BaseTest):
                 "success": False,
                 "message": f"Certificate chain validation failed: {str(e)}",
                 "error": str(e),
-            }
-
-    def _check_certificate_expiration(self, cert: x509.Certificate) -> Dict[str, Any]:
-        """Check certificate expiration"""
-        try:
-            now = datetime.datetime.now()
-            cert_expiry = cert.not_valid_after_utc.replace(tzinfo=None)
-            days_until_expiry = (cert_expiry - now).days
-
-            if cert_expiry < now:
-                return {
-                    "success": False,
-                    "message": f"Certificate expired {abs(days_until_expiry)} days ago",
-                    "days_until_expiry": days_until_expiry,
-                }
-            elif days_until_expiry < self.warning_days:
-                return {
-                    "success": True,
-                    "message": f"Certificate expires in {days_until_expiry} days (warning threshold: {self.warning_days})",
-                    "days_until_expiry": days_until_expiry,
-                    "warning": True,
-                }
-            else:
-                return {
-                    "success": True,
-                    "message": f"Certificate expires in {days_until_expiry} days",
-                    "days_until_expiry": days_until_expiry,
-                }
-        except Exception as e:
-            return {
-                "success": False,
-                "message": f"Certificate expiration check failed: {str(e)}",
-                "error": str(e),
-            }
-
-    def _check_hostname_match(
-        self, cert: x509.Certificate, hostname: str
-    ) -> Dict[str, Any]:
-        """Check if certificate matches hostname"""
-        try:
-            # Get Subject Alternative Names
-            san_extension = None
-            try:
-                san_extension = cert.extensions.get_extension_for_oid(
-                    x509.ExtensionOID.SUBJECT_ALTERNATIVE_NAME
-                )
-            except x509.ExtensionNotFound:
-                pass
-
-            # Get Common Name from subject
-            common_name = None
-            for attribute in cert.subject:
-                if attribute.oid == x509.NameOID.COMMON_NAME:
-                    common_name = attribute.value
-                    break
-
-            # Check hostname against SAN and CN
-            valid_hostnames = []
-            if san_extension:
-                for san in san_extension.value:
-                    if isinstance(san, x509.DNSName):
-                        valid_hostnames.append(san.value)
-
-            if common_name:
-                valid_hostnames.append(common_name)
-
-            # Simple hostname matching (not implementing full wildcard matching)
-            hostname_matches = any(
-                hostname.lower() == valid_hostname.lower()
-                or (
-                    valid_hostname.startswith("*.")
-                    and hostname.lower().endswith(valid_hostname[2:].lower())
-                )
-                for valid_hostname in valid_hostnames
-            )
-
-            return {
-                "success": hostname_matches,
-                "message": f"Hostname {'matches' if hostname_matches else 'does not match'} certificate",
-                "hostname": hostname,
-                "valid_hostnames": valid_hostnames,
-                "common_name": common_name,
-            }
-
-        except Exception as e:
-            return {
-                "success": False,
-                "message": f"Hostname verification failed: {str(e)}",
-                "error": str(e),
-            }
-
-    def _check_certificate_signature(self, cert: x509.Certificate) -> Dict[str, Any]:
-        """Check certificate signature algorithm"""
-        try:
-            sig_algorithm = cert.signature_algorithm_oid._name
-
-            # Check for weak signature algorithms
-            weak_algorithms = ["md5", "sha1"]
-            is_weak = any(
-                weak_alg in sig_algorithm.lower() for weak_alg in weak_algorithms
-            )
-
-            return {
-                "success": not is_weak,
-                "message": f"Signature algorithm: {sig_algorithm}"
-                + (" (weak)" if is_weak else ""),
-                "algorithm": sig_algorithm,
-                "warning": is_weak,
-            }
-
-        except Exception as e:
-            return {
-                "success": True,  # Don't fail the test for this
-                "message": f"Could not determine signature algorithm: {str(e)}",
-                "warning": True,
             }
 
     def _get_ssl_remediation(
