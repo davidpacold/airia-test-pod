@@ -453,7 +453,7 @@ config:
 # Requires elevated RBAC (ClusterRole) for cross-namespace access.
 # Opt-in: must be explicitly enabled.
 diagnostics:
-  enabled: false  # Set to true to enable pod diagnostics collection (requires elevated RBAC)
+  enabled: true  # Enables pod diagnostics collection (adds read-only ClusterRole for cross-namespace access)
 
 # ===============================================================================
 # NAMESPACE CONFIGURATION
