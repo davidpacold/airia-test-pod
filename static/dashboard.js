@@ -104,13 +104,11 @@ function buildSubTests(result) {
     h += '<div class="sub-test-item ' + (ok ? 'sub-test-success' : 'sub-test-error') + '">';
     h += '<div class="sub-test-header">' + (ok ? '\u2705' : '\u274C') + ' <strong>' + esc(name) + '</strong></div>';
     h += '<div class="sub-test-message">' + esc(t.message) + '</div>';
-    // Collect displayable details from both top-level and nested details
+    // Collect displayable details
     var skip = new Set(['success', 'message', 'remediation', 'error', 'error_type']);
     var allDetails = [];
     for (var _k of Object.keys(t)) {
-      if (!skip.has(_k) && _k !== 'details') {
-        allDetails.push([_k, t[_k]]);
-      }
+      if (!skip.has(_k) && _k !== 'details') allDetails.push([_k, t[_k]]);
     }
     if (t.details) {
       for (var _e of Object.entries(t.details)) {
@@ -118,38 +116,47 @@ function buildSubTests(result) {
       }
     }
     if (allDetails.length > 0) {
-      h += '<div class="sub-test-details">';
-      // Show prompt/response as conversation pairs first
+      // Separate prompt/response from metadata
       var promptVal = null, responseVal = null, inputVal = null, descVal = null;
-      var otherDetails = [];
+      var metaDetails = [];
       for (var _i = 0; _i < allDetails.length; _i++) {
         var dk = allDetails[_i][0], dv = allDetails[_i][1];
         if (dk === 'prompt') promptVal = dv;
         else if (dk === 'response') responseVal = dv;
         else if (dk === 'input') inputVal = dv;
         else if (dk === 'description') descVal = dv;
-        else otherDetails.push([dk, dv]);
+        else metaDetails.push([dk, dv]);
       }
-      // Render prompt -> response pair
-      if (promptVal) {
-        h += '<span class="detail-tag detail-tag--prompt"><strong>Prompt:</strong> ' + esc(promptVal) + '</span>';
+
+      // Render IO block for prompt/response pairs
+      var hasIO = promptVal || inputVal || responseVal || descVal;
+      if (hasIO) {
+        h += '<div class="io-block">';
+        if (promptVal) {
+          h += '<div class="io-row io-row-prompt"><span class="io-label">Sent</span><span class="io-value">' + esc(promptVal) + '</span></div>';
+        }
+        if (inputVal) {
+          h += '<div class="io-row io-row-prompt"><span class="io-label">Input</span><span class="io-value">' + esc(inputVal) + '</span></div>';
+        }
+        if (responseVal) {
+          h += '<div class="io-row io-row-response"><span class="io-label">Reply</span><span class="io-value">' + esc(responseVal) + '</span></div>';
+        }
+        if (descVal) {
+          h += '<div class="io-row io-row-response"><span class="io-label">Reply</span><span class="io-value">' + esc(descVal) + '</span></div>';
+        }
+        h += '</div>';
       }
-      if (inputVal) {
-        h += '<span class="detail-tag detail-tag--prompt"><strong>Input:</strong> ' + esc(inputVal) + '</span>';
+
+      // Render metadata as inline tags
+      if (metaDetails.length > 0) {
+        h += '<div class="detail-meta-row">';
+        for (var _j = 0; _j < metaDetails.length; _j++) {
+          var mk = metaDetails[_j][0], mv = metaDetails[_j][1];
+          var display = typeof mv === 'object' ? JSON.stringify(mv) : String(mv);
+          h += '<span class="detail-tag"><strong>' + esc(mk) + ':</strong> ' + esc(display) + '</span>';
+        }
+        h += '</div>';
       }
-      if (responseVal) {
-        h += '<span class="detail-tag detail-tag--response"><strong>Response:</strong> ' + esc(responseVal) + '</span>';
-      }
-      if (descVal) {
-        h += '<span class="detail-tag detail-tag--response"><strong>Description:</strong> ' + esc(descVal) + '</span>';
-      }
-      // Remaining details as inline tags
-      for (var _j = 0; _j < otherDetails.length; _j++) {
-        var ok2 = otherDetails[_j][0], ov = otherDetails[_j][1];
-        var display = typeof ov === 'object' ? JSON.stringify(ov) : String(ov);
-        h += '<span class="detail-tag"><strong>' + esc(ok2) + ':</strong> ' + esc(display) + '</span> ';
-      }
-      h += '</div>';
     }
     if (t.remediation) h += '<div class="remediation">\uD83D\uDCA1 <em>' + esc(t.remediation) + '</em></div>';
     h += '</div>';
@@ -186,15 +193,33 @@ const FORMATTERS = {
     let h = '<div class="test-result-enhanced">' + buildHeader(result, 'PostgreSQL Database') + buildMessage(result);
     const sub = result.sub_tests || {};
 
-    // Connection info
-    if (sub.connection?.success && sub.connection.details) {
-      h += '<div class="detail-section"><h5>\uD83D\uDD17 Connection</h5>';
-      h += '<p>' + esc(sub.connection.details.version || '') + '</p></div>';
+    // Step timeline for connection steps
+    var steps = ['connection', 'databases', 'extensions'];
+    var hasSteps = steps.some(s => sub[s]);
+    if (hasSteps) {
+      h += '<div class="sub-tests-section"><div class="step-timeline">';
+      for (var si = 0; si < steps.length; si++) {
+        var sn = steps[si], st = sub[sn];
+        if (!st) continue;
+        var sok = st.success;
+        h += '<div class="step-item">';
+        h += '<div class="step-icon ' + (sok ? 'step-icon-ok' : 'step-icon-fail') + '">' + (sok ? '\u2713' : '\u2717') + '</div>';
+        h += '<div class="step-content">';
+        h += '<div class="step-name">' + esc(sn.charAt(0).toUpperCase() + sn.slice(1)) + '</div>';
+        h += '<div class="step-message">' + esc(st.message || '') + '</div>';
+
+        // Connection version
+        if (sn === 'connection' && st.details?.version) {
+          h += '<div class="step-details"><span class="detail-tag"><strong>version:</strong> ' + esc(st.details.version) + '</span></div>';
+        }
+        h += '</div></div>';
+      }
+      h += '</div></div>';
     }
 
     // Databases table
     if (sub.databases?.databases?.length > 0) {
-      h += '<div class="detail-section"><h5>\uD83D\uDDC4\uFE0F Databases (' + sub.databases.databases.length + ')</h5>';
+      h += '<div class="detail-section"><h5>Databases (' + sub.databases.databases.length + ')</h5>';
       h += '<table class="data-table"><thead><tr><th>Name</th><th>Size</th></tr></thead><tbody>';
       sub.databases.databases.forEach(db => {
         h += '<tr><td>' + esc(db.name) + '</td><td>' + esc(db.size_human) + '</td></tr>';
@@ -202,15 +227,55 @@ const FORMATTERS = {
       h += '</tbody></table></div>';
     }
 
-    // Extensions — just report what the server has installed
+    // Extensions table
     if (sub.extensions?.installed_extensions) {
       const installed = sub.extensions.installed_extensions;
-      h += '<div class="detail-section"><h5>\uD83E\uDDE9 Extensions (' + installed.length + ' installed)</h5>';
+      h += '<div class="detail-section"><h5>Extensions (' + installed.length + ' installed)</h5>';
       h += '<table class="data-table"><thead><tr><th>Extension</th><th>Version</th></tr></thead><tbody>';
       installed.forEach(e => {
         h += '<tr><td>' + esc(e.name) + '</td><td>' + esc(e.version) + '</td></tr>';
       });
       h += '</tbody></table></div>';
+    }
+
+    h += buildRemediation(result) + '</div>';
+    return h;
+  },
+
+  blobstorage: function(result) {
+    let h = '<div class="test-result-enhanced">' + buildHeader(result, 'Azure Blob Storage') + buildMessage(result);
+    const sub = result.sub_tests || {};
+
+    var steps = ['client_creation', 'container_operations', 'upload_blob', 'download_blob', 'list_blobs', 'cleanup'];
+    var stepLabels = { client_creation: 'Connect', container_operations: 'Container', upload_blob: 'Upload', download_blob: 'Download', list_blobs: 'List Blobs', cleanup: 'Cleanup' };
+    var hasSteps = steps.some(s => sub[s]);
+    if (hasSteps) {
+      h += '<div class="sub-tests-section"><div class="step-timeline">';
+      for (var si = 0; si < steps.length; si++) {
+        var sn = steps[si], st = sub[sn];
+        if (!st) continue;
+        var sok = st.success;
+        h += '<div class="step-item">';
+        h += '<div class="step-icon ' + (sok ? 'step-icon-ok' : 'step-icon-fail') + '">' + (sok ? '\u2713' : '\u2717') + '</div>';
+        h += '<div class="step-content">';
+        h += '<div class="step-name">' + esc(stepLabels[sn] || sn) + '</div>';
+        h += '<div class="step-message">' + esc(st.message || '') + '</div>';
+        // Show speed details for upload/download
+        if (st.details) {
+          var deets = [];
+          if (st.details.upload_speed_mbps) deets.push('speed: ' + st.details.upload_speed_mbps + ' MB/s');
+          if (st.details.download_speed_mbps) deets.push('speed: ' + st.details.download_speed_mbps + ' MB/s');
+          if (st.details.size_bytes) deets.push('size: ' + st.details.size_bytes + ' bytes');
+          if (st.details.content_verified) deets.push('verified: \u2713');
+          if (deets.length > 0) {
+            h += '<div class="step-details">';
+            deets.forEach(function(d) { h += '<span class="detail-tag">' + esc(d) + '</span>'; });
+            h += '</div>';
+          }
+        }
+        h += '</div></div>';
+      }
+      h += '</div></div>';
     }
 
     h += buildRemediation(result) + '</div>';

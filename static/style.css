@@ -401,43 +401,169 @@ a:hover { color: var(--c-accent-hover); }
   line-height: 1.5;
 }
 
-/* ── Conversation-style prompt/response for AI tests ────────── */
+/* ── Detail meta tags (model, latency, endpoint) ────────────── */
 .sub-test-details {
   margin-top: var(--sp-sm);
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
-.sub-test-details .detail-tag {
+.detail-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+.detail-tag {
   display: inline-block;
-  margin: 2px 4px 2px 0;
   padding: 3px 8px;
   background: var(--c-bg-inset);
   border-radius: 6px;
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   color: var(--c-text-secondary);
   font-family: var(--font-mono);
-  line-height: 1.5;
+  line-height: 1.4;
   word-break: break-word;
 }
-.sub-test-details .detail-tag strong {
+.detail-tag strong {
   color: var(--c-text);
   font-weight: 500;
+  margin-right: 3px;
 }
 
-/* Prompt/response pair styling */
-.detail-tag--prompt {
-  background: var(--c-accent-light) !important;
-  border-left: 3px solid var(--c-accent);
-  padding-left: 10px !important;
-  display: block !important;
-  margin-bottom: 4px !important;
+/* ── Prompt/Response blocks for AI tests ────────────────────── */
+.io-block {
+  margin-top: var(--sp-sm);
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--c-border);
 }
-.detail-tag--response {
-  background: var(--c-success-light) !important;
-  border-left: 3px solid var(--c-success);
-  padding-left: 10px !important;
-  display: block !important;
+.io-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-md);
+  padding: 8px 14px;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+.io-row + .io-row {
+  border-top: 1px solid var(--c-border-light);
+}
+.io-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+  width: 56px;
+}
+.io-value {
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+.io-row-prompt {
+  background: var(--c-bg-inset);
+}
+.io-row-prompt .io-label {
+  color: var(--c-accent);
+}
+.io-row-response {
+  background: var(--c-bg-card);
+}
+.io-row-response .io-label {
+  color: var(--c-success);
+}
+
+/* ── Step timeline for multi-step tests ─────────────────────── */
+.step-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: var(--sp-sm);
+}
+.step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-md);
+  padding: var(--sp-sm) 0;
+  position: relative;
+}
+.step-item:not(:last-child) {
+  padding-bottom: var(--sp-md);
+}
+/* Vertical connector line */
+.step-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 28px;
+  bottom: 0;
+  width: 2px;
+  background: var(--c-border);
+}
+.step-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+.step-icon-ok {
+  background: var(--c-success-light);
+  color: var(--c-success);
+  border: 2px solid var(--c-success-border);
+}
+.step-icon-fail {
+  background: var(--c-error-light);
+  color: var(--c-error);
+  border: 2px solid var(--c-error-border);
+}
+.step-content {
+  flex: 1;
+  min-width: 0;
+}
+.step-name {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--c-text);
+  margin-bottom: 2px;
+}
+.step-message {
+  font-size: 0.75rem;
+  color: var(--c-text-muted);
+  line-height: 1.4;
+}
+.step-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+/* ── Key-value detail grid ──────────────────────────────────── */
+.detail-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px var(--sp-md);
+  font-size: 0.75rem;
+  margin-top: var(--sp-sm);
+}
+.detail-grid-key {
+  color: var(--c-text-muted);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.detail-grid-val {
+  color: var(--c-text);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  word-break: break-all;
 }
 
 /* ── Detail Section (PostgreSQL, GPU) ───────────────────────── */
