@@ -188,7 +188,7 @@ kubectl rollout restart deployment/airia-test-pod
 
 ## 📖 Documentation
 
-- **[Deployment Guide](docs/deployment/deployment-guide.md)** - Complete deployment instructions with ingress, TLS, and production setup
+- **[Deployment Guide](docs/deployment/deployment-guide.md)** - Complete deployment instructions
 
 - **[Example Values File](helm/airia-test-pod/examples/basic-values.yaml)** - Customer-ready config template
 - **[Version Management](docs/operations/VERSIONING.md)** - Automatic updates and version control

@@ -64,7 +64,7 @@ kubectl port-forward -n airia svc/airia-test-pod 8080:80
 ```mermaid
 flowchart TD
     Config["Create values file"] --> Deploy["helm upgrade --install"]
-    Deploy --> Access["Port-forward or ingress"]
+    Deploy --> Access["kubectl port-forward"]
     Access --> Test["Run All Tests"]
     Test --> Results{"All pass?"}
     Results -->|No| Fix["Follow remediation"] --> Test
@@ -96,104 +96,6 @@ helm template airia-test-pod \
 
 kubectl apply -R -f ./rendered-manifests/
 ```
-
----
-
-## Ingress Configuration
-
-By default the pod uses `ClusterIP` service — access it via `kubectl port-forward`. For external access, configure ingress.
-
-**Important:** The pod expects HTTP traffic. TLS termination should happen at your load balancer or ingress controller.
-
-### NGINX Ingress Controller
-
-```yaml
-ingress:
-  enabled: true
-  className: "nginx"
-  annotations:
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
-  hosts:
-    - host: airia-test.yourdomain.com
-      paths:
-        - path: /
-          pathType: Prefix
-  tls:
-    - secretName: airia-test-tls
-      hosts:
-        - airia-test.yourdomain.com
-```
-
-### NGINX with Cert-Manager (Automatic TLS)
-
-```yaml
-ingress:
-  enabled: true
-  className: "nginx"
-  annotations:
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
-  hosts:
-    - host: airia-test.yourdomain.com
-      paths:
-        - path: /
-          pathType: Prefix
-  tls:
-    - secretName: airia-test-tls-auto
-      hosts:
-        - airia-test.yourdomain.com
-```
-
-### Azure Application Gateway
-
-```yaml
-ingress:
-  enabled: true
-  className: "azure-application-gateway"
-  annotations:
-    kubernetes.io/ingress.class: azure/application-gateway
-    appgw.ingress.kubernetes.io/ssl-redirect: "false"
-  hosts:
-    - host: airia-test.yourdomain.com
-      paths:
-        - path: /
-          pathType: Prefix
-```
-
-### AWS ALB
-
-```yaml
-ingress:
-  enabled: true
-  className: "alb"
-  annotations:
-    kubernetes.io/ingress.class: alb
-    alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/backend-protocol: HTTP
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
-    alb.ingress.kubernetes.io/ssl-redirect: '443'
-    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:REGION:ACCOUNT:certificate/CERT-ID
-    alb.ingress.kubernetes.io/healthcheck-path: /health
-  hosts:
-    - host: airia-test.yourdomain.com
-      paths:
-        - path: /
-          pathType: Prefix
-```
-
-### External Load Balancer (Recommended for Production)
-
-If SSL is handled externally (CloudFlare, cloud LB, etc.), no ingress or TLS config is needed:
-
-```yaml
-ingress:
-  enabled: false  # External load balancer handles routing and SSL
-```
-
-Access the pod via port-forward or configure your external LB to route to the `airia-test-pod` service on port 80.
 
 ---
 
@@ -288,10 +190,9 @@ helm uninstall airia-test-pod -n airia
 ## Security Notes
 
 1. **Change default credentials** — never use defaults in production
-2. **Use HTTPS** for external access (TLS at load balancer or ingress)
-3. **Rotate credentials** regularly
-4. **Network policies** — restrict traffic if needed
-5. **RBAC** — the pod uses minimal required permissions
+2. **Rotate credentials** regularly
+3. **Network policies** — restrict traffic if needed
+4. **RBAC** — the pod uses minimal required permissions
 
 ---
 
