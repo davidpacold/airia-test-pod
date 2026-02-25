@@ -408,23 +408,43 @@ const FORMATTERS = {
     var sub = result.sub_tests || {};
     var keys = Object.keys(sub);
     if (keys.length > 0) {
-      h += '<div class="sub-tests-section"><div class="step-timeline">';
+      h += '<div class="sub-tests-section">';
       for (var i = 0; i < keys.length; i++) {
         var hostname = keys[i], st = sub[hostname];
         var sok = st.success;
-        h += '<div class="step-item">';
-        h += '<div class="step-icon ' + (sok ? 'step-icon-ok' : 'step-icon-fail') + '">' + (sok ? '\u2713' : '\u2717') + '</div>';
-        h += '<div class="step-content">';
-        h += '<div class="step-name">' + esc(hostname) + '</div>';
-        h += '<div class="step-message">' + esc(st.message || '') + '</div>';
-        var tags = [];
-        if (st.ip_addresses && st.ip_addresses.length > 0) tags.push('<span class="detail-tag"><strong>IPs:</strong> ' + esc(st.ip_addresses.join(', ')) + '</span>');
-        if (st.latency_ms != null) tags.push('<span class="detail-tag"><strong>latency:</strong> ' + esc(st.latency_ms.toFixed(1) + 'ms') + '</span>');
-        if (tags.length > 0) h += '<div class="step-details">' + tags.join('') + '</div>';
+        h += '<div class="dns-lookup-card ' + (sok ? 'dns-lookup-ok' : 'dns-lookup-fail') + '">';
+        h += '<div class="dns-lookup-header">';
+        h += '<span class="dns-lookup-icon">' + (sok ? '\u2713' : '\u2717') + '</span>';
+        h += '<span class="dns-lookup-host">' + esc(hostname) + '</span>';
+        if (st.latency_ms != null) h += '<span class="dns-lookup-latency">' + esc(st.latency_ms.toFixed(1)) + 'ms</span>';
+        h += '</div>';
+
+        // IO-block style detail table
+        h += '<div class="io-block">';
+        h += '<div class="io-row io-row-prompt"><span class="io-label">QUERY</span><span class="io-value">' + esc(hostname) + '</span></div>';
+        if (st.resolver) h += '<div class="io-row"><span class="io-label">RSLVR</span><span class="io-value">' + esc(st.resolver) + '</span></div>';
+        if (st.record_types && st.record_types.length > 0) {
+          h += '<div class="io-row"><span class="io-label">TYPE</span><span class="io-value">' + esc(st.record_types.join(' + ')) + '</span></div>';
+        }
+        if (sok) {
+          if (st.ipv4_addresses && st.ipv4_addresses.length > 0) {
+            h += '<div class="io-row io-row-response"><span class="io-label">IPv4</span><span class="io-value">' + esc(st.ipv4_addresses.join(', ')) + '</span></div>';
+          }
+          if (st.ipv6_addresses && st.ipv6_addresses.length > 0) {
+            h += '<div class="io-row io-row-response"><span class="io-label">IPv6</span><span class="io-value">' + esc(st.ipv6_addresses.join(', ')) + '</span></div>';
+          }
+          if (st.canonical_name) {
+            h += '<div class="io-row"><span class="io-label">CNAME</span><span class="io-value">' + esc(st.canonical_name) + '</span></div>';
+          }
+        } else {
+          h += '<div class="io-row io-row-error"><span class="io-label">ERROR</span><span class="io-value">' + esc(st.error_code || st.message || 'Resolution failed') + '</span></div>';
+        }
+        h += '</div>'; // io-block
+
         if (st.remediation) h += '<div class="remediation">\uD83D\uDCA1 <em>' + esc(st.remediation) + '</em></div>';
-        h += '</div></div>';
+        h += '</div>'; // dns-lookup-card
       }
-      h += '</div></div>';
+      h += '</div>'; // sub-tests-section
     }
     h += buildRemediation(result) + '</div>';
     return h;
@@ -576,11 +596,27 @@ async function resolveDns() {
     const resp = await axios.post('/api/tests/dns/resolve', { hostname: hostname });
     const d = resp.data;
     if (d.resolved || d.success) {
-      var addrs = d.ip_addresses || d.addresses || [];
-      resultEl.innerHTML = '<strong>' + esc(hostname) + '</strong>: ' + esc(addrs.join(', ')) +
-        (d.latency_ms ? ' <em>(' + d.latency_ms.toFixed(1) + 'ms)</em>' : '');
+      var h = '<div class="dns-lookup-card dns-lookup-ok" style="margin-top:8px">';
+      h += '<div class="dns-lookup-header">';
+      h += '<span class="dns-lookup-icon">\u2713</span>';
+      h += '<span class="dns-lookup-host">' + esc(hostname) + '</span>';
+      if (d.latency_ms) h += '<span class="dns-lookup-latency">' + d.latency_ms.toFixed(1) + 'ms</span>';
+      h += '</div>';
+      h += '<div class="io-block">';
+      if (d.resolver) h += '<div class="io-row"><span class="io-label">RSLVR</span><span class="io-value">' + esc(d.resolver) + '</span></div>';
+      if (d.record_types && d.record_types.length) h += '<div class="io-row"><span class="io-label">TYPE</span><span class="io-value">' + esc(d.record_types.join(' + ')) + '</span></div>';
+      if (d.ipv4_addresses && d.ipv4_addresses.length) h += '<div class="io-row io-row-response"><span class="io-label">IPv4</span><span class="io-value">' + esc(d.ipv4_addresses.join(', ')) + '</span></div>';
+      if (d.ipv6_addresses && d.ipv6_addresses.length) h += '<div class="io-row io-row-response"><span class="io-label">IPv6</span><span class="io-value">' + esc(d.ipv6_addresses.join(', ')) + '</span></div>';
+      if (d.canonical_name) h += '<div class="io-row"><span class="io-label">CNAME</span><span class="io-value">' + esc(d.canonical_name) + '</span></div>';
+      h += '</div></div>';
+      resultEl.innerHTML = h;
     } else {
-      resultEl.innerHTML = '<strong>Failed:</strong> ' + esc(d.message || 'Resolution failed');
+      var h = '<div class="dns-lookup-card dns-lookup-fail" style="margin-top:8px">';
+      h += '<div class="dns-lookup-header"><span class="dns-lookup-icon">\u2717</span><span class="dns-lookup-host">' + esc(hostname) + '</span></div>';
+      h += '<div class="io-block"><div class="io-row io-row-error"><span class="io-label">ERROR</span><span class="io-value">' + esc(d.error_code || d.message || 'Resolution failed') + '</span></div>';
+      if (d.resolver) h += '<div class="io-row"><span class="io-label">RSLVR</span><span class="io-value">' + esc(d.resolver) + '</span></div>';
+      h += '</div></div>';
+      resultEl.innerHTML = h;
     }
   } catch (err) {
     resultEl.innerHTML = '<strong>Error:</strong> ' + esc(err.response?.data?.detail || err.message);
@@ -627,10 +663,57 @@ async function collectDiagnostics() {
   }
 }
 
+function buildDiagProgress(data) {
+  var stepLabels = {
+    init: 'Initialize',
+    events: 'Namespace Events',
+    services: 'Services',
+    configmaps: 'ConfigMaps',
+    secrets: 'Secrets',
+    discover: 'Discover Pods',
+    pod: 'Collecting Pod Data',
+    'pod-done': 'Collecting Pod Data',
+    archive: 'Creating Archive',
+    complete: 'Complete'
+  };
+  var completed = data.completed_steps || [];
+  var current = data.current_step || '';
+  var detail = data.current_detail || '';
+
+  // Build mini step timeline
+  var h = '<div class="diag-progress">';
+
+  // Completed steps as checkmarks
+  for (var i = 0; i < completed.length; i++) {
+    var label = stepLabels[completed[i]] || completed[i];
+    h += '<span class="diag-step diag-step-done">\u2713 ' + esc(label) + '</span>';
+  }
+
+  // Current step with spinner
+  if (current && current !== 'complete') {
+    var curLabel = stepLabels[current] || current;
+    // Show pod progress fraction if available
+    var progressDetail = detail;
+    if ((current === 'pod' || current === 'pod-done') && data.total_pods > 0) {
+      curLabel = 'Pod ' + data.pod_count + '/' + data.total_pods;
+      progressDetail = detail.replace(/^\d+\/\d+\s*/, '');
+    }
+    h += '<span class="diag-step diag-step-active">';
+    h += '<span class="loading-spinner-sm"></span> ';
+    h += esc(curLabel);
+    if (progressDetail) h += ' <span class="diag-step-detail">(' + esc(progressDetail) + ')</span>';
+    h += '</span>';
+  }
+
+  h += '</div>';
+  return h;
+}
+
 async function pollDiagnosticsStatus() {
   try {
     var resp = await axios.get('/api/diagnostics/status');
     var data = resp.data;
+    var statusEl = document.getElementById('diagStatus');
     var statusText = document.getElementById('diagStatusText');
     var statusIcon = document.getElementById('diagStatusIcon');
     var btn = document.getElementById('diagCollectBtn');
@@ -638,12 +721,23 @@ async function pollDiagnosticsStatus() {
 
     if (data.state === 'collecting') {
       statusIcon.className = 'diag-status-icon diag-status-collecting';
-      statusText.textContent = 'Collecting from namespace "' + (data.namespace || '') + '"...';
+      statusText.textContent = '';
+      // Replace status text with rich progress
+      var progressEl = document.getElementById('diagProgressDetail');
+      if (!progressEl) {
+        progressEl = document.createElement('div');
+        progressEl.id = 'diagProgressDetail';
+        statusEl.appendChild(progressEl);
+      }
+      progressEl.innerHTML = buildDiagProgress(data);
     } else if (data.state === 'ready') {
       clearInterval(_diagPollTimer);
       _diagPollTimer = null;
       statusIcon.className = 'diag-status-icon diag-status-ready';
       statusText.textContent = 'Collection complete: ' + data.pod_count + ' pod(s) collected.';
+      // Remove progress detail
+      var pd = document.getElementById('diagProgressDetail');
+      if (pd) pd.remove();
       btn.disabled = false;
       btn.textContent = 'Collect Diagnostics';
       dlBtn.style.display = 'inline-flex';
@@ -653,6 +747,8 @@ async function pollDiagnosticsStatus() {
       _diagPollTimer = null;
       statusIcon.className = 'diag-status-icon diag-status-error';
       statusText.textContent = 'Error: ' + (data.error || 'Unknown error');
+      var pd2 = document.getElementById('diagProgressDetail');
+      if (pd2) pd2.remove();
       btn.disabled = false;
       btn.textContent = 'Collect Diagnostics';
       notify.error('Diagnostics Failed', data.error || 'Unknown error');

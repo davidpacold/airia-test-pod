@@ -3,12 +3,14 @@
 Runs the extract-pod-details.sh script to collect comprehensive pod
 diagnostics from a target Kubernetes namespace, then packages the
 results as a downloadable tar.gz archive.
+
+Progress is streamed from the script via PROGRESS: lines and exposed
+through the status API for real-time UI feedback.
 """
 
 from __future__ import annotations
 
 import logging
-import os
 import re
 import shutil
 import subprocess
@@ -51,7 +53,11 @@ class DiagnosticsCollector:
         self._error_message: Optional[str] = None
         self._namespace: Optional[str] = None
         self._pod_count: int = 0
-        self._thread: threading.Thread | None = None
+        self._total_pods: int = 0
+        self._current_step: str = ""
+        self._current_detail: str = ""
+        self._completed_steps: list[str] = []
+        self._thread: Optional[threading.Thread] = None
 
     @property
     def state(self) -> dict:
@@ -60,6 +66,10 @@ class DiagnosticsCollector:
                 "state": self._state.value,
                 "namespace": self._namespace,
                 "pod_count": self._pod_count,
+                "total_pods": self._total_pods,
+                "current_step": self._current_step,
+                "current_detail": self._current_detail,
+                "completed_steps": list(self._completed_steps),
                 "error": self._error_message,
                 "archive_ready": self._archive_path is not None
                     and Path(self._archive_path).exists(),
@@ -79,6 +89,10 @@ class DiagnosticsCollector:
             self._state = DiagnosticsState.COLLECTING
             self._namespace = namespace
             self._pod_count = 0
+            self._total_pods = 0
+            self._current_step = "init"
+            self._current_detail = "Starting collection..."
+            self._completed_steps = []
             self._error_message = None
             self._archive_path = None
 
@@ -91,8 +105,32 @@ class DiagnosticsCollector:
 
         return {"state": "collecting", "namespace": namespace}
 
+    def _update_progress(self, step: str, detail: str):
+        """Update current progress from a PROGRESS: line."""
+        with self._lock:
+            # Track completed steps
+            if self._current_step and self._current_step != step:
+                if self._current_step not in self._completed_steps:
+                    self._completed_steps.append(self._current_step)
+            self._current_step = step
+            self._current_detail = detail
+
+            # Parse pod counts from discover step
+            if step == "discover" and "Found" in detail:
+                try:
+                    self._total_pods = int(detail.split("Found")[1].split("pods")[0].strip())
+                except (ValueError, IndexError):
+                    pass
+
+            # Parse pod progress
+            if step in ("pod", "pod-done") and "/" in detail:
+                try:
+                    self._pod_count = int(detail.split("/")[0])
+                except (ValueError, IndexError):
+                    pass
+
     def _run_collection(self, namespace: str, since: Optional[str]):
-        """Execute the diagnostics script and create archive."""
+        """Execute the diagnostics script, streaming progress."""
         try:
             # Clean up old output
             if OUTPUT_BASE.exists():
@@ -104,18 +142,30 @@ class DiagnosticsCollector:
                 cmd.append(f"--since={since}")
 
             logger.info(f"Running diagnostics: {' '.join(cmd)}")
-            result = subprocess.run(
+
+            # Stream stdout line-by-line for progress updates
+            proc = subprocess.Popen(
                 cmd,
-                capture_output=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
                 text=True,
-                timeout=300,  # 5 minute timeout
             )
 
-            if result.returncode != 0:
-                logger.error(f"Diagnostics script failed: {result.stderr}")
+            for line in proc.stdout:
+                line = line.strip()
+                if line.startswith("PROGRESS:"):
+                    parts = line.split(":", 2)
+                    if len(parts) >= 3:
+                        self._update_progress(parts[1], parts[2])
+
+            proc.wait(timeout=300)
+
+            if proc.returncode != 0:
+                stderr = proc.stderr.read() if proc.stderr else ""
+                logger.error(f"Diagnostics script failed: {stderr}")
                 with self._lock:
                     self._state = DiagnosticsState.ERROR
-                    self._error_message = result.stderr[:500] or "Script failed"
+                    self._error_message = stderr[:500] or "Script failed"
                 return
 
             # Find the output directory (timestamp-based)
@@ -138,6 +188,7 @@ class DiagnosticsCollector:
             pod_count = len(list(pods_dir.iterdir())) if pods_dir.exists() else 0
 
             # Create tar.gz archive
+            self._update_progress("archive", "Creating archive...")
             archive_path = str(output_dir) + ".tar.gz"
             with tarfile.open(archive_path, "w:gz") as tar:
                 tar.add(str(output_dir), arcname=f"diagnostics-{namespace}-{output_dir.name}")
@@ -146,6 +197,10 @@ class DiagnosticsCollector:
                 self._state = DiagnosticsState.READY
                 self._archive_path = archive_path
                 self._pod_count = pod_count
+                self._current_step = "complete"
+                self._current_detail = f"{pod_count} pods collected"
+                if "archive" not in self._completed_steps:
+                    self._completed_steps.append("archive")
 
             logger.info(f"Diagnostics complete: {pod_count} pods, archive at {archive_path}")
 

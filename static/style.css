@@ -662,6 +662,80 @@ a:hover { color: var(--c-accent-hover); }
 }
 .log-entry:last-child { border-bottom: none; }
 
+/* ── DNS Lookup Cards ──────────────────────────────────────── */
+.dns-lookup-card {
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: var(--sp-md);
+}
+.dns-lookup-card:last-child {
+  margin-bottom: 0;
+}
+.dns-lookup-ok {
+  border-color: var(--c-success-border);
+}
+.dns-lookup-fail {
+  border-color: var(--c-error-border);
+}
+.dns-lookup-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  padding: var(--sp-sm) var(--sp-md);
+  background: var(--c-bg-inset);
+  border-bottom: 1px solid var(--c-border-light);
+}
+.dns-lookup-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6875rem;
+  flex-shrink: 0;
+}
+.dns-lookup-ok .dns-lookup-icon {
+  background: var(--c-success-light);
+  color: var(--c-success);
+  border: 1.5px solid var(--c-success-border);
+}
+.dns-lookup-fail .dns-lookup-icon {
+  background: var(--c-error-light);
+  color: var(--c-error);
+  border: 1.5px solid var(--c-error-border);
+}
+.dns-lookup-host {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--c-text);
+  flex: 1;
+}
+.dns-lookup-latency {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--c-text-muted);
+  background: var(--c-bg-card);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--c-border-light);
+}
+.dns-lookup-card .io-block {
+  border: none;
+  border-radius: 0;
+}
+.dns-lookup-card .io-row:first-child {
+  border-top: none;
+}
+.io-row-error {
+  background: var(--c-error-light);
+}
+.io-row-error .io-label {
+  color: var(--c-error);
+}
+
 /* ── DNS Ad-hoc ─────────────────────────────────────────────── */
 .dns-adhoc {
   margin-top: var(--sp-lg);
@@ -810,6 +884,81 @@ a:hover { color: var(--c-accent-hover); }
 @keyframes diagPulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
+}
+
+/* ── Diagnostics Progress Steps ────────────────────────────── */
+.diag-progress {
+  margin-top: var(--sp-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-sm);
+}
+.diag-step {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  padding: var(--sp-sm) var(--sp-md);
+  border-radius: var(--radius);
+  font-size: 0.8125rem;
+  color: var(--c-text-muted);
+  background: var(--c-bg-inset);
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+.diag-step-done {
+  color: var(--c-success);
+  background: var(--c-success-light);
+  border-color: var(--c-success-border);
+}
+.diag-step-active {
+  color: var(--c-accent);
+  background: var(--c-accent-light);
+  border-color: var(--c-accent-subtle);
+  font-weight: 500;
+}
+.diag-step-icon {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6875rem;
+  flex-shrink: 0;
+}
+.diag-step-label {
+  flex: 1;
+}
+.diag-step-detail {
+  font-size: 0.6875rem;
+  font-family: var(--font-mono);
+  color: var(--c-text-muted);
+}
+.loading-spinner-sm {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--c-accent-light);
+  border-top-color: var(--c-accent);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+.diag-pod-progress {
+  margin-top: var(--sp-xs);
+  font-size: 0.75rem;
+  color: var(--c-text-muted);
+}
+.diag-pod-bar {
+  margin-top: 4px;
+  height: 4px;
+  background: var(--c-bg-inset);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.diag-pod-bar-fill {
+  height: 100%;
+  background: var(--c-accent);
+  border-radius: 2px;
+  transition: width 0.3s ease;
 }
 
 /* ── Notifications ──────────────────────────────────────────── */

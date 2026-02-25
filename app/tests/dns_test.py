@@ -82,22 +82,59 @@ class DNSTest(BaseTest):
         return result
 
     @staticmethod
+    def _get_system_resolver() -> str:
+        """Detect the system DNS resolver address."""
+        try:
+            with open("/etc/resolv.conf", "r") as f:
+                for line in f:
+                    line = line.strip()
+                    if line.startswith("nameserver"):
+                        return line.split()[1]
+        except (FileNotFoundError, IndexError):
+            pass
+        return "system default"
+
+    @staticmethod
     def resolve_hostname(hostname: str) -> Dict[str, Any]:
         """Resolve a single hostname. Used by both run_test and ad-hoc endpoint."""
+        resolver = DNSTest._get_system_resolver()
         start = time.time()
         try:
             results = socket.getaddrinfo(hostname, None)
             latency_ms = round((time.time() - start) * 1000, 1)
 
-            # Deduplicate IPs
-            ips = list({r[4][0] for r in results})
+            # Separate IPv4 and IPv6
+            ipv4 = sorted({r[4][0] for r in results if r[0] == socket.AF_INET})
+            ipv6 = sorted({r[4][0] for r in results if r[0] == socket.AF_INET6})
+            all_ips = ipv4 + ipv6
+
+            # Detect address families present
+            families = []
+            if ipv4:
+                families.append("A")
+            if ipv6:
+                families.append("AAAA")
+
+            # Try reverse lookup on first IP for CNAME-like info
+            canonical = None
+            try:
+                canonical_info = socket.gethostbyaddr(all_ips[0])
+                if canonical_info[0] != hostname:
+                    canonical = canonical_info[0]
+            except (socket.herror, IndexError):
+                pass
 
             return {
                 "resolved": True,
                 "hostname": hostname,
-                "ip_addresses": ips,
+                "ip_addresses": all_ips,
+                "ipv4_addresses": ipv4,
+                "ipv6_addresses": ipv6,
+                "record_types": families,
+                "canonical_name": canonical,
+                "resolver": resolver,
                 "latency_ms": latency_ms,
-                "message": f"Resolved to {', '.join(ips)} ({latency_ms}ms)",
+                "message": f"Resolved to {', '.join(all_ips)} ({latency_ms}ms)",
             }
         except socket.gaierror as e:
             latency_ms = round((time.time() - start) * 1000, 1)
@@ -105,7 +142,13 @@ class DNSTest(BaseTest):
                 "resolved": False,
                 "hostname": hostname,
                 "ip_addresses": [],
+                "ipv4_addresses": [],
+                "ipv6_addresses": [],
+                "record_types": [],
+                "canonical_name": None,
+                "resolver": resolver,
                 "latency_ms": latency_ms,
+                "error_code": str(e),
                 "message": f"Failed to resolve: {e}",
             }
 

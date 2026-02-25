@@ -10,6 +10,9 @@
 # - Container logs
 #
 # Usage: ./extract-pod-details.sh <namespace> [output_dir] [--since=<duration>]
+#
+# Progress lines are emitted as: PROGRESS:<step>:<detail>
+# These are parsed by the backend for real-time UI feedback.
 # =============================================================================
 
 set -euo pipefail
@@ -29,50 +32,58 @@ TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 OUTPUT_DIR="${OUTPUT_BASE}/${TIMESTAMP}"
 mkdir -p "${OUTPUT_DIR}"
 
-echo "Collecting diagnostics for namespace: ${NAMESPACE}"
-echo "Output directory: ${OUTPUT_DIR}"
+echo "PROGRESS:init:Collecting diagnostics for namespace ${NAMESPACE}"
 
 # Track counts
 POD_COUNT=0
+TOTAL_PODS=0
 ERROR_COUNT=0
 
 # ── Namespace-level info ─────────────────────────────────────────────────────
 
-echo "Collecting namespace events..."
+echo "PROGRESS:events:Collecting namespace events"
 kubectl get events -n "${NAMESPACE}" --sort-by='.lastTimestamp' \
   > "${OUTPUT_DIR}/namespace-events.txt" 2>&1 || true
 
-echo "Collecting services..."
+echo "PROGRESS:services:Collecting services"
 kubectl get services -n "${NAMESPACE}" -o wide \
   > "${OUTPUT_DIR}/services.txt" 2>&1 || true
 
-echo "Collecting configmaps list..."
+echo "PROGRESS:configmaps:Collecting configmaps list"
 kubectl get configmaps -n "${NAMESPACE}" \
   > "${OUTPUT_DIR}/configmaps-list.txt" 2>&1 || true
 
-echo "Collecting secrets list..."
+echo "PROGRESS:secrets:Collecting secrets list"
 kubectl get secrets -n "${NAMESPACE}" \
   > "${OUTPUT_DIR}/secrets-list.txt" 2>&1 || true
 
 # ── Pod-level diagnostics ────────────────────────────────────────────────────
 
+echo "PROGRESS:discover:Discovering pods"
 PODS=$(kubectl get pods -n "${NAMESPACE}" -o jsonpath='{.items[*].metadata.name}' 2>/dev/null || echo "")
 
 if [ -z "${PODS}" ]; then
-  echo "No pods found in namespace ${NAMESPACE}"
+  echo "PROGRESS:discover:No pods found in namespace ${NAMESPACE}"
   echo "No pods found in namespace ${NAMESPACE}" > "${OUTPUT_DIR}/no-pods.txt"
 else
+  # Count total pods for progress reporting
+  for POD in ${PODS}; do
+    TOTAL_PODS=$((TOTAL_PODS + 1))
+  done
+  echo "PROGRESS:discover:Found ${TOTAL_PODS} pods"
+
   for POD in ${PODS}; do
     POD_COUNT=$((POD_COUNT + 1))
     POD_DIR="${OUTPUT_DIR}/pods/${POD}"
     mkdir -p "${POD_DIR}"
-    echo "Processing pod: ${POD} (${POD_COUNT})"
+    echo "PROGRESS:pod:${POD_COUNT}/${TOTAL_PODS} ${POD} - status"
 
     # Pod status (JSON)
     kubectl get pod "${POD}" -n "${NAMESPACE}" -o json \
       > "${POD_DIR}/status.json" 2>&1 || { ERROR_COUNT=$((ERROR_COUNT + 1)); true; }
 
     # Pod describe
+    echo "PROGRESS:pod:${POD_COUNT}/${TOTAL_PODS} ${POD} - describe"
     kubectl describe pod "${POD}" -n "${NAMESPACE}" \
       > "${POD_DIR}/describe.txt" 2>&1 || { ERROR_COUNT=$((ERROR_COUNT + 1)); true; }
 
@@ -81,6 +92,7 @@ else
       > "${POD_DIR}/spec.yaml" 2>&1 || { ERROR_COUNT=$((ERROR_COUNT + 1)); true; }
 
     # Environment variables (via exec into first container)
+    echo "PROGRESS:pod:${POD_COUNT}/${TOTAL_PODS} ${POD} - env vars"
     FIRST_CONTAINER=$(kubectl get pod "${POD}" -n "${NAMESPACE}" \
       -o jsonpath='{.spec.containers[0].name}' 2>/dev/null || echo "")
     if [ -n "${FIRST_CONTAINER}" ]; then
@@ -89,6 +101,7 @@ else
     fi
 
     # Container logs (all containers in the pod)
+    echo "PROGRESS:pod:${POD_COUNT}/${TOTAL_PODS} ${POD} - logs"
     CONTAINERS=$(kubectl get pod "${POD}" -n "${NAMESPACE}" \
       -o jsonpath='{.spec.containers[*].name}' 2>/dev/null || echo "")
     for CONTAINER in ${CONTAINERS}; do
@@ -124,10 +137,13 @@ else
       -o jsonpath='{range .spec.volumes[*]}{.name}{"\t"}{.configMap.name}{"\t"}{.secret.secretName}{"\n"}{end}' \
       > "${POD_DIR}/mounted-volumes.txt" 2>&1 || true
 
+    echo "PROGRESS:pod-done:${POD_COUNT}/${TOTAL_PODS} ${POD}"
   done
 fi
 
-# ── Summary ──────────────────────────────────────────────────────────────────
+# ── Archive ──────────────────────────────────────────────────────────────────
+
+echo "PROGRESS:archive:Creating archive"
 
 cat > "${OUTPUT_DIR}/summary.txt" <<EOF
 Diagnostics Collection Summary
@@ -139,6 +155,4 @@ Errors:     ${ERROR_COUNT}
 Since:      ${SINCE:-all available}
 EOF
 
-echo ""
-echo "Collection complete: ${POD_COUNT} pods processed, ${ERROR_COUNT} errors"
-echo "Output: ${OUTPUT_DIR}"
+echo "PROGRESS:complete:${POD_COUNT} pods processed, ${ERROR_COUNT} errors"
