@@ -52,6 +52,7 @@ values-*.yaml
 
 # Claude Code
 .claude/
+docs/plans/
 
 # Temporary files
 *.tmp
