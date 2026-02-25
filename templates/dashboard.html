@@ -234,6 +234,13 @@
                         <span class="test-status ready" id="ssl-status" aria-live="polite">Ready to Test</span>
                         <button class="test-button" data-test-id="ssl" id="ssl-btn">Run Test</button>
                         <div class="test-details" id="ssl-details"></div>
+                        <div class="dns-adhoc">
+                            <label for="ssl-hostname" class="sr-only">Hostname to check SSL</label>
+                            <input type="text" id="ssl-hostname" placeholder="Check SSL for a hostname…" class="dns-input" aria-label="Hostname to check SSL">
+                            <input type="number" id="ssl-port" placeholder="443" class="dns-input" style="max-width:80px" min="1" max="65535" aria-label="Port">
+                            <button class="test-button test-button-sm" id="ssl-check-btn">Check</button>
+                            <div id="ssl-check-result" class="dns-result"></div>
+                        </div>
                     </div>
                 </div>
             </div>

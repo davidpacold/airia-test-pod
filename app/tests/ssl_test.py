@@ -879,6 +879,158 @@ class SSLTest(BaseTest):
 
         return chain_info
 
+    @staticmethod
+    def check_host(hostname: str, port: int = 443) -> Dict[str, Any]:
+        """Check SSL/TLS for a single host. Used by ad-hoc endpoint."""
+        import time as _time
+
+        start = _time.time()
+        try:
+            # First, get cert info without verification (works for self-signed)
+            ctx_noverify = ssl.create_default_context()
+            ctx_noverify.check_hostname = False
+            ctx_noverify.verify_mode = ssl.CERT_NONE
+
+            with socket.create_connection((hostname, port), timeout=10) as sock:
+                with ctx_noverify.wrap_socket(sock, server_hostname=hostname) as ssock:
+                    der_cert = ssock.getpeercert(binary_form=True)
+                    tls_version = ssock.version()
+                    cipher_info = ssock.cipher()
+
+            cert_pem = ssl.DER_cert_to_PEM_cert(der_cert)
+            cert = x509.load_pem_x509_certificate(cert_pem.encode(), default_backend())
+
+            # Extract fields
+            subject = cert.subject.rfc4514_string()
+            issuer = cert.issuer.rfc4514_string()
+            not_before = cert.not_valid_before_utc.isoformat()
+            not_after = cert.not_valid_after_utc.isoformat()
+            now = datetime.datetime.now(datetime.timezone.utc)
+            days_remaining = (cert.not_valid_after_utc - now).days
+            is_self_signed = cert.issuer == cert.subject
+            serial = format(cert.serial_number, 'x').upper()
+
+            # Signature algorithm
+            sig_algo = cert.signature_algorithm_oid._name if hasattr(cert.signature_algorithm_oid, '_name') else str(cert.signature_algorithm_oid.dotted_string)
+
+            # SANs
+            san_list = []
+            try:
+                san_ext = cert.extensions.get_extension_for_oid(
+                    x509.oid.ExtensionOID.SUBJECT_ALTERNATIVE_NAME
+                )
+                san_list = [name.value for name in san_ext.value]
+            except x509.ExtensionNotFound:
+                pass
+
+            # Key info
+            pub_key = cert.public_key()
+            key_type = type(pub_key).__name__.replace('_', ' ')
+            key_size = getattr(pub_key, 'key_size', None)
+
+            # Check if trusted (try with default verification)
+            trusted = False
+            trust_error = None
+            try:
+                ctx_verify = ssl.create_default_context()
+                with socket.create_connection((hostname, port), timeout=10) as sock2:
+                    with ctx_verify.wrap_socket(sock2, server_hostname=hostname) as ssock2:
+                        trusted = True
+            except ssl.SSLCertVerificationError as e:
+                trust_error = str(e)
+            except Exception as e:
+                trust_error = str(e)
+
+            # Hostname match
+            hostname_match = False
+            matched_name = None
+            hn_lower = hostname.lower()
+            for san in san_list:
+                san_lower = san.lower()
+                if hn_lower == san_lower:
+                    hostname_match = True
+                    matched_name = san
+                    break
+                if san_lower.startswith('*.') and (
+                    hn_lower.endswith('.' + san_lower[2:]) or hn_lower == san_lower[2:]
+                ):
+                    hostname_match = True
+                    matched_name = san
+                    break
+
+            latency_ms = round((_time.time() - start) * 1000, 1)
+
+            return {
+                "success": True,
+                "hostname": hostname,
+                "port": port,
+                "tls_version": tls_version,
+                "cipher": cipher_info[0] if cipher_info else None,
+                "cipher_bits": cipher_info[2] if cipher_info and len(cipher_info) > 2 else None,
+                "subject": subject,
+                "issuer": issuer,
+                "not_before": not_before,
+                "not_after": not_after,
+                "days_remaining": days_remaining,
+                "expired": days_remaining < 0,
+                "is_self_signed": is_self_signed,
+                "trusted": trusted,
+                "trust_error": trust_error,
+                "hostname_match": hostname_match,
+                "matched_name": matched_name,
+                "san": san_list,
+                "serial": serial,
+                "signature_algorithm": sig_algo,
+                "key_type": key_type,
+                "key_size": key_size,
+                "latency_ms": latency_ms,
+                "message": (
+                    f"{'Trusted' if trusted else 'Self-signed' if is_self_signed else 'Untrusted'} certificate, "
+                    f"expires in {days_remaining} days"
+                ),
+            }
+
+        except socket.timeout:
+            latency_ms = round((_time.time() - start) * 1000, 1)
+            return {
+                "success": False,
+                "hostname": hostname,
+                "port": port,
+                "latency_ms": latency_ms,
+                "error_code": "timeout",
+                "message": f"Connection timed out to {hostname}:{port}",
+            }
+        except ConnectionRefusedError:
+            latency_ms = round((_time.time() - start) * 1000, 1)
+            return {
+                "success": False,
+                "hostname": hostname,
+                "port": port,
+                "latency_ms": latency_ms,
+                "error_code": "connection_refused",
+                "message": f"Connection refused on {hostname}:{port}",
+            }
+        except socket.gaierror as e:
+            latency_ms = round((_time.time() - start) * 1000, 1)
+            return {
+                "success": False,
+                "hostname": hostname,
+                "port": port,
+                "latency_ms": latency_ms,
+                "error_code": "dns_failure",
+                "message": f"DNS resolution failed for {hostname}: {e}",
+            }
+        except Exception as e:
+            latency_ms = round((_time.time() - start) * 1000, 1)
+            return {
+                "success": False,
+                "hostname": hostname,
+                "port": port,
+                "latency_ms": latency_ms,
+                "error_code": "error",
+                "message": f"SSL check failed: {e}",
+            }
+
     def _parse_distinguished_name(self, dn_string: str) -> Dict[str, str]:
         """Parse a distinguished name string into readable components"""
         try:

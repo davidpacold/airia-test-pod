@@ -422,6 +422,38 @@ async def dns_resolve_adhoc(
     return result
 
 
+@app.post("/api/tests/ssl/check")
+async def ssl_check_adhoc(
+    request: Request, current_user: str = Depends(require_auth)
+):
+    """Check SSL/TLS certificate for an ad-hoc hostname"""
+    from .tests.ssl_test import SSLTest
+    from .tests.dns_test import DNSTest
+
+    body = await request.json()
+    hostname = body.get("hostname", "").strip()
+    port = body.get("port", 443)
+
+    if not hostname or not DNSTest.validate_hostname(hostname):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid hostname. Use alphanumeric characters, dots, and hyphens (max 253 chars).",
+        )
+
+    try:
+        port = int(port)
+        if port < 1 or port > 65535:
+            raise ValueError
+    except (TypeError, ValueError):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid port. Must be between 1 and 65535.",
+        )
+
+    result = SSLTest.check_host(hostname, port)
+    return result
+
+
 # ── Pod Diagnostics endpoints ────────────────────────────────────────────────
 
 

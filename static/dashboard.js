@@ -511,21 +511,56 @@ const FORMATTERS = {
     for (var name in sub) {
       var t = sub[name];
       var ok = t.success;
-      h += '<div class="sub-test-item ' + (ok ? 'sub-test-success' : 'sub-test-error') + '">';
-      h += '<div class="sub-test-header">' + (ok ? '\u2705' : '\u274C') + ' <strong>' + esc(name) + '</strong></div>';
-      h += '<div class="sub-test-message">' + esc(t.message) + '</div>';
+      var ci = t.certificate_info || {};
+      var checks = t.checks || {};
+      var conn = checks.connection || {};
 
-      if (t.details) {
-        var d = t.details;
-        if (d.subject) h += '<div class="cert-detail"><strong>Subject:</strong> ' + esc(d.subject) + '</div>';
-        if (d.issuer) h += '<div class="cert-detail"><strong>Issuer:</strong> ' + esc(d.issuer) + '</div>';
-        if (d.not_after) h += '<div class="cert-detail"><strong>Expires:</strong> ' + esc(d.not_after) +
-          (d.days_remaining != null ? ' (' + d.days_remaining + ' days)' : '') + '</div>';
-        if (d.serial_number) h += '<div class="cert-detail"><strong>Serial:</strong> ' + esc(d.serial_number) + '</div>';
-        if (d.san && d.san.length > 0) h += '<div class="cert-detail"><strong>SANs:</strong> ' + esc(d.san.join(', ')) + '</div>';
-      }
-      if (t.remediation) h += '<div class="remediation">\uD83D\uDCA1 <em>' + esc(t.remediation) + '</em></div>';
+      h += '<div class="dns-lookup-card ' + (ok ? 'dns-lookup-ok' : 'dns-lookup-fail') + '">';
+      h += '<div class="dns-lookup-header">';
+      h += '<span class="dns-lookup-icon">' + (ok ? '\u2713' : '\u2717') + '</span>';
+      h += '<span class="dns-lookup-host">' + esc(t.hostname || name) + (t.port && t.port !== 443 ? ':' + t.port : '') + '</span>';
       h += '</div>';
+      h += '<div class="io-block">';
+
+      // Trust / connection status
+      if (conn.version) {
+        h += '<div class="io-row"><span class="io-label">TLS</span><span class="io-value">' + esc(conn.version);
+        if (conn.cipher) h += ' / ' + esc(conn.cipher[0]) + ' (' + conn.cipher[2] + '-bit)';
+        h += '</span></div>';
+      }
+
+      // Self-signed detection
+      var chainCheck = checks.certificate_chain || {};
+      var isSelfSigned = (chainCheck.chain_details || []).some(function(c) { return c.position === 0 && c.is_self_signed; });
+      var trustLabel = conn.success ? (isSelfSigned ? 'Self-Signed' : 'Trusted') : 'Connection Failed';
+      var trustClass = conn.success && !isSelfSigned ? 'io-row-response' : 'io-row-error';
+      h += '<div class="io-row ' + trustClass + '"><span class="io-label">TRUST</span><span class="io-value">' + esc(trustLabel) + '</span></div>';
+
+      // Subject and issuer
+      if (ci.subject) h += '<div class="io-row"><span class="io-label">SUBJ</span><span class="io-value">' + esc(ci.subject) + '</span></div>';
+      if (ci.issuer) h += '<div class="io-row"><span class="io-label">ISSUER</span><span class="io-value">' + esc(ci.issuer) + '</span></div>';
+
+      // Validity
+      if (ci.valid_until) {
+        var expiryClass = ci.days_until_expiry < 0 ? 'io-row-error' : ci.days_until_expiry < 30 ? 'io-row-prompt' : 'io-row-response';
+        var expiryText = ci.days_until_expiry < 0 ? 'EXPIRED' : ci.days_until_expiry + ' days remaining';
+        h += '<div class="io-row ' + expiryClass + '"><span class="io-label">VALID</span><span class="io-value">' + esc(ci.valid_from || '') + ' \u2192 ' + esc(ci.valid_until) + ' (' + esc(expiryText) + ')</span></div>';
+      }
+
+      // Chain
+      if (ci.chain_length != null) h += '<div class="io-row"><span class="io-label">CHAIN</span><span class="io-value">' + esc(ci.chain_length + ' certificate(s)') + '</span></div>';
+
+      // Hostname match
+      var hmCheck = checks.hostname_match || {};
+      if (hmCheck.message) {
+        var hmClass = hmCheck.success ? 'io-row-response' : 'io-row-error';
+        h += '<div class="io-row ' + hmClass + '"><span class="io-label">MATCH</span><span class="io-value">' + esc(hmCheck.message) + '</span></div>';
+      }
+
+      h += '</div>'; // io-block
+
+      if (t.remediation) h += '<div class="remediation">\uD83D\uDCA1 <em>' + esc(t.remediation) + '</em></div>';
+      h += '</div>'; // dns-lookup-card
     }
 
     h += buildRemediation(result) + '</div>';
@@ -672,6 +707,84 @@ async function resolveDns() {
       h += '</div></div>';
       resultEl.innerHTML = h;
     }
+  } catch (err) {
+    resultEl.innerHTML = '<strong>Error:</strong> ' + esc(err.response?.data?.detail || err.message);
+  }
+}
+
+/* ── SSL ad-hoc checker ────────────────────────────────────── */
+function formatSslCheckResult(d) {
+  var ok = d.success;
+  var cls = ok ? 'dns-lookup-ok' : 'dns-lookup-fail';
+  var icon = ok ? '\u2713' : '\u2717';
+  var h = '<div class="dns-lookup-card ' + cls + '" style="margin-top:8px">';
+  h += '<div class="dns-lookup-header">';
+  h += '<span class="dns-lookup-icon">' + icon + '</span>';
+  h += '<span class="dns-lookup-host">' + esc(d.hostname) + ':' + esc(String(d.port)) + '</span>';
+  if (d.latency_ms != null) h += '<span class="dns-lookup-latency">' + d.latency_ms.toFixed(1) + 'ms</span>';
+  h += '</div>';
+  h += '<div class="io-block">';
+
+  if (ok) {
+    // Trust status
+    var trustLabel = d.trusted ? 'Trusted' : d.is_self_signed ? 'Self-Signed' : 'Untrusted';
+    var trustClass = d.trusted ? 'io-row-response' : 'io-row-error';
+    h += '<div class="io-row ' + trustClass + '"><span class="io-label">TRUST</span><span class="io-value">' + esc(trustLabel);
+    if (!d.trusted && d.trust_error) h += ' \u2014 ' + esc(d.trust_error);
+    h += '</span></div>';
+
+    // TLS version and cipher
+    if (d.tls_version) h += '<div class="io-row"><span class="io-label">TLS</span><span class="io-value">' + esc(d.tls_version) + (d.cipher ? ' / ' + esc(d.cipher) : '') + (d.cipher_bits ? ' (' + d.cipher_bits + '-bit)' : '') + '</span></div>';
+
+    // Subject
+    h += '<div class="io-row"><span class="io-label">SUBJ</span><span class="io-value">' + esc(d.subject) + '</span></div>';
+
+    // Issuer
+    h += '<div class="io-row"><span class="io-label">ISSUER</span><span class="io-value">' + esc(d.issuer) + '</span></div>';
+
+    // Validity
+    var expiryClass = d.expired ? 'io-row-error' : d.days_remaining < 30 ? 'io-row-prompt' : 'io-row-response';
+    var expiryText = d.expired ? 'EXPIRED' : d.days_remaining + ' days remaining';
+    h += '<div class="io-row ' + expiryClass + '"><span class="io-label">VALID</span><span class="io-value">' + esc(d.not_before) + ' \u2192 ' + esc(d.not_after) + ' (' + esc(expiryText) + ')</span></div>';
+
+    // SANs
+    if (d.san && d.san.length > 0) {
+      h += '<div class="io-row"><span class="io-label">SAN</span><span class="io-value">' + esc(d.san.join(', ')) + '</span></div>';
+    }
+
+    // Hostname match
+    var matchClass = d.hostname_match ? 'io-row-response' : 'io-row-error';
+    var matchText = d.hostname_match ? 'Yes' + (d.matched_name ? ' (' + d.matched_name + ')' : '') : 'No \u2014 hostname not in certificate SANs';
+    h += '<div class="io-row ' + matchClass + '"><span class="io-label">MATCH</span><span class="io-value">' + esc(matchText) + '</span></div>';
+
+    // Key and signature
+    var keyText = (d.key_type || 'Unknown') + (d.key_size ? ' ' + d.key_size + '-bit' : '');
+    h += '<div class="io-row"><span class="io-label">KEY</span><span class="io-value">' + esc(keyText) + '</span></div>';
+    if (d.signature_algorithm) h += '<div class="io-row"><span class="io-label">SIG</span><span class="io-value">' + esc(d.signature_algorithm) + '</span></div>';
+
+    // Serial
+    if (d.serial) h += '<div class="io-row"><span class="io-label">SN</span><span class="io-value">' + esc(d.serial) + '</span></div>';
+  } else {
+    h += '<div class="io-row io-row-error"><span class="io-label">ERROR</span><span class="io-value">' + esc(d.message || 'Check failed') + '</span></div>';
+  }
+
+  h += '</div></div>';
+  return h;
+}
+
+async function checkSsl() {
+  const input = document.getElementById('ssl-hostname');
+  const portInput = document.getElementById('ssl-port');
+  const resultEl = document.getElementById('ssl-check-result');
+  if (!input || !resultEl) return;
+  const hostname = input.value.trim();
+  if (!hostname) { resultEl.textContent = 'Enter a hostname'; return; }
+  var port = parseInt(portInput && portInput.value ? portInput.value : '443', 10) || 443;
+
+  resultEl.textContent = 'Checking SSL\u2026';
+  try {
+    const resp = await axios.post('/api/tests/ssl/check', { hostname: hostname, port: port });
+    resultEl.innerHTML = formatSslCheckResult(resp.data);
   } catch (err) {
     resultEl.innerHTML = '<strong>Error:</strong> ' + esc(err.response?.data?.detail || err.message);
   }
@@ -829,6 +942,8 @@ window.addEventListener('load', function() {
   if (runAllBtn) runAllBtn.addEventListener('click', runAllTests);
   var dnsBtn = document.getElementById('dns-resolve-btn');
   if (dnsBtn) dnsBtn.addEventListener('click', resolveDns);
+  var sslBtn = document.getElementById('ssl-check-btn');
+  if (sslBtn) sslBtn.addEventListener('click', checkSsl);
 
   // Diagnostics buttons
   var diagCollect = document.getElementById('diagCollectBtn');
