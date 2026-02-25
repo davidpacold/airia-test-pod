@@ -17,7 +17,7 @@ The Airia Infrastructure Test Pod validates that your environment is ready for t
 ### Optional Services
 - **Azure Document Intelligence** - Document processing API
 - **Self-hosted OpenAI-compatible models** - Local LLM deployments
-- **Ollama Native API** - Local LLM server with native API endpoints
+- **Dedicated Embedding** - Standalone OpenAI-compatible embedding endpoints
 - **SSL Certificate Chains** - Validates complete certificate chains
 
 ## Prerequisites
@@ -951,11 +951,11 @@ config:
     endpoint: "https://your-doc-intel.cognitiveservices.azure.com/"
     apiKey: "your-api-key"
   
-  # Ollama Native API
-  ollama:
+  # Dedicated Embedding (OpenAI-compatible)
+  dedicatedEmbedding:
     enabled: true
-    baseUrl: "http://ollama-server:11434"
-    modelName: "llama3.1:8b"
+    baseUrl: "http://embedding-server:1234/v1"
+    model: "text-embedding-model"
 ```
 
 ## Monitoring and Troubleshooting

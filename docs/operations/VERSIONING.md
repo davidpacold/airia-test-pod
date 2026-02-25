@@ -212,7 +212,7 @@ helm upgrade airia-test-pod \
 
 ## 📚 Additional Resources
 
-- **Deployment Guide:** [DEPLOYMENT.md](DEPLOYMENT.md)
+- **Deployment Guide:** [deployment-guide.md](../deployment/deployment-guide.md)
 - **GitHub Repository:** https://github.com/davidpacold/airia-test-pod
 - **OCI Registry:** oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod
 - **Docker Registry:** ghcr.io/davidpacold/airia-test-pod

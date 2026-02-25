@@ -77,7 +77,7 @@ curl -sSL https://raw.githubusercontent.com/davidpacold/airia-test-pod/main/scri
   bash -s -- --oci -f your-config.yaml
 ```
 
-📚 **For complete version management details:** [Version Management Guide](docs/operations/versioning.md)
+📚 **For complete version management details:** [Version Management Guide](docs/operations/VERSIONING.md)
 
 ---
 
@@ -86,7 +86,7 @@ curl -sSL https://raw.githubusercontent.com/davidpacold/airia-test-pod/main/scri
 For ingress, TLS, and production deployments, see:
 - **[📄 Deployment Guide](docs/deployment/deployment-guide.md)** - Complete deployment instructions
 - **[🚀 Example Deployment](docs/deployment/example-deployment.md)** - Step-by-step walkthrough
-- **[🔄 Version Management Guide](docs/operations/versioning.md)** - Automated updates and version control
+- **[🔄 Version Management Guide](docs/operations/VERSIONING.md)** - Automated updates and version control
 
 ## 🧪 What Does It Test?
 
@@ -113,11 +113,6 @@ These tests verify that your AI services are configured correctly with automated
   - Tests both Azure-hosted and self-hosted OpenAI-compatible endpoints
   - Automatically validates API keys, endpoints, and model deployments
 
-- **Ollama Native API** - Local Ollama server with native API endpoints
-  - Tests Ollama's native REST API (`/api/generate`, `/api/chat`, `/api/tags`)
-  - For local LLM testing with Ollama (llama3, codellama, mistral, phi3, etc.)
-  - Note: For OpenAI-compatible Ollama endpoints (`/v1/*`), use the OpenAI test above
-
 - **Azure Document Intelligence** - OCR and document processing capabilities
   - Tests document analysis, table extraction, and content recognition
   - Validates Azure Document Intelligence API configuration
@@ -129,14 +124,11 @@ These tests verify that your AI services are configured correctly with automated
 #### **Custom AI Testing** (Interactive Testing)
 After your services pass automated tests, use custom testing to validate with your own data:
 
-- **Custom Prompts** - Test OpenAI-compatible and Ollama models with your own prompts
+- **Custom Prompts** - Test AI models with your own prompts
 - **File Upload Testing** - Upload PDFs, images, or documents (up to 25MB) to test:
   - OpenAI vision/multimodal capabilities
-  - Ollama model file processing
   - Azure Document Intelligence with your own documents
 - **Custom Text Embeddings** - Generate embeddings for your specific text data
-
-> **💡 When to use which:** Standard tests verify connectivity and basic functionality. Custom tests let you validate your specific use cases with real data.
 
 ### 🎯 **Advanced Features**
 - **Intelligent Error Detection** - Automatic remediation suggestions
@@ -180,19 +172,6 @@ helm upgrade --install airia-test-pod \
   --set config.azureOpenai.embeddingDeployment="text-embedding-ada-002" \
   --namespace default
 ```
-
-#### **Ollama Native API**
-For local Ollama server (native API):
-```bash
-helm upgrade --install airia-test-pod \
-  oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
-  --set config.ollama.enabled=true \
-  --set config.ollama.baseUrl="http://ollama-server:11434" \
-  --set config.ollama.modelName="llama3.1:8b" \
-  --namespace default
-```
-
-> **Note:** This tests Ollama's native `/api/*` endpoints. For OpenAI-compatible Ollama endpoints (`/v1/*`), use the OpenAI configuration with `baseUrl="http://ollama-server:11434/v1"`.
 
 #### **Dedicated Embedding**
 For standalone OpenAI-compatible embedding endpoints:
@@ -271,15 +250,6 @@ config:
     chatDeployment: "gpt-35-turbo"
     embeddingDeployment: "text-embedding-ada-002"  # Optional
 
-  # Ollama native API (separate from OpenAI)
-  ollama:
-    enabled: true
-    baseUrl: "http://ollama-server:11434"
-    modelName: "llama3.1:8b"
-    maxTokens: 100
-    temperature: 0.7
-    timeout: 60
-
   # Dedicated Embedding (standalone, OpenAI-compatible)
   dedicatedEmbedding:
     enabled: true
@@ -323,31 +293,23 @@ helm upgrade --install airia-test-pod \
 | Your Situation | Test to Configure | Why |
 |---------------|-------------------|-----|
 | Using Azure OpenAI for chat completions | **Azure OpenAI** | Tests chat APIs and optionally embeddings in one test |
-| Using Azure OpenAI embeddings | **Azure OpenAI** (set `embeddingDeploymentName`) | Azure OpenAI embeddings are tested within the OpenAI test |
-| Using self-hosted LLM (vLLM, LocalAI, etc.) | **OpenAI-Compatible APIs** | Most local LLMs provide OpenAI-compatible endpoints at `/v1/*` |
-| Using Ollama's OpenAI-compatible endpoint | **OpenAI-Compatible APIs** | Set `baseUrl` to `http://ollama:11434/v1` |
-| Using Ollama's native API | **Ollama Native API** | Tests Ollama's native `/api/*` endpoints for maximum compatibility |
+| Using Azure OpenAI embeddings | **Azure OpenAI** (set `embeddingDeployment`) | Azure OpenAI embeddings are tested within the OpenAI test |
+| Using AWS Bedrock models | **AWS Bedrock** | Tests chat, embedding, and vision via Bedrock API |
+| Using OpenAI API directly | **OpenAI Direct** | Tests chat completions with your OpenAI API key |
+| Using Anthropic Claude | **Anthropic** | Tests chat completions with Claude models |
+| Using Google Gemini | **Google Gemini** | Tests chat completions with Gemini models |
+| Using Mistral AI | **Mistral AI** | Tests chat completions with Mistral models |
+| Using self-hosted LLM (vLLM, Ollama, etc.) | **Vision Model** or **OpenAI Direct** | Most local LLMs provide OpenAI-compatible endpoints at `/v1/*` |
+| Using separate embedding service | **Dedicated Embedding** | For standalone embedding endpoints (LM Studio, vLLM, Ollama, etc.) |
 | Processing PDFs/images for OCR | **Azure Document Intelligence** | Tests document analysis and table extraction |
-| Using separate embedding service (not Azure) | **Dedicated Embedding** | For standalone embedding endpoints (LM Studio, vLLM, Ollama, etc.) |
-| Want to test custom prompts | Use **Custom AI Testing** in the UI | Available after standard tests pass |
-| Want to upload files for testing | Use **Custom AI Testing** in the UI | Supports PDFs, images up to 25MB |
 
 **Common Questions:**
-
-- **Q: Can I configure both Azure OpenAI and Ollama?**
-  A: Yes! They're separate tests. Configure both if you use both services.
-
-- **Q: What's the difference between OpenAI-Compatible and Ollama Native tests?**
-  A: OpenAI-Compatible tests the `/v1/*` endpoints (works with Ollama, vLLM, etc.). Ollama Native tests Ollama's `/api/*` endpoints for Ollama-specific features.
 
 - **Q: Do I need the Embedding test if I have Azure OpenAI?**
   A: No. Azure OpenAI includes embedding testing. Only use the dedicated Embedding test for non-Azure endpoints.
 
-- **Q: What's the difference between standard tests and custom testing?**
-  A: Standard tests run automated checks to verify configuration. Custom testing lets you upload your own files and prompts.
-
-- **Q: Which test should I use for Ollama?**
-  A: For Ollama's OpenAI-compatible endpoints (`/v1/*`), use the OpenAI test. For native Ollama API (`/api/*`), use the Ollama test.
+- **Q: Can I test a self-hosted model?**
+  A: Yes. Use the **Vision Model** test for any OpenAI-compatible endpoint that supports `/v1/chat/completions`. Use **Dedicated Embedding** for `/v1/embeddings` endpoints.
 
 ---
 
@@ -355,9 +317,9 @@ helm upgrade --install airia-test-pod \
 
 ### 🎯 **Deployment & Configuration**
 - **[🚀 Deployment Guide](docs/deployment/deployment-guide.md)** - Complete deployment instructions
-- **[🔄 Version Management](docs/operations/versioning.md)** - Automatic updates, version checking, upgrade scripts
+- **[🔄 Version Management](docs/operations/VERSIONING.md)** - Automatic updates, version checking, upgrade scripts
 - **[🏭 Example Deployment](docs/deployment/example-deployment.md)** - Step-by-step walkthrough
-- **[📄 Complete Configuration Example](examples/helm/basic-values.yaml)** - All tests with detailed examples
+- **[📄 Complete Configuration Example](helm/airia-test-pod/examples/basic-values.yaml)** - All tests with detailed examples
 - **[⚙️ Helm Configuration Reference](helm/airia-test-pod/values.yaml)** - Every available setting
 
 ### 🛠️ **Advanced Features**
@@ -437,19 +399,12 @@ kubectl rollout restart -n airia deployment/airia-test-pod
 
 ## 📚 Documentation & Resources
 
-### Documentation
-- **[Documentation Index](docs/README.md)** - Complete documentation overview
-- **[Deployment](docs/deployment/)** - Deployment guides and examples
-- **[Operations](docs/operations/)** - Version management and rollback procedures
-- **[Development](docs/development/)** - Development setup and contributing
-
-### Examples
-- **[Examples Index](examples/README.md)** - Configuration examples overview
-- **[Helm Examples](examples/helm/)** - Helm values files
-- **[Kubernetes Examples](k8s/)** - Kubernetes manifests
-
-### Testing
-- **[Manual Tests](tests/manual_tests/)** - Manual test scripts and configurations
+- **[Deployment Guide](docs/deployment/deployment-guide.md)** - Complete deployment instructions
+- **[Example Deployment](docs/deployment/example-deployment.md)** - Step-by-step walkthrough
+- **[Version Management](docs/operations/VERSIONING.md)** - Automatic updates and version control
+- **[Rollback Procedures](docs/operations/ROLLBACK.md)** - Rollback strategy and commands
+- **[Example Values File](helm/airia-test-pod/examples/basic-values.yaml)** - Customer-ready config template
+- **[Full Helm Reference](helm/airia-test-pod/values.yaml)** - Every available setting
 
 ## 🤝 Support & Feedback
 
