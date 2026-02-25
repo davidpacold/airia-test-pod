@@ -15,7 +15,7 @@ curl -sSL https://raw.githubusercontent.com/davidpacold/airia-test-pod/main/helm
 helm upgrade --install airia-test-pod \
   oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
   -f my-values.yaml \
-  --namespace default
+  --namespace airia --create-namespace
 ```
 
 ## Required Configuration

@@ -14,21 +14,19 @@ Perfect for DevOps teams who need to verify that Azure services, databases, stor
 ### 1. Install with Helm
 
 ```bash
-helm upgrade airia-test-pod \
+helm upgrade --install airia-test-pod \
   oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
-  --set config.auth.username="admin" \
   --set config.auth.password="YourSecurePassword123!" \
   --set config.auth.secretKey="$(openssl rand -hex 32)" \
-  --install --create-namespace \
-  --namespace default
+  --namespace airia --create-namespace
 ```
 
-> **Tip:** No `helm repo add` needed! OCI registry always pulls the latest version.
+> **Tip:** No `helm repo add` needed! OCI registry always pulls the latest version. Username defaults to `admin`.
 
 ### 2. Access the Dashboard
 
 ```bash
-kubectl port-forward -n default svc/airia-test-pod 8080:80
+kubectl port-forward -n airia svc/airia-test-pod 8080:80
 open http://localhost:8080
 # Login: admin / YourSecurePassword123!
 ```
@@ -51,7 +49,7 @@ Download the [example values file](helm/airia-test-pod/examples/basic-values.yam
 helm upgrade --install airia-test-pod \
   oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
   -f my-config.yaml \
-  --namespace default
+  --namespace airia
 ```
 
 The example file includes every available test with clear comments — just set `enabled: true` and fill in your credentials for the services you need.
@@ -68,7 +66,7 @@ helm upgrade airia-test-pod \
   --set config.postgresql.host="your-server.postgres.database.azure.com" \
   --set config.postgresql.username="your-username" \
   --set config.postgresql.password="your-password" \
-  --install --namespace default
+  --install --namespace airia
 ```
 
 ---
