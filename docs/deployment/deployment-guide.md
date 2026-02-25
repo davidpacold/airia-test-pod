@@ -213,24 +213,17 @@ docker run -d \
 
 ### Using Raw Kubernetes Manifests
 
-If you cannot use Helm:
+If you cannot use Helm, you can use `helm template` to render raw manifests:
 
 ```bash
-# Create namespace
-kubectl apply -f k8s/namespace.yaml
+# Render manifests from the Helm chart
+helm template airia-test-pod \
+  oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
+  -f your-config.yaml \
+  --output-dir ./rendered-manifests
 
-# Configure secrets (edit these files first!)
-kubectl apply -f k8s/secret-example.yaml
-kubectl apply -f k8s/postgres-secret-example.yaml
-kubectl apply -f k8s/blob-secret-example.yaml
-kubectl apply -f k8s/openai-secret-example.yaml
-
-# Deploy application
-kubectl apply -f k8s/rbac.yaml
-kubectl apply -f k8s/configmap-example.yaml
-kubectl apply -f k8s/deployment.yaml
-kubectl apply -f k8s/service.yaml
-kubectl apply -f k8s/ingress.yaml
+# Apply all rendered manifests
+kubectl apply -R -f ./rendered-manifests/
 ```
 
 ## Understanding Test Results
@@ -595,7 +588,7 @@ ingress:
 ```
 
 **Complete Example with All Services:**
-See [`Test deploy/values-example.yaml`](Test%20deploy/values-example.yaml) for a comprehensive example with all available services and options.
+See the [example values file](../../helm/airia-test-pod/examples/basic-values.yaml) for a comprehensive example with all available services and options.
 
 ## Advanced Configuration
 
@@ -1084,9 +1077,6 @@ azure:
 ```bash
 # Helm installation
 helm uninstall airia-test-pod -n airia
-
-# Raw Kubernetes manifests
-kubectl delete -f k8s/ -n airia
 
 # Docker container
 docker stop airia-test-pod && docker rm airia-test-pod
