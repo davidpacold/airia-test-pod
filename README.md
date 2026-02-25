@@ -192,7 +192,7 @@ kubectl rollout restart deployment/airia-test-pod
 
 - **[Example Values File](helm/airia-test-pod/examples/basic-values.yaml)** - Customer-ready config template
 - **[Version Management](docs/operations/VERSIONING.md)** - Automatic updates and version control
-- **[Rollback Procedures](docs/operations/ROLLBACK.md)** - Rollback strategy and commands
+
 
 ## 🤝 Support & Feedback
 
