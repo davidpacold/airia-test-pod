@@ -127,7 +127,6 @@ kubernetes/
 requirements-dev.txt
 dev/
 development/
-scripts/
 tools/
 
 # Archives & Large binaries  
