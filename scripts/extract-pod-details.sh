@@ -111,11 +111,16 @@ else
       if [ -n "${SINCE}" ]; then
         kubectl logs "${POD}" -n "${NAMESPACE}" -c "${CONTAINER}" \
           --since="${SINCE}" > "${LOG_FILE}" 2>&1 || true
+        # If --since returned nothing, fall back to --tail to capture startup logs
+        if [ ! -s "${LOG_FILE}" ]; then
+          kubectl logs "${POD}" -n "${NAMESPACE}" -c "${CONTAINER}" \
+            --tail=500 > "${LOG_FILE}" 2>&1 || true
+        fi
       else
         kubectl logs "${POD}" -n "${NAMESPACE}" -c "${CONTAINER}" \
           --tail=1000 > "${LOG_FILE}" 2>&1 || true
       fi
-      # Remove empty log files (no output in the time window)
+      # Remove truly empty log files
       [ ! -s "${LOG_FILE}" ] && rm -f "${LOG_FILE}"
     done
 
