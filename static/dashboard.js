@@ -831,48 +831,125 @@ async function collectDiagnostics() {
 }
 
 function buildDiagProgress(data) {
-  var stepLabels = {
-    init: 'Initialize',
-    events: 'Namespace Events',
-    services: 'Services',
-    configmaps: 'ConfigMaps',
-    secrets: 'Secrets',
-    discover: 'Discover Pods',
-    pod: 'Collecting Pod Data',
-    'pod-done': 'Collecting Pod Data',
-    archive: 'Creating Archive',
-    complete: 'Complete'
-  };
+  // Pipeline definition: ordered phases with icons and group labels
+  var pipeline = [
+    { key: 'init',       label: 'Initialize',        icon: '\u2699', group: 'Setup' },
+    { key: 'events',     label: 'Namespace Events',   icon: '\ud83d\udcdc', group: 'Namespace' },
+    { key: 'services',   label: 'Services',           icon: '\ud83d\udd17', group: 'Namespace' },
+    { key: 'configmaps', label: 'ConfigMaps',         icon: '\ud83d\udcc4', group: 'Namespace' },
+    { key: 'secrets',    label: 'Secrets',            icon: '\ud83d\udd12', group: 'Namespace' },
+    { key: 'discover',   label: 'Discover Pods',      icon: '\ud83d\udd0d', group: 'Pods' },
+    { key: 'pod',        label: 'Collect Pod Data',   icon: '\ud83d\udce6', group: 'Pods' },
+    { key: 'archive',    label: 'Create Archive',     icon: '\ud83d\uddc3', group: 'Finalize' },
+    { key: 'complete',   label: 'Complete',           icon: '\ud83c\udfc1', group: 'Finalize' }
+  ];
+
   var completed = data.completed_steps || [];
   var current = data.current_step || '';
   var detail = data.current_detail || '';
 
-  // Build mini step timeline
-  var h = '<div class="diag-progress">';
+  // Normalize pod-done to pod
+  if (current === 'pod-done') current = 'pod';
 
-  // Completed steps as checkmarks
-  for (var i = 0; i < completed.length; i++) {
-    var label = stepLabels[completed[i]] || completed[i];
-    h += '<span class="diag-step diag-step-done">\u2713 ' + esc(label) + '</span>';
+  // Build lookup for step status
+  var completedSet = {};
+  for (var c = 0; c < completed.length; c++) {
+    completedSet[completed[c]] = true;
+    if (completed[c] === 'pod-done') completedSet['pod'] = true;
   }
 
-  // Current step with spinner
-  if (current && current !== 'complete') {
-    var curLabel = stepLabels[current] || current;
-    // Show pod progress fraction if available
-    var progressDetail = detail;
-    if ((current === 'pod' || current === 'pod-done') && data.total_pods > 0) {
-      curLabel = 'Pod ' + data.pod_count + '/' + data.total_pods;
-      progressDetail = detail.replace(/^\d+\/\d+\s*/, '');
+  // Find current step index
+  var currentIdx = -1;
+  for (var ci = 0; ci < pipeline.length; ci++) {
+    if (pipeline[ci].key === current) { currentIdx = ci; break; }
+  }
+
+  var h = '<div class="diag-pipeline">';
+  var lastGroup = '';
+
+  for (var i = 0; i < pipeline.length; i++) {
+    var step = pipeline[i];
+    var isDone = completedSet[step.key] || false;
+    var isActive = (step.key === current && current !== 'complete');
+    var isComplete = (current === 'complete');
+    var isPending = !isDone && !isActive && !isComplete;
+
+    // Group header
+    if (step.group !== lastGroup) {
+      if (lastGroup) h += '</div>'; // close previous group
+      h += '<div class="diag-group">';
+      h += '<div class="diag-group-label">' + esc(step.group) + '</div>';
+      lastGroup = step.group;
     }
-    h += '<span class="diag-step diag-step-active">';
-    h += '<span class="loading-spinner-sm"></span> ';
-    h += esc(curLabel);
-    if (progressDetail) h += ' <span class="diag-step-detail">(' + esc(progressDetail) + ')</span>';
-    h += '</span>';
+
+    // Node status class
+    var cls = 'diag-node';
+    if (isDone || isComplete) cls += ' diag-node-done';
+    else if (isActive) cls += ' diag-node-active';
+    else cls += ' diag-node-pending';
+
+    // Connector line (not for first step)
+    if (i > 0 && step.group === pipeline[i - 1].group) {
+      var lineCls = 'diag-connector';
+      if (isDone || isComplete) lineCls += ' diag-connector-done';
+      else if (isActive) lineCls += ' diag-connector-active';
+      h += '<div class="' + lineCls + '"></div>';
+    }
+
+    h += '<div class="' + cls + '">';
+    h += '<div class="diag-node-indicator">';
+
+    if (isDone || isComplete) {
+      h += '<svg class="diag-check-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"/></svg>';
+    } else if (isActive) {
+      h += '<span class="diag-node-spinner"></span>';
+    } else {
+      h += '<span class="diag-node-dot"></span>';
+    }
+
+    h += '</div>';
+    h += '<div class="diag-node-content">';
+    h += '<span class="diag-node-label">' + esc(step.label) + '</span>';
+
+    // Pod progress sub-visualization
+    if (step.key === 'pod' && isActive && data.total_pods > 0) {
+      var podPct = Math.round((data.pod_count / data.total_pods) * 100);
+      var podName = detail.replace(/^\d+\/\d+\s*/, '').replace(/\s*-\s*(status|describe|env vars|logs).*$/i, '');
+      h += '<div class="diag-pod-tracker">';
+      h += '<div class="diag-pod-meta">';
+      h += '<span class="diag-pod-count">' + data.pod_count + ' / ' + data.total_pods + ' pods</span>';
+      h += '<span class="diag-pod-pct">' + podPct + '%</span>';
+      h += '</div>';
+      h += '<div class="diag-pod-bar"><div class="diag-pod-bar-fill" style="width:' + podPct + '%"></div></div>';
+      if (podName) {
+        h += '<div class="diag-pod-current">';
+        h += '<span class="diag-pod-current-icon">\u25b6</span> ';
+        h += '<span class="diag-pod-current-name">' + esc(podName) + '</span>';
+        // Show sub-step (status, describe, logs, etc.)
+        var subStep = '';
+        if (/status/i.test(detail)) subStep = 'status';
+        else if (/describe/i.test(detail)) subStep = 'describe';
+        else if (/env/i.test(detail)) subStep = 'env vars';
+        else if (/logs/i.test(detail)) subStep = 'logs';
+        if (subStep) h += ' <span class="diag-pod-substep">' + subStep + '</span>';
+        h += '</div>';
+      }
+      h += '</div>';
+    } else if (isActive && detail) {
+      h += '<span class="diag-node-detail">' + esc(detail) + '</span>';
+    }
+
+    // Duration hint for completed pod step
+    if (step.key === 'pod' && isDone && data.pod_count > 0) {
+      h += '<span class="diag-node-detail">' + data.pod_count + ' pods processed</span>';
+    }
+
+    h += '</div>'; // node-content
+    h += '</div>'; // node
   }
 
-  h += '</div>';
+  if (lastGroup) h += '</div>'; // close last group
+  h += '</div>'; // pipeline
   return h;
 }
 
@@ -901,10 +978,15 @@ async function pollDiagnosticsStatus() {
       clearInterval(_diagPollTimer);
       _diagPollTimer = null;
       statusIcon.className = 'diag-status-icon diag-status-ready';
-      statusText.textContent = 'Collection complete: ' + data.pod_count + ' pod(s) collected.';
-      // Remove progress detail
+      statusText.textContent = '';
+      // Show completed pipeline with all steps done
       var pd = document.getElementById('diagProgressDetail');
-      if (pd) pd.remove();
+      if (!pd) {
+        pd = document.createElement('div');
+        pd.id = 'diagProgressDetail';
+        statusEl.appendChild(pd);
+      }
+      pd.innerHTML = buildDiagProgress(data);
       btn.disabled = false;
       btn.textContent = 'Collect Diagnostics';
       dlBtn.style.display = 'inline-flex';

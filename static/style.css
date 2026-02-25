@@ -851,14 +851,18 @@ a:hover { color: var(--c-accent-hover); }
 
 .diagnostics-status {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: var(--sp-sm);
   margin-top: var(--sp-lg);
-  padding: var(--sp-md) var(--sp-lg);
+  padding: var(--sp-lg);
   background: var(--c-bg-inset);
-  border-radius: var(--radius);
+  border: 1px solid var(--c-border-light);
+  border-radius: var(--radius-lg);
   font-size: 0.8125rem;
   color: var(--c-text-secondary);
+}
+.diagnostics-status > .diag-status-icon {
+  display: none; /* hidden – status shown via pipeline nodes now */
 }
 
 .diag-status-icon {
@@ -886,53 +890,203 @@ a:hover { color: var(--c-accent-hover); }
   50% { opacity: 0.4; }
 }
 
-/* ── Diagnostics Progress Steps ────────────────────────────── */
-.diag-progress {
+/* ── Diagnostics Pipeline (GitHub Actions style) ─────────── */
+.diag-pipeline {
   margin-top: var(--sp-lg);
   display: flex;
   flex-direction: column;
-  gap: var(--sp-sm);
+  gap: 0;
 }
-.diag-step {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-sm);
-  padding: var(--sp-sm) var(--sp-md);
-  border-radius: var(--radius);
-  font-size: 0.8125rem;
+
+/* Group container */
+.diag-group {
+  position: relative;
+  padding-left: 0;
+}
+.diag-group-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   color: var(--c-text-muted);
-  background: var(--c-bg-inset);
-  border: 1px solid transparent;
-  transition: all 0.2s ease;
+  padding: var(--sp-md) 0 var(--sp-xs) 38px;
 }
-.diag-step-done {
-  color: var(--c-success);
-  background: var(--c-success-light);
-  border-color: var(--c-success-border);
+.diag-group + .diag-group { margin-top: var(--sp-xs); }
+
+/* Vertical connector between nodes */
+.diag-connector {
+  width: 2px;
+  height: 12px;
+  margin-left: 14px;
+  background: var(--c-border);
+  border-radius: 1px;
+  transition: background 0.3s ease;
 }
-.diag-step-active {
-  color: var(--c-accent);
+.diag-connector-done { background: var(--c-success); }
+.diag-connector-active {
+  background: linear-gradient(to bottom, var(--c-success), var(--c-accent));
+}
+
+/* Node row */
+.diag-node {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-md);
+  padding: var(--sp-sm) var(--sp-md) var(--sp-sm) 0;
+  border-radius: var(--radius);
+  transition: background 0.2s ease;
+}
+.diag-node-active {
   background: var(--c-accent-light);
-  border-color: var(--c-accent-subtle);
-  font-weight: 500;
+  border-radius: var(--radius);
+  margin: 2px 0;
 }
-.diag-step-icon {
-  width: 18px;
-  height: 18px;
+
+/* Indicator circle */
+.diag-node-indicator {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.6875rem;
   flex-shrink: 0;
+  border: 2px solid var(--c-border);
+  background: var(--c-bg-card);
+  transition: all 0.3s ease;
 }
-.diag-step-label {
-  flex: 1;
+.diag-node-done .diag-node-indicator {
+  background: var(--c-success);
+  border-color: var(--c-success);
+  color: #fff;
 }
-.diag-step-detail {
+.diag-node-active .diag-node-indicator {
+  border-color: var(--c-accent);
+  background: var(--c-accent-light);
+  box-shadow: 0 0 0 4px var(--c-accent-light);
+}
+.diag-node-pending .diag-node-indicator {
+  border-color: var(--c-border);
+  background: var(--c-bg-inset);
+}
+
+/* Check icon for completed nodes */
+.diag-check-icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* Spinner for active node */
+.diag-node-spinner {
+  display: block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--c-accent-subtle);
+  border-top-color: var(--c-accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+/* Dot for pending nodes */
+.diag-node-dot {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--c-border);
+}
+
+/* Node content (label + detail) */
+.diag-node-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 30px;
+  justify-content: center;
+}
+.diag-node-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--c-text);
+  line-height: 1.3;
+}
+.diag-node-done .diag-node-label { color: var(--c-text-secondary); }
+.diag-node-pending .diag-node-label { color: var(--c-text-muted); }
+.diag-node-active .diag-node-label { color: var(--c-accent-hover); font-weight: 600; }
+
+.diag-node-detail {
   font-size: 0.6875rem;
   font-family: var(--font-mono);
   color: var(--c-text-muted);
+  line-height: 1.4;
 }
+
+/* Pod progress tracker (inside the pod node) */
+.diag-pod-tracker {
+  margin-top: var(--sp-xs);
+  padding: var(--sp-sm) var(--sp-md);
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-accent-subtle);
+  border-radius: var(--radius);
+  min-width: 220px;
+}
+.diag-pod-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--sp-xs);
+}
+.diag-pod-count {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--c-text);
+}
+.diag-pod-pct {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--c-accent);
+}
+.diag-pod-bar {
+  height: 6px;
+  background: var(--c-bg-inset);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.diag-pod-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--c-accent), var(--c-accent-hover));
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+.diag-pod-current {
+  margin-top: var(--sp-xs);
+  font-size: 0.6875rem;
+  font-family: var(--font-mono);
+  color: var(--c-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.diag-pod-current-icon {
+  color: var(--c-accent);
+  font-size: 0.5rem;
+}
+.diag-pod-current-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
+.diag-pod-substep {
+  color: var(--c-text-muted);
+  font-size: 0.625rem;
+  background: var(--c-bg-inset);
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+}
+
+/* Small spinner (still used in buttons) */
 .loading-spinner-sm {
   display: inline-block;
   width: 12px;
@@ -941,24 +1095,6 @@ a:hover { color: var(--c-accent-hover); }
   border-top-color: var(--c-accent);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
-}
-.diag-pod-progress {
-  margin-top: var(--sp-xs);
-  font-size: 0.75rem;
-  color: var(--c-text-muted);
-}
-.diag-pod-bar {
-  margin-top: 4px;
-  height: 4px;
-  background: var(--c-bg-inset);
-  border-radius: 2px;
-  overflow: hidden;
-}
-.diag-pod-bar-fill {
-  height: 100%;
-  background: var(--c-accent);
-  border-radius: 2px;
-  transition: width 0.3s ease;
 }
 
 /* ── Notifications ──────────────────────────────────────────── */
