@@ -276,7 +276,7 @@ class HealthChecker:
         """Get readiness status (critical checks only)."""
         result = await self.run_all_checks(include_non_critical=False)
         return {
-            "ready": result["status"] == HealthStatus.HEALTHY.value,
+            "ready": result["status"] in (HealthStatus.HEALTHY.value, HealthStatus.DEGRADED.value),
             "status": result["status"],
             "timestamp": result["timestamp"],
             "critical_checks": {
