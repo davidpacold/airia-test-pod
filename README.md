@@ -122,9 +122,9 @@ These tests verify that your AI services are configured correctly with automated
   - Tests document analysis, table extraction, and content recognition
   - Validates Azure Document Intelligence API configuration
 
-- **Embedding Models** - Dedicated text vectorization testing
-  - Tests OpenAI-compatible embedding endpoints (separate from Azure OpenAI embeddings)
-  - Validates embedding generation, batch processing, and similarity calculations
+- **Dedicated Embedding** - Standalone embedding model testing
+  - Tests any OpenAI-compatible embedding endpoint (LM Studio, vLLM, Ollama, etc.)
+  - Validates connection, embedding generation, and optional dimension verification
 
 #### **Custom AI Testing** (Interactive Testing)
 After your services pass automated tests, use custom testing to validate with your own data:
@@ -193,6 +193,18 @@ helm upgrade --install airia-test-pod \
 ```
 
 > **Note:** This tests Ollama's native `/api/*` endpoints. For OpenAI-compatible Ollama endpoints (`/v1/*`), use the OpenAI configuration with `baseUrl="http://ollama-server:11434/v1"`.
+
+#### **Dedicated Embedding**
+For standalone OpenAI-compatible embedding endpoints:
+```bash
+helm upgrade --install airia-test-pod \
+  oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
+  --set config.dedicatedEmbedding.enabled=true \
+  --set config.dedicatedEmbedding.baseUrl="http://your-embedding-server:1234/v1" \
+  --set config.dedicatedEmbedding.model="text-embedding-model" \
+  --set config.dedicatedEmbedding.dimensions=768 \
+  --namespace default
+```
 
 #### **Azure Document Intelligence**
 For OCR and document processing:
@@ -268,6 +280,13 @@ config:
     temperature: 0.7
     timeout: 60
 
+  # Dedicated Embedding (standalone, OpenAI-compatible)
+  dedicatedEmbedding:
+    enabled: true
+    baseUrl: "http://your-embedding-server:1234/v1"
+    model: "text-embedding-model"
+    dimensions: 768  # Optional: validate vector size
+
   # Azure Document Intelligence
   documentIntelligence:
     enabled: true
@@ -309,7 +328,7 @@ helm upgrade --install airia-test-pod \
 | Using Ollama's OpenAI-compatible endpoint | **OpenAI-Compatible APIs** | Set `baseUrl` to `http://ollama:11434/v1` |
 | Using Ollama's native API | **Ollama Native API** | Tests Ollama's native `/api/*` endpoints for maximum compatibility |
 | Processing PDFs/images for OCR | **Azure Document Intelligence** | Tests document analysis and table extraction |
-| Using separate embedding service (not Azure) | **Dedicated Embedding Models** | For standalone embedding endpoints like OpenAI's API |
+| Using separate embedding service (not Azure) | **Dedicated Embedding** | For standalone embedding endpoints (LM Studio, vLLM, Ollama, etc.) |
 | Want to test custom prompts | Use **Custom AI Testing** in the UI | Available after standard tests pass |
 | Want to upload files for testing | Use **Custom AI Testing** in the UI | Supports PDFs, images up to 25MB |
 

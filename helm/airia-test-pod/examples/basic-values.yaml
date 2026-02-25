@@ -175,10 +175,10 @@ config:
     accountKey: ""
     containerName: "test-container"
 
-  # ── MinIO (S3-compatible) ─────────────────────────────────────────────────
-  minio:
+  # ── S3 Compatible Storage ────────────────────────────────────────────────
+  s3Compatible:
     enabled: false
-    endpointUrl: "https://minio.example.com"
+    endpointUrl: "https://s3-compatible.example.com"
     accessKey: ""
     secretKey: ""
     bucketName: "test-bucket"
@@ -244,6 +244,14 @@ config:
     endpoint: ""           # Full URL: https://my-model.region.inference.ml.azure.com
     apiKey: ""
     model: ""              # Optional: model name if endpoint serves multiple
+
+  # ── Dedicated Embedding (OpenAI-compatible) ──────────────────────────────
+  dedicatedEmbedding:
+    enabled: false
+    baseUrl: ""            # e.g., http://host.docker.internal:1234/v1
+    apiKey: ""
+    model: ""              # e.g., text-embedding-qwen3-embedding-0.6b
+    dimensions: 0          # Optional: validate returned vector matches expected size
 
   # ── Azure Document Intelligence ───────────────────────────────────────────
   documentIntelligence:
