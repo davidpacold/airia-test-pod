@@ -26,6 +26,7 @@ test_results/
 .env.local
 .env.*.local
 secrets.yaml
+!helm/*/templates/secrets.yaml
 *.secret.yaml
 
 # IDE
@@ -42,10 +43,11 @@ Thumbs.db
 # Logs
 *.log
 
-# Helm user values (keep chart defaults)
+# Helm user values (keep chart defaults and examples)
 *-values.yaml
 values-*.yaml
 !helm/*/values.yaml
+!helm/*/examples/*-values.yaml
 
 # Git worktrees
 .worktrees/
