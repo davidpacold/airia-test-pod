@@ -21,7 +21,6 @@ A Kubernetes-native infrastructure validation tool. Customers deploy this via He
 - `helm/airia-test-pod/` - Helm chart (Chart.yaml, values.yaml, templates/)
 - `templates/` - Jinja2 HTML templates (dashboard, login)
 - `static/` - CSS/JS assets
-- `scripts/upgrade.sh` - OCI-based upgrade helper
 
 ## Running Locally
 ```bash

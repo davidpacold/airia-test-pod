@@ -35,33 +35,7 @@ helm upgrade airia-test-pod \
 
 ---
 
-### 2. Automated Upgrade Script
-
-**What it does:** A shell script that handles the entire upgrade process automatically.
-
-**Location:** `scripts/upgrade.sh`
-
-**Features:**
-- ✅ Uses OCI registry for latest version
-- ✅ Checks current vs. latest version
-- ✅ Shows what will be upgraded
-- ✅ Asks for confirmation
-- ✅ Monitors rollout status
-- ✅ Displays pod health
-
-**Usage:**
-```bash
-# OCI method
-./scripts/upgrade.sh --oci -f config.yaml
-
-# Remote execution
-curl -sSL https://raw.githubusercontent.com/davidpacold/airia-test-pod/main/scripts/upgrade.sh | \
-  bash -s -- --oci -f config.yaml
-```
-
----
-
-### 3. Helm Pre-Upgrade Version Check
+### 2. Helm Pre-Upgrade Version Check
 
 **What it does:** Automatically checks for newer versions during `helm upgrade`.
 
@@ -113,7 +87,6 @@ helm upgrade airia-test-pod \
 | Method | Manual Update Required | Auto-Detects Latest | Strict Enforcement | Speed |
 |--------|----------------------|--------------------|--------------------|-------|
 | **OCI Registry** | ❌ No | ✅ Yes | ⚠️ Optional | ⚡ Fast |
-| **Upgrade Script** | ❌ No | ✅ Yes | ⚠️ Optional | ⚡ Fast |
 | **Pre-Upgrade Hook** | ⚠️ Sometimes | ✅ Yes | ✅ Yes (strict mode) | 🐢 Slower |
 
 ---
@@ -122,14 +95,6 @@ helm upgrade airia-test-pod \
 
 ### For End Users (Easiest)
 
-**Option 1: Use the upgrade script (zero configuration)**
-```bash
-cd /path/to/your-configs
-curl -sSL https://raw.githubusercontent.com/davidpacold/airia-test-pod/main/scripts/upgrade.sh | \
-  bash -s -- --oci -f your-config.yaml
-```
-
-**Option 2: Use OCI directly**
 ```bash
 helm upgrade airia-test-pod \
   oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
@@ -224,8 +189,7 @@ helm upgrade airia-test-pod \
 You now have **3 layers of protection** against deploying outdated versions:
 
 1. ⭐ **OCI Registry** - Always fresh, no cache, no repo management needed
-2. 🤖 **Automated Script** - Handles updates automatically
-3. 🛡️ **Pre-Upgrade Hook** - Warns or blocks old versions
-4. ✅ **CI/CD Validation** - Ensures releases are properly deployed
+2. 🛡️ **Pre-Upgrade Hook** - Warns or blocks old versions
+3. ✅ **CI/CD Validation** - Ensures releases are properly deployed
 
-**Recommended:** Use OCI registry with the upgrade script for the best experience!
+**Recommended:** Use OCI registry for the best experience!

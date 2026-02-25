@@ -64,19 +64,6 @@ helm upgrade airia-test-pod \
   --namespace airia
 ```
 
-### Automated Upgrade Script
-
-Use our automated upgrade script for the easiest experience:
-
-```bash
-# From the repository
-./scripts/upgrade.sh --oci -f your-config.yaml
-
-# Or remotely
-curl -sSL https://raw.githubusercontent.com/davidpacold/airia-test-pod/main/scripts/upgrade.sh | \
-  bash -s -- --oci -f your-config.yaml
-```
-
 📚 **For complete version management details:** [Version Management Guide](docs/operations/VERSIONING.md)
 
 ---
@@ -317,7 +304,7 @@ helm upgrade --install airia-test-pod \
 
 ### 🎯 **Deployment & Configuration**
 - **[🚀 Deployment Guide](docs/deployment/deployment-guide.md)** - Complete deployment instructions
-- **[🔄 Version Management](docs/operations/VERSIONING.md)** - Automatic updates, version checking, upgrade scripts
+- **[🔄 Version Management](docs/operations/VERSIONING.md)** - Automatic updates and version checking
 - **[🏭 Example Deployment](docs/deployment/example-deployment.md)** - Step-by-step walkthrough
 - **[📄 Complete Configuration Example](helm/airia-test-pod/examples/basic-values.yaml)** - All tests with detailed examples
 - **[⚙️ Helm Configuration Reference](helm/airia-test-pod/values.yaml)** - Every available setting
@@ -326,7 +313,7 @@ helm upgrade --install airia-test-pod \
 - **Automatic Version Checking** - Ensures you're always using the latest version
 - **OCI Registry Support** - No need for `helm repo update`, always fresh
 - **Pre-Upgrade Hooks** - Validates versions before deployment
-- **Automated Upgrade Script** - One-command upgrades with health checks
+
 
 ## 🔍 Understanding Test Results
 

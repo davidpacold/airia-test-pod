@@ -25,7 +25,7 @@
    Username: {{ .Values.config.auth.username }}
    Password: kubectl get secret {{ include "airia-test-pod.fullname" . }}-auth -n {{ include "airia-test-pod.namespace" . }} -o jsonpath='{.data.password}' | base64 -d
 
-3. Configured tests (17 total):
+3. Configured tests (18 total):
 
    -- Databases --
 {{- if .Values.config.postgresql.enabled }}
@@ -86,6 +86,11 @@
    ✓ Mistral AI Test
 {{- else }}
    ✗ Mistral AI Test (disabled)
+{{- end }}
+{{- if .Values.config.visionModel.enabled }}
+   ✓ Vision Model Test
+{{- else }}
+   ✗ Vision Model Test (disabled)
 {{- end }}
 {{- if .Values.config.dedicatedEmbedding.enabled }}
    ✓ Dedicated Embedding Test
