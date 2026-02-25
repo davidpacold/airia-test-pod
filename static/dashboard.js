@@ -187,52 +187,122 @@ function formatGeneric(result) {
     buildLogs(result) + buildRemediation(result) + '</div>';
 }
 
-/* ── Test-specific formatters (only where generic isn't enough) */
-const FORMATTERS = {
-  postgresqlv2: function(result) {
-    let h = '<div class="test-result-enhanced">' + buildHeader(result, 'PostgreSQL Database') + buildMessage(result);
-    const sub = result.sub_tests || {};
-
-    // Step timeline for connection steps
-    var steps = ['connection', 'databases', 'extensions'];
-    var hasSteps = steps.some(s => sub[s]);
-    if (hasSteps) {
-      h += '<div class="sub-tests-section"><div class="step-timeline">';
-      for (var si = 0; si < steps.length; si++) {
-        var sn = steps[si], st = sub[sn];
-        if (!st) continue;
-        var sok = st.success;
-        h += '<div class="step-item">';
-        h += '<div class="step-icon ' + (sok ? 'step-icon-ok' : 'step-icon-fail') + '">' + (sok ? '\u2713' : '\u2717') + '</div>';
-        h += '<div class="step-content">';
-        h += '<div class="step-name">' + esc(sn.charAt(0).toUpperCase() + sn.slice(1)) + '</div>';
-        h += '<div class="step-message">' + esc(st.message || '') + '</div>';
-
-        // Connection version
-        if (sn === 'connection' && st.details?.version) {
-          h += '<div class="step-details"><span class="detail-tag"><strong>version:</strong> ' + esc(st.details.version) + '</span></div>';
-        }
-        h += '</div></div>';
+/* ── Shared step-timeline builder ────────────────────────────── */
+function buildStepTimeline(sub, stepKeys, labelMap) {
+  var hasSteps = stepKeys.some(function(s) { return sub[s]; });
+  if (!hasSteps) return '';
+  var h = '<div class="sub-tests-section"><div class="step-timeline">';
+  for (var si = 0; si < stepKeys.length; si++) {
+    var sn = stepKeys[si], st = sub[sn];
+    if (!st) continue;
+    var sok = st.success;
+    h += '<div class="step-item">';
+    h += '<div class="step-icon ' + (sok ? 'step-icon-ok' : 'step-icon-fail') + '">' + (sok ? '\u2713' : '\u2717') + '</div>';
+    h += '<div class="step-content">';
+    h += '<div class="step-name">' + esc(labelMap && labelMap[sn] ? labelMap[sn] : sn.charAt(0).toUpperCase() + sn.slice(1).replace(/_/g, ' ')) + '</div>';
+    h += '<div class="step-message">' + esc(st.message || '') + '</div>';
+    // Collect detail tags from st.details
+    if (st.details && typeof st.details === 'object') {
+      var skip = new Set(['success', 'message', 'remediation', 'error', 'error_type']);
+      var tags = [];
+      for (var dk in st.details) {
+        if (skip.has(dk)) continue;
+        var dv = st.details[dk];
+        if (dv == null || dv === '') continue;
+        var display = typeof dv === 'object' ? JSON.stringify(dv) : String(dv);
+        tags.push('<span class="detail-tag"><strong>' + esc(dk) + ':</strong> ' + esc(display) + '</span>');
       }
+      if (tags.length > 0) h += '<div class="step-details">' + tags.join('') + '</div>';
+    }
+    if (st.remediation) h += '<div class="remediation">\uD83D\uDCA1 <em>' + esc(st.remediation) + '</em></div>';
+    h += '</div></div>';
+  }
+  h += '</div></div>';
+  return h;
+}
+
+/* ── Shared AI provider formatter ───────────────────────────── */
+function formatAIProvider(result, label) {
+  var h = '<div class="test-result-enhanced">' + buildHeader(result, label) + buildMessage(result);
+  var sub = result.sub_tests || {};
+  var steps = ['chat', 'embedding', 'vision'];
+  var labels = { chat: 'Chat Completion', embedding: 'Embedding', vision: 'Vision' };
+  var hasSteps = steps.some(function(s) { return sub[s]; });
+  if (hasSteps) {
+    h += '<div class="sub-tests-section"><div class="step-timeline">';
+    for (var si = 0; si < steps.length; si++) {
+      var sn = steps[si], st = sub[sn];
+      if (!st) continue;
+      var sok = st.success;
+      h += '<div class="step-item">';
+      h += '<div class="step-icon ' + (sok ? 'step-icon-ok' : 'step-icon-fail') + '">' + (sok ? '\u2713' : '\u2717') + '</div>';
+      h += '<div class="step-content">';
+      h += '<div class="step-name">' + esc(labels[sn] || sn) + '</div>';
+      h += '<div class="step-message">' + esc(st.message || '') + '</div>';
+      // IO block for prompt/response
+      var hasIO = st.prompt || st.input || st.response || st.description;
+      if (hasIO) {
+        h += '<div class="io-block">';
+        if (st.prompt) h += '<div class="io-row io-row-prompt"><span class="io-label">Sent</span><span class="io-value">' + esc(st.prompt) + '</span></div>';
+        if (st.input) h += '<div class="io-row io-row-prompt"><span class="io-label">Input</span><span class="io-value">' + esc(st.input) + '</span></div>';
+        if (st.response) h += '<div class="io-row io-row-response"><span class="io-label">Reply</span><span class="io-value">' + esc(st.response) + '</span></div>';
+        if (st.description) h += '<div class="io-row io-row-response"><span class="io-label">Reply</span><span class="io-value">' + esc(st.description) + '</span></div>';
+        h += '</div>';
+      }
+      // Metadata tags (model, latency, etc.)
+      var skipIO = new Set(['success', 'message', 'remediation', 'error', 'error_type', 'prompt', 'response', 'input', 'description', 'details']);
+      var metaTags = [];
+      for (var mk in st) {
+        if (skipIO.has(mk)) continue;
+        var mv = st[mk];
+        if (mv == null || mv === '') continue;
+        metaTags.push('<span class="detail-tag"><strong>' + esc(mk) + ':</strong> ' + esc(typeof mv === 'object' ? JSON.stringify(mv) : String(mv)) + '</span>');
+      }
+      if (st.details && typeof st.details === 'object') {
+        for (var dk in st.details) {
+          if (skipIO.has(dk)) continue;
+          var dv = st.details[dk];
+          if (dv == null || dv === '') continue;
+          metaTags.push('<span class="detail-tag"><strong>' + esc(dk) + ':</strong> ' + esc(typeof dv === 'object' ? JSON.stringify(dv) : String(dv)) + '</span>');
+        }
+      }
+      if (metaTags.length > 0) h += '<div class="detail-meta-row">' + metaTags.join('') + '</div>';
+      if (st.remediation) h += '<div class="remediation">\uD83D\uDCA1 <em>' + esc(st.remediation) + '</em></div>';
       h += '</div></div>';
     }
+    h += '</div></div>';
+  } else {
+    // Fallback to generic sub-tests if keys don't match expected pattern
+    h += buildSubTests(result);
+  }
+  h += buildRemediation(result) + '</div>';
+  return h;
+}
+
+/* ── Test-specific formatters ───────────────────────────────── */
+const FORMATTERS = {
+  /* ── Databases ─────────────────────────────────────────────── */
+  postgresqlv2: function(result) {
+    var h = '<div class="test-result-enhanced">' + buildHeader(result, 'PostgreSQL Database') + buildMessage(result);
+    var sub = result.sub_tests || {};
+    h += buildStepTimeline(sub, ['connection', 'databases', 'extensions'], null);
 
     // Databases table
-    if (sub.databases?.databases?.length > 0) {
+    if (sub.databases && sub.databases.databases && sub.databases.databases.length > 0) {
       h += '<div class="detail-section"><h5>Databases (' + sub.databases.databases.length + ')</h5>';
       h += '<table class="data-table"><thead><tr><th>Name</th><th>Size</th></tr></thead><tbody>';
-      sub.databases.databases.forEach(db => {
+      sub.databases.databases.forEach(function(db) {
         h += '<tr><td>' + esc(db.name) + '</td><td>' + esc(db.size_human) + '</td></tr>';
       });
       h += '</tbody></table></div>';
     }
 
     // Extensions table
-    if (sub.extensions?.installed_extensions) {
-      const installed = sub.extensions.installed_extensions;
+    if (sub.extensions && sub.extensions.installed_extensions) {
+      var installed = sub.extensions.installed_extensions;
       h += '<div class="detail-section"><h5>Extensions (' + installed.length + ' installed)</h5>';
       h += '<table class="data-table"><thead><tr><th>Extension</th><th>Version</th></tr></thead><tbody>';
-      installed.forEach(e => {
+      installed.forEach(function(e) {
         h += '<tr><td>' + esc(e.name) + '</td><td>' + esc(e.version) + '</td></tr>';
       });
       h += '</tbody></table></div>';
@@ -242,59 +312,137 @@ const FORMATTERS = {
     return h;
   },
 
-  blobstorage: function(result) {
-    let h = '<div class="test-result-enhanced">' + buildHeader(result, 'Azure Blob Storage') + buildMessage(result);
-    const sub = result.sub_tests || {};
+  cassandra: function(result) {
+    var h = '<div class="test-result-enhanced">' + buildHeader(result, 'Apache Cassandra') + buildMessage(result);
+    var sub = result.sub_tests || {};
+    var labels = { connection: 'Connect', cluster_health: 'Cluster Health', keyspaces: 'Keyspaces', query_execution: 'Query', replication: 'Replication' };
+    h += buildStepTimeline(sub, ['connection', 'cluster_health', 'keyspaces', 'query_execution', 'replication'], labels);
+    h += buildRemediation(result) + '</div>';
+    return h;
+  },
 
-    var steps = ['client_creation', 'container_operations', 'upload_blob', 'download_blob', 'list_blobs', 'cleanup'];
-    var stepLabels = { client_creation: 'Connect', container_operations: 'Container', upload_blob: 'Upload', download_blob: 'Download', list_blobs: 'List Blobs', cleanup: 'Cleanup' };
-    var hasSteps = steps.some(s => sub[s]);
-    if (hasSteps) {
+  /* ── Object Storage ────────────────────────────────────────── */
+  blobstorage: function(result) {
+    var h = '<div class="test-result-enhanced">' + buildHeader(result, 'Azure Blob Storage') + buildMessage(result);
+    var sub = result.sub_tests || {};
+    var labels = { client_creation: 'Connect', container_operations: 'Container', upload_blob: 'Upload', download_blob: 'Download', list_blobs: 'List Blobs', cleanup: 'Cleanup' };
+    h += buildStepTimeline(sub, ['client_creation', 'container_operations', 'upload_blob', 'download_blob', 'list_blobs', 'cleanup'], labels);
+    h += buildRemediation(result) + '</div>';
+    return h;
+  },
+
+  s3: function(result) {
+    var h = '<div class="test-result-enhanced">' + buildHeader(result, 'Amazon S3 Storage') + buildMessage(result);
+    var sub = result.sub_tests || {};
+    var labels = { connection: 'Connect', list_buckets: 'List Buckets', bucket_access: 'Bucket Access', file_operations: 'File Ops', versioning_check: 'Versioning' };
+    h += buildStepTimeline(sub, ['connection', 'list_buckets', 'bucket_access', 'file_operations', 'versioning_check'], labels);
+    h += buildRemediation(result) + '</div>';
+    return h;
+  },
+
+  minio: function(result) {
+    var h = '<div class="test-result-enhanced">' + buildHeader(result, 'MinIO Storage') + buildMessage(result);
+    var sub = result.sub_tests || {};
+    var labels = { connection: 'Connect', list_buckets: 'List Buckets', bucket_access: 'Bucket Access', file_operations: 'File Ops' };
+    h += buildStepTimeline(sub, ['connection', 'list_buckets', 'bucket_access', 'file_operations'], labels);
+    h += buildRemediation(result) + '</div>';
+    return h;
+  },
+
+  /* ── AI & ML Providers ─────────────────────────────────────── */
+  azure_openai: function(result) { return formatAIProvider(result, 'Azure OpenAI'); },
+  openai_direct: function(result) { return formatAIProvider(result, 'OpenAI Direct'); },
+  anthropic: function(result) { return formatAIProvider(result, 'Anthropic Claude'); },
+  bedrock: function(result) { return formatAIProvider(result, 'AWS Bedrock'); },
+  gemini: function(result) { return formatAIProvider(result, 'Google Gemini'); },
+  mistral: function(result) { return formatAIProvider(result, 'Mistral AI'); },
+  vision_model: function(result) { return formatAIProvider(result, 'Vision Model'); },
+
+  docintel: function(result) {
+    var h = '<div class="test-result-enhanced">' + buildHeader(result, 'Document Intelligence') + buildMessage(result);
+    h += buildSubTests(result) + buildRemediation(result) + '</div>';
+    return h;
+  },
+
+  /* ── Infrastructure ────────────────────────────────────────── */
+  pvc: function(result) {
+    var h = '<div class="test-result-enhanced">' + buildHeader(result, 'Kubernetes PVC') + buildMessage(result);
+    var sub = result.sub_tests || {};
+    var stepKeys = ['List Storage Classes', 'Namespace Access', 'PVC Creation', 'PVC Status', 'PVC Cleanup'];
+    var labels = {};
+    stepKeys.forEach(function(k) { labels[k] = k; });
+    h += buildStepTimeline(sub, stepKeys, labels);
+    h += buildRemediation(result) + '</div>';
+    return h;
+  },
+
+  gpu: function(result) {
+    var h = '<div class="test-result-enhanced">' + buildHeader(result, 'GPU Detection') + buildMessage(result);
+
+    if (result.details) {
+      var d = result.details;
+      h += '<div class="detail-section">';
+      if (d.gpu_available !== undefined) {
+        h += '<p><strong>GPU Available:</strong> ' + (d.gpu_available ? '\u2705 Yes' : '\u274C No') + '</p>';
+      }
+      if (d.gpu_count) h += '<p><strong>GPU Count:</strong> ' + esc(String(d.gpu_count)) + '</p>';
+      if (d.driver_version) h += '<p><strong>Driver:</strong> ' + esc(d.driver_version) + '</p>';
+      if (d.cuda_version) h += '<p><strong>CUDA:</strong> ' + esc(d.cuda_version) + '</p>';
+
+      if (d.devices && d.devices.length > 0) {
+        h += '<table class="data-table"><thead><tr><th>Device</th><th>Memory</th><th>Utilization</th></tr></thead><tbody>';
+        d.devices.forEach(function(dev) {
+          h += '<tr><td>' + esc(dev.name) + '</td><td>' + esc(dev.memory_total || '') + '</td><td>' + esc(dev.utilization || '') + '</td></tr>';
+        });
+        h += '</tbody></table>';
+      }
+      h += '</div>';
+    }
+
+    h += buildSubTests(result) + buildRemediation(result) + '</div>';
+    return h;
+  },
+
+  dns: function(result) {
+    var h = '<div class="test-result-enhanced">' + buildHeader(result, 'DNS Resolution') + buildMessage(result);
+    var sub = result.sub_tests || {};
+    var keys = Object.keys(sub);
+    if (keys.length > 0) {
       h += '<div class="sub-tests-section"><div class="step-timeline">';
-      for (var si = 0; si < steps.length; si++) {
-        var sn = steps[si], st = sub[sn];
-        if (!st) continue;
+      for (var i = 0; i < keys.length; i++) {
+        var hostname = keys[i], st = sub[hostname];
         var sok = st.success;
         h += '<div class="step-item">';
         h += '<div class="step-icon ' + (sok ? 'step-icon-ok' : 'step-icon-fail') + '">' + (sok ? '\u2713' : '\u2717') + '</div>';
         h += '<div class="step-content">';
-        h += '<div class="step-name">' + esc(stepLabels[sn] || sn) + '</div>';
+        h += '<div class="step-name">' + esc(hostname) + '</div>';
         h += '<div class="step-message">' + esc(st.message || '') + '</div>';
-        // Show speed details for upload/download
-        if (st.details) {
-          var deets = [];
-          if (st.details.upload_speed_mbps) deets.push('speed: ' + st.details.upload_speed_mbps + ' MB/s');
-          if (st.details.download_speed_mbps) deets.push('speed: ' + st.details.download_speed_mbps + ' MB/s');
-          if (st.details.size_bytes) deets.push('size: ' + st.details.size_bytes + ' bytes');
-          if (st.details.content_verified) deets.push('verified: \u2713');
-          if (deets.length > 0) {
-            h += '<div class="step-details">';
-            deets.forEach(function(d) { h += '<span class="detail-tag">' + esc(d) + '</span>'; });
-            h += '</div>';
-          }
-        }
+        var tags = [];
+        if (st.ip_addresses && st.ip_addresses.length > 0) tags.push('<span class="detail-tag"><strong>IPs:</strong> ' + esc(st.ip_addresses.join(', ')) + '</span>');
+        if (st.latency_ms != null) tags.push('<span class="detail-tag"><strong>latency:</strong> ' + esc(st.latency_ms.toFixed(1) + 'ms') + '</span>');
+        if (tags.length > 0) h += '<div class="step-details">' + tags.join('') + '</div>';
+        if (st.remediation) h += '<div class="remediation">\uD83D\uDCA1 <em>' + esc(st.remediation) + '</em></div>';
         h += '</div></div>';
       }
       h += '</div></div>';
     }
-
     h += buildRemediation(result) + '</div>';
     return h;
   },
 
   ssl: function(result) {
-    let h = '<div class="test-result-enhanced">' + buildHeader(result, 'SSL Certificates') + buildMessage(result);
-    const sub = result.sub_tests || {};
+    var h = '<div class="test-result-enhanced">' + buildHeader(result, 'SSL Certificates') + buildMessage(result);
+    var sub = result.sub_tests || {};
 
-    for (const [name, t] of Object.entries(sub)) {
-      const ok = t.success;
+    for (var name in sub) {
+      var t = sub[name];
+      var ok = t.success;
       h += '<div class="sub-test-item ' + (ok ? 'sub-test-success' : 'sub-test-error') + '">';
       h += '<div class="sub-test-header">' + (ok ? '\u2705' : '\u274C') + ' <strong>' + esc(name) + '</strong></div>';
       h += '<div class="sub-test-message">' + esc(t.message) + '</div>';
 
-      // Certificate details
       if (t.details) {
-        const d = t.details;
+        var d = t.details;
         if (d.subject) h += '<div class="cert-detail"><strong>Subject:</strong> ' + esc(d.subject) + '</div>';
         if (d.issuer) h += '<div class="cert-detail"><strong>Issuer:</strong> ' + esc(d.issuer) + '</div>';
         if (d.not_after) h += '<div class="cert-detail"><strong>Expires:</strong> ' + esc(d.not_after) +
@@ -307,39 +455,6 @@ const FORMATTERS = {
     }
 
     h += buildRemediation(result) + '</div>';
-    return h;
-  },
-
-  gpu: function(result) {
-    let h = '<div class="test-result-enhanced">' + buildHeader(result, 'GPU Detection') + buildMessage(result);
-
-    if (result.details) {
-      const d = result.details;
-      h += '<div class="detail-section">';
-      if (d.gpu_available !== undefined) {
-        h += '<p><strong>GPU Available:</strong> ' + (d.gpu_available ? '\u2705 Yes' : '\u274C No') + '</p>';
-      }
-      if (d.gpu_count) h += '<p><strong>GPU Count:</strong> ' + esc(String(d.gpu_count)) + '</p>';
-      if (d.driver_version) h += '<p><strong>Driver:</strong> ' + esc(d.driver_version) + '</p>';
-      if (d.cuda_version) h += '<p><strong>CUDA:</strong> ' + esc(d.cuda_version) + '</p>';
-
-      if (d.devices && d.devices.length > 0) {
-        h += '<table class="data-table"><thead><tr><th>Device</th><th>Memory</th><th>Utilization</th></tr></thead><tbody>';
-        d.devices.forEach(dev => {
-          h += '<tr><td>' + esc(dev.name) + '</td><td>' + esc(dev.memory_total || '') + '</td><td>' + esc(dev.utilization || '') + '</td></tr>';
-        });
-        h += '</tbody></table>';
-      }
-      h += '</div>';
-    }
-
-    h += buildSubTests(result) + buildRemediation(result) + '</div>';
-    return h;
-  },
-
-  documentintelligence: function(result) {
-    let h = '<div class="test-result-enhanced">' + buildHeader(result, 'Document Intelligence') + buildMessage(result);
-    h += buildSubTests(result) + buildRemediation(result) + '</div>';
     return h;
   }
 };
