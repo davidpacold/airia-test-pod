@@ -1,284 +1,182 @@
 # =============================================================================
 # AIRIA TEST POD - EXAMPLE VALUES
 # =============================================================================
-# Copy this file and customize for your environment.
-# Only uncomment/enable the sections you need.
+# Copy this file, fill in your values, and deploy:
 #
-# Usage:
-#   helm upgrade airia-test-pod oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
-#     -n airia -f my-values.yaml
-# =============================================================================
-
-# ── Deployment ───────────────────────────────────────────────────────────────
-
-replicaCount: 1
-
-image:
-  repository: ghcr.io/davidpacold/airia-test-pod
-  pullPolicy: Always
-  # tag: ""  # Defaults to Chart.AppVersion (e.g., v1.0.210)
-
-# imagePullSecrets:
-#   - name: my-registry-secret
-
-# ── Service & Ingress ────────────────────────────────────────────────────────
-
-service:
-  type: ClusterIP
-  port: 80
-  targetPort: 8080
-
-ingress:
-  enabled: false
-  className: "nginx"
-  annotations:
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
-    nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
-  hosts:
-    - host: test.example.com
-      paths:
-        - path: /
-          pathType: Prefix
-  tls: []
-  # - secretName: airia-test-pod-tls
-  #   hosts:
-  #     - test.example.com
-
-# ── Resources ────────────────────────────────────────────────────────────────
-
-resources:
-  limits:
-    cpu: 500m
-    memory: 512Mi
-    # nvidia.com/gpu: 1  # Uncomment for GPU testing
-  requests:
-    cpu: 100m
-    memory: 256Mi
-
-# ── Service Account ─────────────────────────────────────────────────────────
-
-serviceAccount:
-  create: true
-  annotations: {}
-  # AWS EKS IRSA:
-  # annotations:
-  #   eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/airia-test-pod
-  name: ""
-
-# ── Security Context ────────────────────────────────────────────────────────
-
-podSecurityContext:
-  runAsNonRoot: true
-  runAsUser: 1000
-  fsGroup: 1000
-  seccompProfile:
-    type: RuntimeDefault
-
-securityContext:
-  allowPrivilegeEscalation: false
-  capabilities:
-    drop:
-    - ALL
-  readOnlyRootFilesystem: true
-  runAsNonRoot: true
-  runAsUser: 1000
-
-# ── Pod Diagnostics ─────────────────────────────────────────────────────────
-# Enables cross-namespace pod detail collection (logs, env vars, events).
-# Requires elevated ClusterRole RBAC (read-only + exec).
-
-diagnostics:
-  enabled: false  # Set to true to enable diagnostics collection
-
-# ── Namespace ────────────────────────────────────────────────────────────────
-
-namespace:
-  create: false
-  name: "airia"
-
-# ── Version Checking ────────────────────────────────────────────────────────
-
-versionCheck:
-  enabled: true
-  useOCI: true
-  ociRepo: "oci://ghcr.io/davidpacold/airia-test-pod/charts"
-  strict: false
-
-# ── Autoscaling (optional) ──────────────────────────────────────────────────
-
-autoscaling:
-  enabled: false
-  minReplicas: 1
-  maxReplicas: 3
-  targetCPUUtilizationPercentage: 80
-
-# ── Scheduling (optional) ───────────────────────────────────────────────────
-
-nodeSelector: {}
-tolerations: []
-affinity: {}
-podAnnotations: {}
-
-# ── NGINX Ingress Controller (optional) ─────────────────────────────────────
-# Set enabled: true only if you do NOT have an existing ingress controller.
-
-ingress-nginx:
-  enabled: false
-  controller:
-    watchIngressWithoutClass: true
-    scope:
-      enabled: false
-    ingressClassResource:
-      default: true
-    service:
-      type: LoadBalancer
-
-# =============================================================================
-# APPLICATION CONFIGURATION
+#   helm upgrade --install airia-test-pod \
+#     oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
+#     -n airia --create-namespace -f my-values.yaml
+#
+# Only enable the tests you need — disabled tests show as "skipped" in the UI.
+# For the full list of options, see: helm/airia-test-pod/values.yaml
 # =============================================================================
 
 config:
   # ── Authentication (Required) ──────────────────────────────────────────────
   auth:
     username: "admin"
-    password: "changeme"                     # CHANGE THIS in production
-    secretKey: "your-super-secret-key-change-this"  # Used for JWT tokens
+    password: ""                               # CHANGE THIS
+    secretKey: ""                              # Generate with: openssl rand -hex 32
 
-  # ── PostgreSQL Database ────────────────────────────────────────────────────
+  # ╔═════════════════════════════════════════════════════════════════════════╗
+  # ║                            DATABASES                                   ║
+  # ╚═════════════════════════════════════════════════════════════════════════╝
+
+  # ── PostgreSQL Database ──────────────────────────────────────────────────
   postgresql:
     enabled: false
-    host: "your-postgres-server.postgres.database.azure.com"
+    host: ""                                   # e.g., my-server.postgres.database.azure.com
     port: "5432"
     database: "postgres"
-    sslmode: "require"    # disable, require, verify-ca, verify-full
+    sslmode: "require"                         # disable, require, verify-ca, verify-full
     username: ""
     password: ""
 
-  # ── Apache Cassandra ───────────────────────────────────────────────────────
+  # ── Apache Cassandra ─────────────────────────────────────────────────────
   cassandra:
     enabled: false
-    hosts: ""              # Comma-separated: host1,host2,host3
+    hosts: ""                                  # Comma-separated: host1,host2,host3
     port: "9042"
     username: ""
     password: ""
-    keyspace: ""
+    keyspace: ""                               # Optional
     datacenter: "datacenter1"
     useSsl: false
 
-  # ── Azure Blob Storage ────────────────────────────────────────────────────
+  # ╔═════════════════════════════════════════════════════════════════════════╗
+  # ║                          OBJECT STORAGE                                ║
+  # ╚═════════════════════════════════════════════════════════════════════════╝
+
+  # ── Azure Blob Storage ──────────────────────────────────────────────────
   blobStorage:
     enabled: false
     accountName: ""
     accountKey: ""
     containerName: "test-container"
 
-  # ── S3 Compatible Storage ────────────────────────────────────────────────
+  # ── S3 Compatible Storage (MinIO, Ceph, Wasabi, etc.) ───────────────────
   s3Compatible:
     enabled: false
-    endpointUrl: "https://s3-compatible.example.com"
+    endpointUrl: ""                            # e.g., https://minio.example.com
     accessKey: ""
     secretKey: ""
     bucketName: "test-bucket"
-    secure: true
+    secure: true                               # Use HTTPS
 
-  # ── Amazon S3 ─────────────────────────────────────────────────────────────
+  # ── Amazon S3 ───────────────────────────────────────────────────────────
   s3:
     enabled: false
     region: "us-east-1"
     accessKeyId: ""
     secretAccessKey: ""
-    sessionToken: ""       # Optional: for temporary credentials
+    sessionToken: ""                           # Optional: for temporary credentials
     bucketName: "test-bucket"
-    endpointUrl: ""        # Optional: for custom S3-compatible endpoints
+    endpointUrl: ""                            # Optional: custom S3-compatible endpoint
 
-  # ── Azure OpenAI ──────────────────────────────────────────────────────────
+  # ╔═════════════════════════════════════════════════════════════════════════╗
+  # ║                        AI & MACHINE LEARNING                           ║
+  # ╚═════════════════════════════════════════════════════════════════════════╝
+
+  # ── Azure OpenAI ────────────────────────────────────────────────────────
   azureOpenai:
     enabled: false
-    endpoint: ""
+    endpoint: ""                               # e.g., https://my-openai.openai.azure.com/
     apiKey: ""
     apiVersion: "2024-02-01"
-    chatDeployment: ""
-    embeddingDeployment: ""
-    visionDeployment: ""   # Optional
+    chatDeployment: ""                         # e.g., gpt-4o
+    embeddingDeployment: ""                    # Optional: e.g., text-embedding-ada-002
+    visionDeployment: ""                       # Optional: e.g., gpt-4o (with vision)
 
-  # ── AWS Bedrock ───────────────────────────────────────────────────────────
+  # ── AWS Bedrock ─────────────────────────────────────────────────────────
   bedrock:
     enabled: false
     region: "us-east-1"
     accessKeyId: ""
     secretAccessKey: ""
-    chatModelId: ""
-    embeddingModelId: ""   # Optional
-    visionModelId: ""      # Optional
+    chatModelId: ""                            # e.g., anthropic.claude-3-haiku-20240307-v1:0
+    embeddingModelId: ""                       # Optional
+    visionModelId: ""                          # Optional
 
-  # ── OpenAI Direct ─────────────────────────────────────────────────────────
+  # ── OpenAI Direct ───────────────────────────────────────────────────────
   openaiDirect:
     enabled: false
     apiKey: ""
     model: "gpt-4o-mini"
 
-  # ── Anthropic ─────────────────────────────────────────────────────────────
+  # ── Anthropic ───────────────────────────────────────────────────────────
   anthropic:
     enabled: false
     apiKey: ""
     model: "claude-sonnet-4-20250514"
 
-  # ── Google Gemini ─────────────────────────────────────────────────────────
+  # ── Google Gemini ───────────────────────────────────────────────────────
   gemini:
     enabled: false
     apiKey: ""
     model: "gemini-2.0-flash"
 
-  # ── Mistral AI ────────────────────────────────────────────────────────────
+  # ── Mistral AI ──────────────────────────────────────────────────────────
   mistral:
     enabled: false
     apiKey: ""
     model: "mistral-small-latest"
 
-  # ── Vision Model (OpenAI-compatible) ──────────────────────────────────────
+  # ── Vision Model (OpenAI-compatible) ────────────────────────────────────
+  # For self-hosted or Azure ML vision endpoints (LLaMA Vision, etc.)
   visionModel:
     enabled: false
-    endpoint: ""           # Full URL: https://my-model.region.inference.ml.azure.com
+    endpoint: ""                               # e.g., https://my-model.inference.ml.azure.com
     apiKey: ""
-    model: ""              # Optional: model name if endpoint serves multiple
+    model: ""                                  # Optional: model name
 
-  # ── Dedicated Embedding (OpenAI-compatible) ──────────────────────────────
+  # ── Dedicated Embedding (OpenAI-compatible) ─────────────────────────────
+  # For standalone embedding endpoints (LM Studio, vLLM, Ollama, etc.)
   dedicatedEmbedding:
     enabled: false
-    baseUrl: ""            # e.g., http://host.docker.internal:1234/v1
-    apiKey: ""
-    model: ""              # e.g., text-embedding-qwen3-embedding-0.6b
-    dimensions: 0          # Optional: validate returned vector matches expected size
+    baseUrl: ""                                # e.g., http://embedding-server:1234/v1
+    apiKey: ""                                 # Optional: some servers don't require auth
+    model: ""                                  # e.g., text-embedding-qwen3-embedding-0.6b
+    dimensions: 0                              # Optional: validate vector size (0 = skip)
 
-  # ── Azure Document Intelligence ───────────────────────────────────────────
+  # ── Azure Document Intelligence ─────────────────────────────────────────
   documentIntelligence:
     enabled: false
-    endpoint: "https://your-doc-intel.cognitiveservices.azure.com/"
+    endpoint: ""                               # e.g., https://my-docintel.cognitiveservices.azure.com/
     apiKey: ""
-    model: "prebuilt-document"  # prebuilt-document, prebuilt-invoice, prebuilt-receipt, etc.
+    model: "prebuilt-document"                 # prebuilt-document, prebuilt-invoice, etc.
+    testUrl: ""                                # Optional: URL to a test document
+    timeout: 60                                # Seconds to wait for analysis
 
-  # ── DNS Resolution ────────────────────────────────────────────────────────
+  # ╔═════════════════════════════════════════════════════════════════════════╗
+  # ║                          INFRASTRUCTURE                                ║
+  # ╚═════════════════════════════════════════════════════════════════════════╝
+
+  # ── DNS Resolution ──────────────────────────────────────────────────────
   dns:
     enabled: false
-    hostnames: ""          # Comma-separated: "api.example.com,db.internal"
+    hostnames: ""                              # Comma-separated: "api.example.com,db.internal"
     timeout: 10
 
-  # ── SSL Certificate Validation ────────────────────────────────────────────
+  # ── SSL Certificate Validation ──────────────────────────────────────────
   ssl:
     enabled: false
-    testUrls: "https://api.example.com,https://app.example.com"
+    testUrls: ""                               # Comma-separated: "https://api.example.com"
     connectTimeout: 10
-    warningDays: 30
+    warningDays: 30                            # Warn if cert expires within N days
 
-  # ── Kubernetes Storage (always enabled) ───────────────────────────────────
+  # ── Kubernetes Storage (always enabled) ─────────────────────────────────
   kubernetes:
     storageClass: "default"
     testPvcSize: "1Gi"
 
-  # ── GPU Detection ─────────────────────────────────────────────────────────
+  # ── GPU Detection ───────────────────────────────────────────────────────
   gpu:
-    enabled: true
-    required: false        # Set true to FAIL if no GPU found
+    enabled: false
+    required: false                            # Set true to FAIL if no GPU found
+
+# =============================================================================
+# ADVANCED (most users won't need to change these)
+# =============================================================================
+# For ingress, resources, security context, diagnostics, and other advanced
+# settings, see the full values.yaml reference:
+#   helm/airia-test-pod/values.yaml
