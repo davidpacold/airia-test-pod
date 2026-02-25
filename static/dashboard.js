@@ -384,6 +384,15 @@ async function resolveDns() {
 
 /* ── Init ────────────────────────────────────────────────────── */
 window.addEventListener('load', function() {
+  // Bind test buttons via data attributes (CSP-safe, no inline onclick)
+  document.querySelectorAll('[data-test-id]').forEach(function(btn) {
+    btn.addEventListener('click', function() { runTest(this.dataset.testId); });
+  });
+  var runAllBtn = document.getElementById('runAllTestsBtn');
+  if (runAllBtn) runAllBtn.addEventListener('click', runAllTests);
+  var dnsBtn = document.getElementById('dns-resolve-btn');
+  if (dnsBtn) dnsBtn.addEventListener('click', resolveDns);
+
   checkTestStatus();
   loadVersion();
 });
