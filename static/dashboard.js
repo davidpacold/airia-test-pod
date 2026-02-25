@@ -930,6 +930,8 @@ function buildDiagProgress(data) {
         if (/status/i.test(detail)) subStep = 'status';
         else if (/describe/i.test(detail)) subStep = 'describe';
         else if (/env/i.test(detail)) subStep = 'env vars';
+        else if (/secrets/i.test(detail)) subStep = 'secrets';
+        else if (/configmaps/i.test(detail)) subStep = 'configmaps';
         else if (/logs/i.test(detail)) subStep = 'logs';
         if (subStep) h += ' <span class="diag-pod-substep">' + subStep + '</span>';
         h += '</div>';

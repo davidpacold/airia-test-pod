@@ -183,9 +183,15 @@ class DiagnosticsCollector:
 
             output_dir = output_dirs[0]
 
-            # Count pods
-            pods_dir = output_dir / "pods"
-            pod_count = len(list(pods_dir.iterdir())) if pods_dir.exists() else 0
+            # Count pods (one .txt per pod, excluding _extraction-info.txt)
+            pod_count = len([
+                f for f in output_dir.iterdir()
+                if f.suffix == ".txt" and not f.name.startswith("_")
+                and f.name not in (
+                    "namespace-events.txt", "services.txt",
+                    "configmaps-list.txt", "secrets-list.txt",
+                )
+            ])
 
             # Create tar.gz archive
             self._update_progress("archive", "Creating archive...")
