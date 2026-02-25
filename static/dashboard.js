@@ -104,18 +104,29 @@ function buildSubTests(result) {
     h += '<div class="sub-test-item ' + (ok ? 'sub-test-success' : 'sub-test-error') + '">';
     h += '<div class="sub-test-header">' + (ok ? '\u2705' : '\u274C') + ' <strong>' + esc(name) + '</strong></div>';
     h += '<div class="sub-test-message">' + esc(t.message) + '</div>';
-    if (t.details) {
-      // Show key details as compact list
-      const skip = new Set(['success', 'message', 'remediation', 'error', 'error_type']);
-      const entries = Object.entries(t.details).filter(([k]) => !skip.has(k));
-      if (entries.length > 0) {
-        h += '<div class="sub-test-details">';
-        for (const [k, v] of entries) {
-          const display = typeof v === 'object' ? JSON.stringify(v) : String(v);
-          h += '<span class="detail-tag"><strong>' + esc(k) + ':</strong> ' + esc(display) + '</span> ';
-        }
-        h += '</div>';
+    // Collect displayable details from both top-level and nested details
+    var skip = new Set(['success', 'message', 'remediation', 'error', 'error_type']);
+    var allDetails = [];
+    // Top-level fields (AI tests put model, latency_seconds, response, etc. here)
+    for (var _k of Object.keys(t)) {
+      if (!skip.has(_k) && _k !== 'details') {
+        allDetails.push([_k, t[_k]]);
       }
+    }
+    // Nested details object
+    if (t.details) {
+      for (var _e of Object.entries(t.details)) {
+        if (!skip.has(_e[0])) allDetails.push(_e);
+      }
+    }
+    if (allDetails.length > 0) {
+      h += '<div class="sub-test-details">';
+      for (var _i = 0; _i < allDetails.length; _i++) {
+        var dk = allDetails[_i][0], dv = allDetails[_i][1];
+        var display = typeof dv === 'object' ? JSON.stringify(dv) : String(dv);
+        h += '<span class="detail-tag"><strong>' + esc(dk) + ':</strong> ' + esc(display) + '</span> ';
+      }
+      h += '</div>';
     }
     if (t.remediation) h += '<div class="remediation">\uD83D\uDCA1 <em>' + esc(t.remediation) + '</em></div>';
     h += '</div>';
@@ -372,8 +383,10 @@ async function resolveDns() {
   try {
     const resp = await axios.post('/api/tests/dns/resolve', { hostname: hostname });
     const d = resp.data;
-    if (d.success) {
-      resultEl.innerHTML = '<strong>' + esc(hostname) + '</strong>: ' + esc((d.addresses || []).join(', '));
+    if (d.resolved || d.success) {
+      var addrs = d.ip_addresses || d.addresses || [];
+      resultEl.innerHTML = '<strong>' + esc(hostname) + '</strong>: ' + esc(addrs.join(', ')) +
+        (d.latency_ms ? ' <em>(' + d.latency_ms.toFixed(1) + 'ms)</em>' : '');
     } else {
       resultEl.innerHTML = '<strong>Failed:</strong> ' + esc(d.message || 'Resolution failed');
     }
