@@ -1,21 +1,276 @@
-# basic-values.yaml - Minimal configuration for Airia Test Pod
-# Copy and customize for your environment
+# =============================================================================
+# AIRIA TEST POD - EXAMPLE VALUES
+# =============================================================================
+# Copy this file and customize for your environment.
+# Only uncomment/enable the sections you need.
+#
+# Usage:
+#   helm upgrade airia-test-pod oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
+#     -n airia -f my-values.yaml
+# =============================================================================
 
-# Authentication
-auth:
-  username: admin
-  password: changeme  # CHANGE THIS
+# ── Deployment ───────────────────────────────────────────────────────────────
 
-# PostgreSQL (optional)
+replicaCount: 1
+
+image:
+  repository: ghcr.io/davidpacold/airia-test-pod
+  pullPolicy: Always
+  # tag: ""  # Defaults to Chart.AppVersion (e.g., v1.0.210)
+
+# imagePullSecrets:
+#   - name: my-registry-secret
+
+# ── Service & Ingress ────────────────────────────────────────────────────────
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+  hosts:
+    - host: test.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  # - secretName: airia-test-pod-tls
+  #   hosts:
+  #     - test.example.com
+
+# ── Resources ────────────────────────────────────────────────────────────────
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+    # nvidia.com/gpu: 1  # Uncomment for GPU testing
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+# ── Service Account ─────────────────────────────────────────────────────────
+
+serviceAccount:
+  create: true
+  annotations: {}
+  # AWS EKS IRSA:
+  # annotations:
+  #   eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/airia-test-pod
+  name: ""
+
+# ── Security Context ────────────────────────────────────────────────────────
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# ── Pod Diagnostics ─────────────────────────────────────────────────────────
+# Enables cross-namespace pod detail collection (logs, env vars, events).
+# Requires elevated ClusterRole RBAC (read-only + exec).
+
+diagnostics:
+  enabled: false  # Set to true to enable diagnostics collection
+
+# ── Namespace ────────────────────────────────────────────────────────────────
+
+namespace:
+  create: false
+  name: "airia"
+
+# ── Version Checking ────────────────────────────────────────────────────────
+
+versionCheck:
+  enabled: true
+  useOCI: true
+  ociRepo: "oci://ghcr.io/davidpacold/airia-test-pod/charts"
+  strict: false
+
+# ── Autoscaling (optional) ──────────────────────────────────────────────────
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
+# ── Scheduling (optional) ───────────────────────────────────────────────────
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podAnnotations: {}
+
+# ── NGINX Ingress Controller (optional) ─────────────────────────────────────
+# Set enabled: true only if you do NOT have an existing ingress controller.
+
+ingress-nginx:
+  enabled: false
+  controller:
+    watchIngressWithoutClass: true
+    scope:
+      enabled: false
+    ingressClassResource:
+      default: true
+    service:
+      type: LoadBalancer
+
+# =============================================================================
+# APPLICATION CONFIGURATION
+# =============================================================================
+
 config:
-  postgres:
-    host: your-postgres-host
-    user: postgres
-    password: your-password
-    database: postgres
+  # ── Authentication (Required) ──────────────────────────────────────────────
+  auth:
+    username: "admin"
+    password: "changeme"                     # CHANGE THIS in production
+    secretKey: "your-super-secret-key-change-this"  # Used for JWT tokens
 
-  # Azure OpenAI (optional)
+  # ── PostgreSQL Database ────────────────────────────────────────────────────
+  postgresql:
+    enabled: false
+    host: "your-postgres-server.postgres.database.azure.com"
+    port: "5432"
+    database: "postgres"
+    sslmode: "require"    # disable, require, verify-ca, verify-full
+    username: ""
+    password: ""
+
+  # ── Apache Cassandra ───────────────────────────────────────────────────────
+  cassandra:
+    enabled: false
+    hosts: ""              # Comma-separated: host1,host2,host3
+    port: "9042"
+    username: ""
+    password: ""
+    keyspace: ""
+    datacenter: "datacenter1"
+    useSsl: false
+
+  # ── Azure Blob Storage ────────────────────────────────────────────────────
+  blobStorage:
+    enabled: false
+    accountName: ""
+    accountKey: ""
+    containerName: "test-container"
+
+  # ── MinIO (S3-compatible) ─────────────────────────────────────────────────
+  minio:
+    enabled: false
+    endpointUrl: "https://minio.example.com"
+    accessKey: ""
+    secretKey: ""
+    bucketName: "test-bucket"
+    secure: true
+
+  # ── Amazon S3 ─────────────────────────────────────────────────────────────
+  s3:
+    enabled: false
+    region: "us-east-1"
+    accessKeyId: ""
+    secretAccessKey: ""
+    sessionToken: ""       # Optional: for temporary credentials
+    bucketName: "test-bucket"
+    endpointUrl: ""        # Optional: for custom S3-compatible endpoints
+
+  # ── Azure OpenAI ──────────────────────────────────────────────────────────
   azureOpenai:
-    endpoint: https://your-resource.openai.azure.com
-    apiKey: your-api-key
-    deploymentName: gpt-4
+    enabled: false
+    endpoint: ""
+    apiKey: ""
+    apiVersion: "2024-02-01"
+    chatDeployment: ""
+    embeddingDeployment: ""
+    visionDeployment: ""   # Optional
+
+  # ── AWS Bedrock ───────────────────────────────────────────────────────────
+  bedrock:
+    enabled: false
+    region: "us-east-1"
+    accessKeyId: ""
+    secretAccessKey: ""
+    chatModelId: ""
+    embeddingModelId: ""   # Optional
+    visionModelId: ""      # Optional
+
+  # ── OpenAI Direct ─────────────────────────────────────────────────────────
+  openaiDirect:
+    enabled: false
+    apiKey: ""
+    model: "gpt-4o-mini"
+
+  # ── Anthropic ─────────────────────────────────────────────────────────────
+  anthropic:
+    enabled: false
+    apiKey: ""
+    model: "claude-sonnet-4-20250514"
+
+  # ── Google Gemini ─────────────────────────────────────────────────────────
+  gemini:
+    enabled: false
+    apiKey: ""
+    model: "gemini-2.0-flash"
+
+  # ── Mistral AI ────────────────────────────────────────────────────────────
+  mistral:
+    enabled: false
+    apiKey: ""
+    model: "mistral-small-latest"
+
+  # ── Vision Model (OpenAI-compatible) ──────────────────────────────────────
+  visionModel:
+    enabled: false
+    endpoint: ""           # Full URL: https://my-model.region.inference.ml.azure.com
+    apiKey: ""
+    model: ""              # Optional: model name if endpoint serves multiple
+
+  # ── Azure Document Intelligence ───────────────────────────────────────────
+  documentIntelligence:
+    enabled: false
+    endpoint: "https://your-doc-intel.cognitiveservices.azure.com/"
+    apiKey: ""
+    model: "prebuilt-document"  # prebuilt-document, prebuilt-invoice, prebuilt-receipt, etc.
+
+  # ── DNS Resolution ────────────────────────────────────────────────────────
+  dns:
+    enabled: false
+    hostnames: ""          # Comma-separated: "api.example.com,db.internal"
+    timeout: 10
+
+  # ── SSL Certificate Validation ────────────────────────────────────────────
+  ssl:
+    enabled: false
+    testUrls: "https://api.example.com,https://app.example.com"
+    connectTimeout: 10
+    warningDays: 30
+
+  # ── Kubernetes Storage (always enabled) ───────────────────────────────────
+  kubernetes:
+    storageClass: "default"
+    testPvcSize: "1Gi"
+
+  # ── GPU Detection ─────────────────────────────────────────────────────────
+  gpu:
+    enabled: true
+    required: false        # Set true to FAIL if no GPU found
