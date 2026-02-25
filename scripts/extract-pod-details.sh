@@ -115,6 +115,8 @@ else
         kubectl logs "${POD}" -n "${NAMESPACE}" -c "${CONTAINER}" \
           --tail=1000 > "${LOG_FILE}" 2>&1 || true
       fi
+      # Remove empty log files (no output in the time window)
+      [ ! -s "${LOG_FILE}" ] && rm -f "${LOG_FILE}"
     done
 
     # Previous container logs (if restarted)
