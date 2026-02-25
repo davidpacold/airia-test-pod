@@ -84,6 +84,7 @@ class BaseAIProviderTest(BaseTest):
                 chat_result = self._test_chat()
                 latency = round(time.time() - start, 2)
                 chat_result["latency_seconds"] = latency
+                chat_result["prompt"] = CHAT_PROMPT
                 result.add_sub_test("chat", {
                     "success": True,
                     "message": chat_result.get("message", "Chat test passed"),
@@ -104,6 +105,7 @@ class BaseAIProviderTest(BaseTest):
                 emb_result = self._test_embedding()
                 latency = round(time.time() - start, 2)
                 emb_result["latency_seconds"] = latency
+                emb_result["input"] = EMBEDDING_INPUT
                 result.add_sub_test("embedding", {
                     "success": True,
                     "message": emb_result.get("message", "Embedding test passed"),
@@ -124,6 +126,7 @@ class BaseAIProviderTest(BaseTest):
                 vis_result = self._test_vision()
                 latency = round(time.time() - start, 2)
                 vis_result["latency_seconds"] = latency
+                vis_result["prompt"] = VISION_PROMPT
                 result.add_sub_test("vision", {
                     "success": True,
                     "message": vis_result.get("message", "Vision test passed"),
