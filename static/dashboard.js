@@ -107,13 +107,11 @@ function buildSubTests(result) {
     // Collect displayable details from both top-level and nested details
     var skip = new Set(['success', 'message', 'remediation', 'error', 'error_type']);
     var allDetails = [];
-    // Top-level fields (AI tests put model, latency_seconds, response, etc. here)
     for (var _k of Object.keys(t)) {
       if (!skip.has(_k) && _k !== 'details') {
         allDetails.push([_k, t[_k]]);
       }
     }
-    // Nested details object
     if (t.details) {
       for (var _e of Object.entries(t.details)) {
         if (!skip.has(_e[0])) allDetails.push(_e);
@@ -121,10 +119,35 @@ function buildSubTests(result) {
     }
     if (allDetails.length > 0) {
       h += '<div class="sub-test-details">';
+      // Show prompt/response as conversation pairs first
+      var promptVal = null, responseVal = null, inputVal = null, descVal = null;
+      var otherDetails = [];
       for (var _i = 0; _i < allDetails.length; _i++) {
         var dk = allDetails[_i][0], dv = allDetails[_i][1];
-        var display = typeof dv === 'object' ? JSON.stringify(dv) : String(dv);
-        h += '<span class="detail-tag"><strong>' + esc(dk) + ':</strong> ' + esc(display) + '</span> ';
+        if (dk === 'prompt') promptVal = dv;
+        else if (dk === 'response') responseVal = dv;
+        else if (dk === 'input') inputVal = dv;
+        else if (dk === 'description') descVal = dv;
+        else otherDetails.push([dk, dv]);
+      }
+      // Render prompt -> response pair
+      if (promptVal) {
+        h += '<span class="detail-tag detail-tag--prompt"><strong>Prompt:</strong> ' + esc(promptVal) + '</span>';
+      }
+      if (inputVal) {
+        h += '<span class="detail-tag detail-tag--prompt"><strong>Input:</strong> ' + esc(inputVal) + '</span>';
+      }
+      if (responseVal) {
+        h += '<span class="detail-tag detail-tag--response"><strong>Response:</strong> ' + esc(responseVal) + '</span>';
+      }
+      if (descVal) {
+        h += '<span class="detail-tag detail-tag--response"><strong>Description:</strong> ' + esc(descVal) + '</span>';
+      }
+      // Remaining details as inline tags
+      for (var _j = 0; _j < otherDetails.length; _j++) {
+        var ok2 = otherDetails[_j][0], ov = otherDetails[_j][1];
+        var display = typeof ov === 'object' ? JSON.stringify(ov) : String(ov);
+        h += '<span class="detail-tag"><strong>' + esc(ok2) + ':</strong> ' + esc(display) + '</span> ';
       }
       h += '</div>';
     }
