@@ -149,9 +149,9 @@ The Helm chart includes **automatic version checking**:
 helm upgrade airia-test-pod \
   oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
   --set versionCheck.strict=true \
-  -f your-config.yaml
+  -f your-config.yaml \
+  --namespace airia
 ```
-
 
 ---
 
@@ -171,16 +171,16 @@ docker run -d -p 8080:8080 \
 
 ```bash
 # Check pod logs
-kubectl logs -l app.kubernetes.io/name=airia-test-pod
+kubectl logs -n airia -l app.kubernetes.io/name=airia-test-pod
 
 # Verify services are accessible from the pod
-kubectl exec deployment/airia-test-pod -- nslookup your-server.postgres.database.azure.com
+kubectl exec -n airia deployment/airia-test-pod -- nslookup your-server.postgres.database.azure.com
 
 # Verify configuration was applied
-helm get values airia-test-pod
+helm get values airia-test-pod -n airia
 
 # Restart pod to pick up new config
-kubectl rollout restart deployment/airia-test-pod
+kubectl rollout restart -n airia deployment/airia-test-pod
 ```
 
 ---
@@ -188,9 +188,7 @@ kubectl rollout restart deployment/airia-test-pod
 ## 📖 Documentation
 
 - **[Deployment Guide](docs/deployment/deployment-guide.md)** - Complete deployment instructions
-
 - **[Example Values File](helm/airia-test-pod/examples/basic-values.yaml)** - Customer-ready config template
-
 
 
 ## 🤝 Support & Feedback
@@ -203,5 +201,5 @@ kubectl rollout restart deployment/airia-test-pod
 ## 🧹 Clean Up
 
 ```bash
-helm uninstall airia-test-pod
+helm uninstall airia-test-pod -n airia
 ```
