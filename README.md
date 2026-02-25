@@ -137,24 +137,6 @@ When tests fail, the dashboard provides detailed error descriptions, root cause 
 
 ---
 
-## 🔄 Version Management
-
-The Helm chart includes **automatic version checking**:
-- Checks if you're installing the latest version during upgrades
-- Warns you if a newer version is available
-- Optionally blocks upgrades if not using the latest (strict mode)
-
-```bash
-# Enable strict mode to enforce latest version
-helm upgrade airia-test-pod \
-  oci://ghcr.io/davidpacold/airia-test-pod/charts/airia-test-pod \
-  --set versionCheck.strict=true \
-  -f your-config.yaml \
-  --namespace airia
-```
-
----
-
 ## 🐳 Alternative: Docker for Local Testing
 
 ```bash
@@ -189,12 +171,6 @@ kubectl rollout restart -n airia deployment/airia-test-pod
 
 - **[Deployment Guide](docs/deployment/deployment-guide.md)** - Complete deployment instructions
 - **[Example Values File](helm/airia-test-pod/examples/basic-values.yaml)** - Customer-ready config template
-
-
-## 🤝 Support & Feedback
-
-- **Found an Issue?** [GitHub Issues](https://github.com/davidpacold/airia-test-pod/issues)
-- **Feature Requests**: [GitHub Discussions](https://github.com/davidpacold/airia-test-pod/discussions)
 
 ---
 
