@@ -16,9 +16,3 @@ sources:
 maintainers:
 - name: Airia Team
   email: support@airia.com
-
-dependencies:
-- name: ingress-nginx
-  version: "4.11.3"
-  repository: https://kubernetes.github.io/ingress-nginx
-  condition: ingress-nginx.enabled

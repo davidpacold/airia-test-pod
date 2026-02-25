@@ -1,4 +1,0 @@
-# Test values file with no tag field to test Chart.appVersion fallback
-image:
-  repository: ghcr.io/davidpacold/airia-test-pod
-  # tag field omitted entirely to test fallback
