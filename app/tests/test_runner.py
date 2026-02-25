@@ -9,7 +9,7 @@ from .base_test import TestResult, test_suite
 # Storage tests
 from .blob_storage_test import BlobStorageTest
 from .s3_test import S3Test
-from .minio_test import MinioTest
+from .s3_compatible_test import S3CompatibleTest
 
 # AI provider tests
 from .azure_openai_test import AzureOpenAITest
@@ -50,7 +50,7 @@ class TestRunner:
             # Storage (3)
             BlobStorageTest(),
             S3Test(),
-            MinioTest(),
+            S3CompatibleTest(),
             # AI providers (7)
             AzureOpenAITest(),
             BedrockTest(),

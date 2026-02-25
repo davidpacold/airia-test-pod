@@ -92,11 +92,11 @@ data:
   ssl-warning-days: {{ .Values.config.ssl.warningDays | quote }}
   {{- end }}
   
-  {{- if .Values.config.minio.enabled }}
-  # Minio S3-compatible storage configuration
-  minio-endpoint-url: {{ .Values.config.minio.endpointUrl | quote }}
-  minio-bucket-name: {{ .Values.config.minio.bucketName | quote }}
-  minio-secure: {{ .Values.config.minio.secure | quote }}
+  {{- if .Values.config.s3Compatible.enabled }}
+  # S3-compatible storage configuration
+  s3c-endpoint-url: {{ .Values.config.s3Compatible.endpointUrl | quote }}
+  s3c-bucket-name: {{ .Values.config.s3Compatible.bucketName | quote }}
+  s3c-secure: {{ .Values.config.s3Compatible.secure | quote }}
   {{- end }}
   
   {{- if .Values.config.s3.enabled }}

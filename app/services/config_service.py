@@ -164,26 +164,26 @@ class ConfigService(BaseService):
                 description="S3 bucket name for testing",
                 is_required=False,
             ),
-            "MINIO_ENDPOINT": ConfigItem(
-                key="MINIO_ENDPOINT",
+            "S3C_ENDPOINT": ConfigItem(
+                key="S3C_ENDPOINT",
                 value=None,
                 config_type=ConfigType.URL,
-                description="MinIO server endpoint URL",
+                description="S3-compatible storage endpoint URL",
                 is_required=False,
             ),
-            "MINIO_ACCESS_KEY": ConfigItem(
-                key="MINIO_ACCESS_KEY",
+            "S3C_ACCESS_KEY": ConfigItem(
+                key="S3C_ACCESS_KEY",
                 value=None,
                 config_type=ConfigType.STRING,
-                description="MinIO access key",
+                description="S3-compatible storage access key",
                 is_required=False,
                 is_secret=True,
             ),
-            "MINIO_SECRET_KEY": ConfigItem(
-                key="MINIO_SECRET_KEY",
+            "S3C_SECRET_KEY": ConfigItem(
+                key="S3C_SECRET_KEY",
                 value=None,
                 config_type=ConfigType.STRING,
-                description="MinIO secret key",
+                description="S3-compatible storage secret key",
                 is_required=False,
                 is_secret=True,
             ),
@@ -434,7 +434,7 @@ class ConfigService(BaseService):
         # Categorize configured services
         service_categories = {
             "database": ["POSTGRES_", "CASSANDRA_"],
-            "storage": ["AZURE_STORAGE_", "AWS_", "S3_", "MINIO_"],
+            "storage": ["AZURE_STORAGE_", "AWS_", "S3_", "S3C_"],
             "ai_ml": ["OPENAI_", "LLAMA_", "AZURE_OPENAI", "DOCUMENT_INTELLIGENCE"],
             "application": ["JWT_", "LOG_", "API_"],
         }

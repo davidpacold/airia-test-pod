@@ -44,7 +44,7 @@ services:
     # Cassandra needs more resources
     mem_limit: 2g
 
-  # MinIO for S3-compatible storage testing
+  # S3-compatible storage testing (using MinIO)
   minio:
     image: minio/minio:latest
     environment:
@@ -90,8 +90,8 @@ services:
       SECRET_KEY: integration-test-secret-key-for-local-testing
       PORT: 8080
       
-      # Storage configuration (MinIO)
-      # These would be used if we had S3/MinIO tests
+      # S3-compatible storage configuration
+      # These would be used if we had S3-compatible storage tests
       AWS_ACCESS_KEY_ID: integration_test_user
       AWS_SECRET_ACCESS_KEY: integration_test_password
       AWS_ENDPOINT_URL: http://minio:9000

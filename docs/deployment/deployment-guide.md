@@ -423,12 +423,12 @@ config:
     storageClass: "default"                            # Storage class name
     testPvcSize: "1Gi"                                 # PVC size for test
     
-  # MinIO S3-Compatible Storage (Optional)
-  minio:
-    enabled: false                                     # Enable/disable MinIO tests
-    endpointUrl: "https://minio.example.com"           # MinIO endpoint URL
-    accessKey: ""                                      # MinIO access key
-    secretKey: ""                                      # MinIO secret key
+  # S3 Compatible Storage (Optional)
+  s3Compatible:
+    enabled: false                                     # Enable/disable S3 compatible tests
+    endpointUrl: "https://s3.example.com"              # S3-compatible endpoint URL
+    accessKey: ""                                      # Access key
+    secretKey: ""                                      # Secret key
     bucketName: "test-bucket"                          # Bucket name for testing
     secure: true                                       # Use HTTPS
     

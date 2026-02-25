@@ -119,7 +119,7 @@ This guide consolidates the implementation approach for building a comprehensive
   - [x] Read/write operation testing
 
 ### Extended Testing Capabilities
-- [x] **Minio S3-Compatible Storage Test**
+- [x] **S3 Compatible Storage Test**
   - [x] S3 API compatibility testing
   - [x] Bucket operations validation
   - [x] Authentication verification

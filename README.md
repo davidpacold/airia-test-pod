@@ -97,7 +97,7 @@ These tests **must pass** for a successful Airia deployment:
 - **💾 Blob Storage** - Must have ONE of:
   - **Azure Blob Storage** - Authentication, file operations
   - **Amazon S3** - S3-compatible storage
-  - **MinIO** - S3-compatible storage
+  - **S3 Compatible** - S3-compatible storage (MinIO, etc.)
 - **⚙️ Kubernetes Storage (PVC)** - Storage classes, volume creation (always enabled)
 - **🔒 SSL Certificates** - Complete certificate chain validation
 

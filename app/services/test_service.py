@@ -42,7 +42,7 @@ class TestService(BaseService):
         from ..tests.dns_test import DNSTest
         from ..tests.document_intelligence_test import DocumentIntelligenceTest
         from ..tests.gemini_test import GeminiTest
-        from ..tests.minio_test import MinioTest
+        from ..tests.s3_compatible_test import S3CompatibleTest
         from ..tests.mistral_test import MistralTest
         from ..tests.openai_direct_test import OpenAIDirectTest
         from ..tests.postgres_test_v2 import PostgreSQLTestV2
@@ -54,7 +54,7 @@ class TestService(BaseService):
         test_classes = [
             BlobStorageTest,
             S3Test,
-            MinioTest,
+            S3CompatibleTest,
             AzureOpenAITest,
             BedrockTest,
             OpenAIDirectTest,

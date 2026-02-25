@@ -45,10 +45,10 @@
 {{- else }}
    ✗ Azure Blob Storage Test (disabled)
 {{- end }}
-{{- if .Values.config.minio.enabled }}
-   ✓ MinIO Storage Test
+{{- if .Values.config.s3Compatible.enabled }}
+   ✓ S3 Compatible Storage Test
 {{- else }}
-   ✗ MinIO Storage Test (disabled)
+   ✗ S3 Compatible Storage Test (disabled)
 {{- end }}
 {{- if .Values.config.s3.enabled }}
    ✓ Amazon S3 Storage Test

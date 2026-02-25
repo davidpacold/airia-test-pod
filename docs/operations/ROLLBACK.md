@@ -103,7 +103,7 @@ The rollback system uses comprehensive health checks to validate deployment succ
 ### Health Check Components
 - **Application Startup**: Validates basic application functionality
 - **Database Connectivity**: Checks PostgreSQL and Cassandra connections
-- **External Dependencies**: Validates Azure Blob, MinIO, S3 connectivity
+- **External Dependencies**: Validates Azure Blob, S3-compatible, S3 connectivity
 - **System Resources**: Monitors memory usage and disk space
 - **Configuration**: Validates all required settings are present
 

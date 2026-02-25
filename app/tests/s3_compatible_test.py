@@ -11,29 +11,29 @@ from botocore.exceptions import (ClientError, EndpointConnectionError,
 from .base_test import BaseTest, TestResult
 
 
-class MinioTest(BaseTest):
-    """Test Minio S3-compatible storage connectivity"""
+class S3CompatibleTest(BaseTest):
+    """Test S3-compatible storage connectivity"""
 
     def __init__(self):
         super().__init__()
-        # Get Minio configuration from environment
-        self.endpoint_url = os.getenv("MINIO_ENDPOINT_URL", "")
-        self.access_key = os.getenv("MINIO_ACCESS_KEY", "")
-        self.secret_key = os.getenv("MINIO_SECRET_KEY", "")
-        self.bucket_name = os.getenv("MINIO_BUCKET_NAME", "test-bucket")
-        self.secure = os.getenv("MINIO_SECURE", "true").lower() == "true"
+        # Get S3-compatible storage configuration from environment
+        self.endpoint_url = os.getenv("S3C_ENDPOINT_URL", "")
+        self.access_key = os.getenv("S3C_ACCESS_KEY", "")
+        self.secret_key = os.getenv("S3C_SECRET_KEY", "")
+        self.bucket_name = os.getenv("S3C_BUCKET_NAME", "test-bucket")
+        self.secure = os.getenv("S3C_SECURE", "true").lower() == "true"
 
     @property
     def test_name(self) -> str:
-        return "Minio Storage"
+        return "S3 Compatible Storage"
 
     @property
     def test_description(self) -> str:
-        return "Tests S3-compatible Minio storage connectivity, bucket access, and file operations"
+        return "Tests S3-compatible storage connectivity, bucket access, and file operations"
 
     @property
     def test_id(self) -> str:
-        return "minio"
+        return "s3compatible"
 
     @property
     def is_optional(self) -> bool:
@@ -44,7 +44,7 @@ class MinioTest(BaseTest):
         return 30
 
     def is_configured(self) -> bool:
-        """Check if Minio is configured"""
+        """Check if S3-compatible storage is configured"""
         return bool(
             self.endpoint_url
             and self.access_key
@@ -54,12 +54,12 @@ class MinioTest(BaseTest):
 
     def get_configuration_help(self) -> str:
         return (
-            "Minio storage testing requires configuration. "
+            "S3-compatible storage testing requires configuration. "
             "Configure using environment variables: "
-            "MINIO_ENDPOINT_URL (e.g., https://minio.example.com), "
-            "MINIO_ACCESS_KEY, MINIO_SECRET_KEY, "
-            "MINIO_BUCKET_NAME (default: test-bucket), "
-            "MINIO_SECURE (default: true)"
+            "S3C_ENDPOINT_URL (e.g., https://s3.example.com), "
+            "S3C_ACCESS_KEY, S3C_SECRET_KEY, "
+            "S3C_BUCKET_NAME (default: test-bucket), "
+            "S3C_SECURE (default: true)"
         )
 
     def run_test(self) -> TestResult:
@@ -68,7 +68,7 @@ class MinioTest(BaseTest):
 
         try:
             if not self.is_configured():
-                result.skip("Minio not configured")
+                result.skip("S3-compatible storage not configured")
                 return result
 
             # Test 1: Connection test
@@ -107,7 +107,7 @@ class MinioTest(BaseTest):
             if critical_tests_passed:
                 result.complete(
                     True,
-                    "Minio storage tests completed successfully",
+                    "S3-compatible storage tests completed successfully",
                     {
                         "endpoint": self.endpoint_url,
                         "bucket": self.bucket_name,
@@ -124,25 +124,24 @@ class MinioTest(BaseTest):
                     failed_tests.append("bucket_access")
 
                 result.fail(
-                    f"Minio storage tests failed: {', '.join(failed_tests)}",
-                    remediation="Check Minio endpoint, credentials, and network connectivity",
+                    f"S3-compatible storage tests failed: {', '.join(failed_tests)}",
+                    remediation="Check endpoint, credentials, and network connectivity",
                 )
 
         except Exception as e:
             result.fail(
-                f"Minio test failed: {str(e)}",
+                f"S3-compatible storage test failed: {str(e)}",
                 error=e,
-                remediation="Check Minio configuration and network connectivity",
+                remediation="Check S3-compatible storage configuration and network connectivity",
             )
 
         return result
 
     def _get_s3_client(self):
-        """Create S3 client for Minio"""
-        # Configure for Minio compatibility
+        """Create S3 client for S3-compatible storage"""
         config = Config(
             signature_version="s3v4",
-            s3={"addressing_style": "path"},  # Use path-style for Minio compatibility
+            s3={"addressing_style": "path"},  # Use path-style for compatibility
         )
 
         return boto3.client(
@@ -151,11 +150,11 @@ class MinioTest(BaseTest):
             aws_access_key_id=self.access_key,
             aws_secret_access_key=self.secret_key,
             config=config,
-            verify=True,  # Always verify SSL certificates when SSL is enabled
+            verify=True,
         )
 
     def _test_connection(self) -> Dict[str, Any]:
-        """Test basic connection to Minio"""
+        """Test basic connection to S3-compatible storage"""
         try:
             s3_client = self._get_s3_client()
 
@@ -164,7 +163,7 @@ class MinioTest(BaseTest):
 
             return {
                 "success": True,
-                "message": "Successfully connected to Minio",
+                "message": "Successfully connected to S3-compatible storage",
                 "details": {
                     "endpoint": self.endpoint_url,
                     "secure": self.secure,
@@ -174,23 +173,23 @@ class MinioTest(BaseTest):
         except EndpointConnectionError as e:
             return {
                 "success": False,
-                "message": f"Failed to connect to Minio endpoint: {str(e)}",
+                "message": f"Failed to connect to endpoint: {str(e)}",
                 "error": str(e),
-                "remediation": "Check Minio endpoint URL and network connectivity",
+                "remediation": "Check endpoint URL and network connectivity",
             }
         except NoCredentialsError:
             return {
                 "success": False,
-                "message": "Invalid or missing Minio credentials",
-                "remediation": "Check MINIO_ACCESS_KEY and MINIO_SECRET_KEY configuration",
+                "message": "Invalid or missing credentials",
+                "remediation": "Check S3C_ACCESS_KEY and S3C_SECRET_KEY configuration",
             }
         except ClientError as e:
             error_code = e.response["Error"]["Code"]
             return {
                 "success": False,
-                "message": f"Minio connection failed: {error_code}",
+                "message": f"Connection failed: {error_code}",
                 "error": str(e),
-                "remediation": "Check Minio credentials and permissions",
+                "remediation": "Check credentials and permissions",
             }
         except Exception as e:
             return {
@@ -278,7 +277,7 @@ class MinioTest(BaseTest):
                 "success": False,
                 "message": f"Bucket access failed: {error_code}",
                 "error": str(e),
-                "remediation": "Check bucket permissions and Minio credentials",
+                "remediation": "Check bucket permissions and credentials",
             }
         except Exception as e:
             return {
@@ -290,7 +289,7 @@ class MinioTest(BaseTest):
     def _test_file_operations(self) -> Dict[str, Any]:
         """Test file upload, download, and delete operations"""
         test_key = f"test-file-{uuid.uuid4().hex[:8]}.txt"
-        test_content = f"Minio test file created at {datetime.now(timezone.utc).isoformat()}"
+        test_content = f"S3-compatible storage test file created at {datetime.now(timezone.utc).isoformat()}"
 
         try:
             s3_client = self._get_s3_client()
@@ -312,7 +311,7 @@ class MinioTest(BaseTest):
                 return {
                     "success": False,
                     "message": "File content verification failed",
-                    "remediation": "Check Minio storage integrity",
+                    "remediation": "Check storage integrity",
                 }
 
             # Test 3: Delete file (cleanup)

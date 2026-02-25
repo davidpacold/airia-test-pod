@@ -340,8 +340,8 @@ const FORMATTERS = {
     return h;
   },
 
-  minio: function(result) {
-    var h = '<div class="test-result-enhanced">' + buildHeader(result, 'MinIO Storage') + buildMessage(result);
+  s3compatible: function(result) {
+    var h = '<div class="test-result-enhanced">' + buildHeader(result, 'S3 Compatible Storage') + buildMessage(result);
     var sub = result.sub_tests || {};
     var labels = { connection: 'Connect', list_buckets: 'List Buckets', bucket_access: 'Bucket Access', file_operations: 'File Ops' };
     h += buildStepTimeline(sub, ['connection', 'list_buckets', 'bucket_access', 'file_operations'], labels);

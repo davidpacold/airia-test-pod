@@ -340,31 +340,31 @@ spec:
                   name: {{ include "airia-test-pod.fullname" . }}-config
                   key: ssl-warning-days
             {{- end }}
-            {{- if .Values.config.minio.enabled }}
-            - name: MINIO_ENDPOINT_URL
+            {{- if .Values.config.s3Compatible.enabled }}
+            - name: S3C_ENDPOINT_URL
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-config
-                  key: minio-endpoint-url
-            - name: MINIO_BUCKET_NAME
+                  key: s3c-endpoint-url
+            - name: S3C_BUCKET_NAME
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-config
-                  key: minio-bucket-name
-            - name: MINIO_SECURE
+                  key: s3c-bucket-name
+            - name: S3C_SECURE
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "airia-test-pod.fullname" . }}-config
-                  key: minio-secure
-            - name: MINIO_ACCESS_KEY
+                  key: s3c-secure
+            - name: S3C_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "airia-test-pod.fullname" . }}-minio
+                  name: {{ include "airia-test-pod.fullname" . }}-s3c
                   key: access-key
-            - name: MINIO_SECRET_KEY
+            - name: S3C_SECRET_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "airia-test-pod.fullname" . }}-minio
+                  name: {{ include "airia-test-pod.fullname" . }}-s3c
                   key: secret-key
             {{- end }}
             {{- if .Values.config.s3.enabled }}

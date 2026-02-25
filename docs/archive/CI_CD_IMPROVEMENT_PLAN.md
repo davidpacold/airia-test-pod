@@ -254,7 +254,7 @@
   - ✅ Created comprehensive `app/health.py` with `HealthChecker` class
   - ✅ Added system resource monitoring using psutil (memory usage, disk space)
   - ✅ Implemented database connectivity checks for PostgreSQL and Cassandra
-  - ✅ Added external dependencies validation (Azure Blob, MinIO, S3)
+  - ✅ Added external dependencies validation (Azure Blob, S3-compatible, S3)
   - ✅ Enhanced `app/main.py` with `/health/live` and `/health/ready` endpoints
   - ✅ Updated Helm deployment templates with proper probe configuration
   - ✅ Enhanced Dockerfile with curl-based health check and improved startup period

@@ -201,7 +201,7 @@ affinity: {}
 #
 # 💾 OBJECT STORAGE
 #   - Azure Blob Storage ...................... Line 242
-#   - MinIO (S3-compatible) ................... Line 254
+#   - S3-Compatible Storage .................. Line 254
 #   - Amazon S3 ............................... Line 269
 #
 # 🤖 AI & MACHINE LEARNING
@@ -285,15 +285,15 @@ config:
     containerName: "test-container"
 
   # ---------------------------------------------------------------------------
-  # MINIO S3-COMPATIBLE STORAGE TEST (Optional)
+  # S3-COMPATIBLE STORAGE TEST (Optional)
   # ---------------------------------------------------------------------------
-  # UI Card: "MinIO Storage"
+  # UI Card: "S3 Compatible Storage"
   # Tests: Connection, bucket access, file upload/download/delete, encryption
-  # Compatible with MinIO and other S3-compatible storage
+  # Works with any S3-compatible storage (MinIO, Ceph, Wasabi, etc.)
   # Set enabled: true to show this test in the UI
-  minio:
+  s3Compatible:
     enabled: false
-    endpointUrl: "https://minio.example.com"
+    endpointUrl: "https://s3.example.com"
     accessKey: ""
     secretKey: ""
     bucketName: "test-bucket"

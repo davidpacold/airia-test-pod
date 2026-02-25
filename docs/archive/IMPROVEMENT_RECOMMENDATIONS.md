@@ -710,7 +710,7 @@ def custom_openapi():
         This API provides comprehensive infrastructure testing capabilities including:
         
         * **Database Testing**: PostgreSQL, Cassandra connectivity
-        * **Storage Testing**: Azure Blob, S3, MinIO validation  
+        * **Storage Testing**: Azure Blob, S3, S3-compatible storage validation
         * **AI/ML Testing**: OpenAI, Document Intelligence, Embeddings
         * **Infrastructure Testing**: SSL certificates, Kubernetes PVC
         
