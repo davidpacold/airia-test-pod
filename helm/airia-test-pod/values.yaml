@@ -394,6 +394,22 @@ config:
     model: "mistral-small-latest"
 
   # ---------------------------------------------------------------------------
+  # VISION MODEL TEST (Optional)
+  # ---------------------------------------------------------------------------
+  # UI Card: "Vision Model"
+  # Tests: Chat completion, vision/image analysis (full provider)
+  # Works with any OpenAI-compatible vision endpoint:
+  #   - Azure ML Studio serverless endpoints (e.g., LLaMA 3.2 Vision)
+  #   - Self-hosted models (vLLM, Ollama, TGI)
+  #   - Any endpoint supporting /v1/chat/completions with image_url
+  # Set enabled: true to show this test in the UI
+  visionModel:
+    enabled: false
+    endpoint: ""  # Full URL, e.g., https://my-model.region.inference.ml.azure.com
+    apiKey: ""
+    model: ""  # Optional: model name if endpoint serves multiple models
+
+  # ---------------------------------------------------------------------------
   # AZURE DOCUMENT INTELLIGENCE TEST (Optional)
   # ---------------------------------------------------------------------------
   # UI Card: "Document Intelligence"

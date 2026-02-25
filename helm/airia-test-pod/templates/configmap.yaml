@@ -69,6 +69,12 @@ data:
   mistral-model: {{ .Values.config.mistral.model | quote }}
   {{- end }}
   
+  {{- if .Values.config.visionModel.enabled }}
+  # Vision Model configuration
+  vision-model-endpoint: {{ .Values.config.visionModel.endpoint | quote }}
+  vision-model-name: {{ .Values.config.visionModel.model | quote }}
+  {{- end }}
+
   {{- if .Values.config.documentIntelligence.enabled }}
   # Azure Document Intelligence configuration
   azure-doc-intel-endpoint: {{ .Values.config.documentIntelligence.endpoint | quote }}

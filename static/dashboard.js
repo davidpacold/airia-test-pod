@@ -179,21 +179,10 @@ const FORMATTERS = {
       h += '</tbody></table></div>';
     }
 
-    // Extensions with critical check
+    // Extensions — just report what the server has installed
     if (sub.extensions?.installed_extensions) {
       const installed = sub.extensions.installed_extensions;
-      const critical = window.CRITICAL_POSTGRESQL_EXTENSIONS || [];
       h += '<div class="detail-section"><h5>\uD83E\uDDE9 Extensions (' + installed.length + ' installed)</h5>';
-      if (critical.length > 0) {
-        h += '<div class="critical-ext-check">';
-        critical.forEach(ext => {
-          const extName = typeof ext === 'object' ? ext.name : ext;
-          const found = installed.some(e => e.name === extName);
-          h += '<span class="ext-badge ' + (found ? 'ext-ok' : 'ext-missing') + '">' +
-            (found ? '\u2705' : '\u274C') + ' ' + esc(extName) + '</span> ';
-        });
-        h += '</div>';
-      }
       h += '<table class="data-table"><thead><tr><th>Extension</th><th>Version</th></tr></thead><tbody>';
       installed.forEach(e => {
         h += '<tr><td>' + esc(e.name) + '</td><td>' + esc(e.version) + '</td></tr>';

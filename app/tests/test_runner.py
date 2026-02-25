@@ -18,6 +18,7 @@ from .openai_direct_test import OpenAIDirectTest
 from .anthropic_test import AnthropicTest
 from .gemini_test import GeminiTest
 from .mistral_test import MistralTest
+from .azure_ml_vision_test import VisionModelTest
 
 # Document processing
 from .document_intelligence_test import DocumentIntelligenceTest
@@ -44,19 +45,20 @@ class TestRunner:
         self._register_tests()
 
     def _register_tests(self):
-        """Register all 16 test cards"""
+        """Register all 17 test cards"""
         tests = [
             # Storage (3)
             BlobStorageTest(),
             S3Test(),
             MinioTest(),
-            # AI providers (6)
+            # AI providers (7)
             AzureOpenAITest(),
             BedrockTest(),
             OpenAIDirectTest(),
             AnthropicTest(),
             GeminiTest(),
             MistralTest(),
+            VisionModelTest(),
             # Document processing (1)
             DocumentIntelligenceTest(),
             # Databases (2)

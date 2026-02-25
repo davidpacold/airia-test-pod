@@ -277,6 +277,23 @@ spec:
                   name: {{ include "airia-test-pod.fullname" . }}-config
                   key: mistral-model
             {{- end }}
+            {{- if .Values.config.visionModel.enabled }}
+            - name: VISION_MODEL_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: vision-model-endpoint
+            - name: VISION_MODEL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-vision-model
+                  key: api-key
+            - name: VISION_MODEL_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: vision-model-name
+            {{- end }}
             {{- if .Values.config.documentIntelligence.enabled }}
             - name: AZURE_DOC_INTEL_ENDPOINT
               valueFrom:

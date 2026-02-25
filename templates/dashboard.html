@@ -6,8 +6,7 @@
     <title>Dashboard - {{ title }}</title>
     <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}?v={{ version }}">
     <script src="{{ url_for('static', path='/vendor/axios.min.js') }}"></script>
-    <script src="{{ url_for('static', path='/critical-extensions.js') }}?v={{ version }}"></script>
-    <script src="{{ url_for('static', path='/dashboard.js') }}?v={{ version }}" data-app-version="{{ version }}"></script>
+<script src="{{ url_for('static', path='/dashboard.js') }}?v={{ version }}" data-app-version="{{ version }}"></script>
 </head>
 <body>
     <!-- Notification System -->
@@ -138,6 +137,14 @@
                         <span class="test-status ready" id="mistral-status" aria-live="polite">Ready to Test</span>
                         <button class="test-button" data-test-id="mistral" id="mistral-btn">Run Test</button>
                         <div class="test-details" id="mistral-details"></div>
+                    </div>
+
+                    <div class="test-card" id="vision_model-card">
+                        <h3>Vision Model</h3>
+                        <p>Tests vision-capable model endpoint</p>
+                        <span class="test-status ready" id="vision_model-status" aria-live="polite">Ready to Test</span>
+                        <button class="test-button" data-test-id="vision_model" id="vision_model-btn">Run Test</button>
+                        <div class="test-details" id="vision_model-details"></div>
                     </div>
 
                     <div class="test-card" id="docintel-card">
