@@ -4,11 +4,6 @@
 
 Perfect for DevOps teams who need to verify that Azure services, databases, storage, and AI/ML endpoints are correctly configured before deploying production applications.
 
-[![GitHub release (latest by date)](https://img.shields.io/github/v/release/davidpacold/airia-test-pod)](https://github.com/davidpacold/airia-test-pod/releases)
-[![Helm Chart](https://img.shields.io/badge/helm-oci%3A%2F%2Fghcr.io-blue)](https://github.com/davidpacold/airia-test-pod/pkgs/container/airia-test-pod%2Fcharts%2Fairia-test-pod)
-[![Container Image](https://img.shields.io/badge/container-ghcr.io-blue)](https://github.com/davidpacold/airia-test-pod/pkgs/container/airia-test-pod)
-[![Build Status](https://github.com/davidpacold/airia-test-pod/actions/workflows/release.yml/badge.svg)](https://github.com/davidpacold/airia-test-pod/actions)
-
 ## ⚡ Quick Start
 
 ### 1. Install with Helm
