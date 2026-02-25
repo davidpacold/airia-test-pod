@@ -152,7 +152,6 @@ helm upgrade airia-test-pod \
   -f your-config.yaml
 ```
 
-For more details: [Version Management Guide](docs/operations/VERSIONING.md)
 
 ---
 
@@ -191,7 +190,7 @@ kubectl rollout restart deployment/airia-test-pod
 - **[Deployment Guide](docs/deployment/deployment-guide.md)** - Complete deployment instructions
 
 - **[Example Values File](helm/airia-test-pod/examples/basic-values.yaml)** - Customer-ready config template
-- **[Version Management](docs/operations/VERSIONING.md)** - Automatic updates and version control
+
 
 
 ## 🤝 Support & Feedback
