@@ -240,8 +240,8 @@ class HealthChecker:
 
             results[check_name] = result
 
-            # Count failures
-            if result["status"] != HealthStatus.HEALTHY.value:
+            # Count failures (degraded is not a failure, just a warning)
+            if result["status"] not in (HealthStatus.HEALTHY.value, HealthStatus.DEGRADED.value):
                 if result.get("critical", False):
                     critical_failures += 1
                 else:
