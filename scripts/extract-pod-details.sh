@@ -98,6 +98,8 @@ else
     if [ -n "${FIRST_CONTAINER}" ]; then
       kubectl exec "${POD}" -n "${NAMESPACE}" -c "${FIRST_CONTAINER}" \
         -- env 2>/dev/null | sort > "${POD_DIR}/env-vars.txt" 2>&1 || true
+      # Remove empty env-vars file (exec blocked)
+      [ ! -s "${POD_DIR}/env-vars.txt" ] && rm -f "${POD_DIR}/env-vars.txt"
     fi
 
     # Container logs (all containers in the pod)
@@ -119,9 +121,11 @@ else
     for CONTAINER in ${CONTAINERS}; do
       kubectl logs "${POD}" -n "${NAMESPACE}" -c "${CONTAINER}" \
         --previous --tail=200 > "${POD_DIR}/logs-${CONTAINER}-previous.txt" 2>&1 || true
-      # Remove empty previous log files
-      [ ! -s "${POD_DIR}/logs-${CONTAINER}-previous.txt" ] && \
+      # Remove empty or error-only previous log files (no previous container = not useful)
+      if [ ! -s "${POD_DIR}/logs-${CONTAINER}-previous.txt" ] || \
+         grep -q "^Error from server" "${POD_DIR}/logs-${CONTAINER}-previous.txt" 2>/dev/null; then
         rm -f "${POD_DIR}/logs-${CONTAINER}-previous.txt"
+      fi
     done
 
     # Init container logs
@@ -130,6 +134,11 @@ else
     for CONTAINER in ${INIT_CONTAINERS}; do
       kubectl logs "${POD}" -n "${NAMESPACE}" -c "${CONTAINER}" \
         > "${POD_DIR}/logs-init-${CONTAINER}.txt" 2>&1 || true
+      # Remove empty or error-only init container log files
+      if [ ! -s "${POD_DIR}/logs-init-${CONTAINER}.txt" ] || \
+         grep -q "^Error from server" "${POD_DIR}/logs-init-${CONTAINER}.txt" 2>/dev/null; then
+        rm -f "${POD_DIR}/logs-init-${CONTAINER}.txt"
+      fi
     done
 
     # Mounted volumes info

@@ -360,7 +360,48 @@ const FORMATTERS = {
 
   docintel: function(result) {
     var h = '<div class="test-result-enhanced">' + buildHeader(result, 'Document Intelligence') + buildMessage(result);
-    h += buildSubTests(result) + buildRemediation(result) + '</div>';
+    var sub = result.sub_tests || {};
+
+    // Step timeline: API Connectivity → Document Analysis → Model Information
+    var steps = Object.keys(sub);
+    if (steps.length > 0) {
+      h += '<div class="sub-tests-section"><div class="step-timeline">';
+      for (var i = 0; i < steps.length; i++) {
+        var name = steps[i], st = sub[name];
+        var sok = st.success;
+        h += '<div class="step-item">';
+        h += '<div class="step-icon ' + (sok ? 'step-icon-ok' : 'step-icon-fail') + '">' + (sok ? '\u2713' : '\u2717') + '</div>';
+        h += '<div class="step-content">';
+        h += '<div class="step-name">' + esc(name) + '</div>';
+        h += '<div class="step-message">' + esc(st.message || '') + '</div>';
+
+        // Metadata tags
+        var tags = [];
+        if (st.endpoint) tags.push('<span class="detail-tag"><strong>endpoint:</strong> ' + esc(st.endpoint) + '</span>');
+        if (st.model || st.model_id) tags.push('<span class="detail-tag"><strong>model:</strong> ' + esc(st.model || st.model_id) + '</span>');
+        if (st.model_type) tags.push('<span class="detail-tag"><strong>type:</strong> ' + esc(st.model_type) + '</span>');
+        if (st.response_time_ms != null) tags.push('<span class="detail-tag"><strong>response:</strong> ' + esc(st.response_time_ms.toFixed(0) + 'ms') + '</span>');
+        if (st.processing_time_ms != null) tags.push('<span class="detail-tag"><strong>processing:</strong> ' + esc((st.processing_time_ms / 1000).toFixed(2) + 's') + '</span>');
+        if (st.page_count != null) tags.push('<span class="detail-tag"><strong>pages:</strong> ' + esc(String(st.page_count)) + '</span>');
+        if (st.table_count != null) tags.push('<span class="detail-tag"><strong>tables:</strong> ' + esc(String(st.table_count)) + '</span>');
+        if (st.paragraph_count != null) tags.push('<span class="detail-tag"><strong>paragraphs:</strong> ' + esc(String(st.paragraph_count)) + '</span>');
+        if (st.content_length != null) tags.push('<span class="detail-tag"><strong>content:</strong> ' + esc(st.content_length + ' chars') + '</span>');
+        if (tags.length > 0) h += '<div class="step-details">' + tags.join('') + '</div>';
+
+        // Content preview as IO block
+        if (st.content_preview) {
+          h += '<div class="io-block" style="margin-top:6px">';
+          h += '<div class="io-row io-row-response"><span class="io-label">TEXT</span><span class="io-value">' + esc(st.content_preview) + '</span></div>';
+          h += '</div>';
+        }
+
+        if (st.remediation) h += '<div class="remediation">\uD83D\uDCA1 <em>' + esc(st.remediation) + '</em></div>';
+        h += '</div></div>';
+      }
+      h += '</div></div>';
+    }
+
+    h += buildRemediation(result) + '</div>';
     return h;
   },
 
@@ -378,28 +419,41 @@ const FORMATTERS = {
 
   gpu: function(result) {
     var h = '<div class="test-result-enhanced">' + buildHeader(result, 'GPU Detection') + buildMessage(result);
+    var sub = result.sub_tests || {};
+    var keys = Object.keys(sub);
 
-    if (result.details) {
-      var d = result.details;
-      h += '<div class="detail-section">';
-      if (d.gpu_available !== undefined) {
-        h += '<p><strong>GPU Available:</strong> ' + (d.gpu_available ? '\u2705 Yes' : '\u274C No') + '</p>';
-      }
-      if (d.gpu_count) h += '<p><strong>GPU Count:</strong> ' + esc(String(d.gpu_count)) + '</p>';
-      if (d.driver_version) h += '<p><strong>Driver:</strong> ' + esc(d.driver_version) + '</p>';
-      if (d.cuda_version) h += '<p><strong>CUDA:</strong> ' + esc(d.cuda_version) + '</p>';
+    if (keys.length > 0) {
+      h += '<div class="sub-tests-section"><div class="step-timeline">';
+      for (var i = 0; i < keys.length; i++) {
+        var name = keys[i], st = sub[name];
+        var sok = st.success;
+        h += '<div class="step-item">';
+        h += '<div class="step-icon ' + (sok ? 'step-icon-ok' : 'step-icon-fail') + '">' + (sok ? '\u2713' : '\u2717') + '</div>';
+        h += '<div class="step-content">';
+        h += '<div class="step-name">' + esc(name) + '</div>';
+        h += '<div class="step-message">' + esc(st.message || '') + '</div>';
 
-      if (d.devices && d.devices.length > 0) {
-        h += '<table class="data-table"><thead><tr><th>Device</th><th>Memory</th><th>Utilization</th></tr></thead><tbody>';
-        d.devices.forEach(function(dev) {
-          h += '<tr><td>' + esc(dev.name) + '</td><td>' + esc(dev.memory_total || '') + '</td><td>' + esc(dev.utilization || '') + '</td></tr>';
-        });
-        h += '</tbody></table>';
+        // Metadata tags for GPU details
+        var tags = [];
+        if (st.gpu_count != null) tags.push('<span class="detail-tag"><strong>count:</strong> ' + esc(String(st.gpu_count)) + '</span>');
+        if (st.driver_version) tags.push('<span class="detail-tag"><strong>driver:</strong> ' + esc(st.driver_version) + '</span>');
+        if (st.cuda_version) tags.push('<span class="detail-tag"><strong>CUDA:</strong> ' + esc(st.cuda_version) + '</span>');
+        if (st.compute_capability) tags.push('<span class="detail-tag"><strong>compute:</strong> ' + esc(st.compute_capability) + '</span>');
+        if (st.gpu_name) tags.push('<span class="detail-tag"><strong>model:</strong> ' + esc(st.gpu_name) + '</span>');
+        if (st.memory_total_gb != null) tags.push('<span class="detail-tag"><strong>VRAM:</strong> ' + esc(st.memory_total_gb + ' GB') + '</span>');
+        if (st.memory_used_gb != null) tags.push('<span class="detail-tag"><strong>used:</strong> ' + esc(st.memory_used_gb + ' GB') + '</span>');
+        if (st.utilization_gpu_percent != null && st.utilization_gpu_percent !== 'N/A') tags.push('<span class="detail-tag"><strong>GPU util:</strong> ' + esc(st.utilization_gpu_percent + '%') + '</span>');
+        if (st.temperature_celsius != null) tags.push('<span class="detail-tag"><strong>temp:</strong> ' + esc(st.temperature_celsius + '\u00B0C') + '</span>');
+        if (st.power_draw_watts && st.power_draw_watts !== 'N/A') tags.push('<span class="detail-tag"><strong>power:</strong> ' + esc(st.power_draw_watts + '/' + (st.power_limit_watts || '?') + 'W') + '</span>');
+        if (tags.length > 0) h += '<div class="step-details">' + tags.join('') + '</div>';
+
+        if (st.remediation) h += '<div class="remediation">\uD83D\uDCA1 <em>' + esc(st.remediation) + '</em></div>';
+        h += '</div></div>';
       }
-      h += '</div>';
+      h += '</div></div>';
     }
 
-    h += buildSubTests(result) + buildRemediation(result) + '</div>';
+    h += buildRemediation(result) + '</div>';
     return h;
   },
 
