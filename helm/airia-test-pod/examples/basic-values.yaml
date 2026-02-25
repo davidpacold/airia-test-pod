@@ -177,6 +177,6 @@ config:
 # =============================================================================
 # ADVANCED (most users won't need to change these)
 # =============================================================================
-# For ingress, resources, security context, diagnostics, and other advanced
+# For resources, security context, diagnostics, and other advanced
 # settings, see the full values.yaml reference:
 #   helm/airia-test-pod/values.yaml

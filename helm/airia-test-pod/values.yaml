@@ -4,7 +4,7 @@
 # This Helm chart deploys an infrastructure validation tool that tests various
 # services and configurations in your Kubernetes environment.
 #
-# Each test appears as a card in the web UI dashboard at http://your-ingress-url/
+# Each test appears as a card in the web UI dashboard.
 # Tests can be run individually or all at once to validate infrastructure readiness.
 # ===============================================================================
 
@@ -78,63 +78,11 @@ securityContext:
 # SERVICE CONFIGURATION
 # ---------------------------------------------------------------------------
 # Kubernetes Service exposes the test pod within the cluster.
-# The ingress controller routes external traffic to this service.
-#
-# Service Type Guide:
-# - ClusterIP: Internal cluster access only (recommended when using ingress)
-# - LoadBalancer: Creates cloud load balancer for direct external access
-# - NodePort: Exposes on each node's IP at a static port (30000-32767)
+# Access via: kubectl port-forward -n airia svc/airia-test-pod 8080:80
 service:
-  type: ClusterIP  # Use ClusterIP when using ingress
-
-  port: 80  # Port that the service listens on (ingress connects here)
-  targetPort: 8080  # Port inside the container (FastAPI app listens here)
-
-  # Only used if type: NodePort
-  # nodePort: 30000  # Must be in range 30000-32767
-  # Service accessible at: http://<any-node-ip>:30000
-
-# ===============================================================================
-# INGRESS CONFIGURATION
-# ===============================================================================
-# Configures how external traffic reaches the test pod.
-# The ingress creates routes for the web UI and API endpoints.
-#
-#
-ingress:
-  enabled: false
-  className: "nginx"
-  annotations:
-    # Disable SSL redirect (configure SSL at load balancer or reverse proxy level)
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
-
-    # File upload support - allows up to 50MB files for AI model testing
-    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
-    nginx.ingress.kubernetes.io/client-body-buffer-size: "50m"
-
-    # Timeouts for large file uploads - 5 minutes for complete upload
-    nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
-
-    # Request buffering for file uploads
-    nginx.ingress.kubernetes.io/proxy-request-buffering: "on"
-  hosts:
-    # Replace with your actual domain
-    - host: test.example.com
-      paths:
-        - path: /
-          pathType: Prefix
-  # Add additional hostnames if needed:
-  # - host: validation.example.com
-  #   paths:
-  #     - path: /
-  #       pathType: Prefix
-  tls: []
-    # Uncomment to enable TLS (requires cert-manager or manual certificate creation)
-    # - secretName: airia-test-pod-tls
-    #   hosts:
-    #     - test.example.com
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
 
 # ===============================================================================
 # RESOURCE LIMITS
