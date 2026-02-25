@@ -45,6 +45,15 @@ rules:
 - apiGroups: ["storage.k8s.io"]
   resources: ["storageclasses"]
   verbs: ["get", "list"]
+{{- if .Values.diagnostics.enabled }}
+# Diagnostics: read pods, logs, events, services, configmaps, secrets in any namespace
+- apiGroups: [""]
+  resources: ["pods", "pods/log", "services", "events", "nodes", "configmaps", "secrets"]
+  verbs: ["get", "list"]
+- apiGroups: [""]
+  resources: ["pods/exec"]
+  verbs: ["create"]
+{{- end }}
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1

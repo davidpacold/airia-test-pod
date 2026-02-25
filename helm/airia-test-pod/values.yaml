@@ -484,6 +484,15 @@ config:
     #     To allocate GPU to the pod, see: resources.limits.nvidia.com/gpu (line 118)
 
 # ===============================================================================
+# POD DIAGNOSTICS
+# ===============================================================================
+# Collects pod details (status, logs, env vars, events) from any namespace.
+# Requires elevated RBAC (ClusterRole) for cross-namespace access.
+# Opt-in: must be explicitly enabled.
+diagnostics:
+  enabled: false  # Set to true to enable pod diagnostics collection (requires elevated RBAC)
+
+# ===============================================================================
 # NAMESPACE CONFIGURATION
 # ===============================================================================
 namespace:

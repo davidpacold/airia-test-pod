@@ -472,6 +472,88 @@ async function resolveDns() {
   }
 }
 
+/* ── Pod Diagnostics ────────────────────────────────────────── */
+var _diagPollTimer = null;
+
+async function collectDiagnostics() {
+  var ns = document.getElementById('diag-namespace').value.trim();
+  if (!ns) { notify.warning('Missing Input', 'Please enter a namespace.'); return; }
+
+  var sinceEl = document.getElementById('diag-since');
+  var since = sinceEl ? sinceEl.value : '';
+
+  var btn = document.getElementById('diagCollectBtn');
+  var dlBtn = document.getElementById('diagDownloadBtn');
+  var statusEl = document.getElementById('diagStatus');
+  var statusText = document.getElementById('diagStatusText');
+  var statusIcon = document.getElementById('diagStatusIcon');
+
+  btn.disabled = true;
+  // Use textContent + appendChild for spinner to avoid innerHTML with user content
+  btn.textContent = 'Collecting ';
+  var spinner = document.createElement('span');
+  spinner.className = 'loading-spinner';
+  btn.appendChild(spinner);
+  dlBtn.style.display = 'none';
+  statusEl.style.display = 'flex';
+  statusIcon.className = 'diag-status-icon diag-status-collecting';
+  statusText.textContent = 'Starting collection for namespace "' + ns + '"...';
+
+  try {
+    await axios.post('/api/diagnostics/collect', { namespace: ns, since: since });
+    // Start polling for status
+    _diagPollTimer = setInterval(pollDiagnosticsStatus, 2000);
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Collect Diagnostics';
+    statusIcon.className = 'diag-status-icon diag-status-error';
+    statusText.textContent = err.response?.data?.detail || err.message || 'Collection failed';
+    handleApiError(err, 'diagnostics');
+  }
+}
+
+async function pollDiagnosticsStatus() {
+  try {
+    var resp = await axios.get('/api/diagnostics/status');
+    var data = resp.data;
+    var statusText = document.getElementById('diagStatusText');
+    var statusIcon = document.getElementById('diagStatusIcon');
+    var btn = document.getElementById('diagCollectBtn');
+    var dlBtn = document.getElementById('diagDownloadBtn');
+
+    if (data.state === 'collecting') {
+      statusIcon.className = 'diag-status-icon diag-status-collecting';
+      statusText.textContent = 'Collecting from namespace "' + (data.namespace || '') + '"...';
+    } else if (data.state === 'ready') {
+      clearInterval(_diagPollTimer);
+      _diagPollTimer = null;
+      statusIcon.className = 'diag-status-icon diag-status-ready';
+      statusText.textContent = 'Collection complete: ' + data.pod_count + ' pod(s) collected.';
+      btn.disabled = false;
+      btn.textContent = 'Collect Diagnostics';
+      dlBtn.style.display = 'inline-flex';
+      notify.success('Diagnostics Ready', data.pod_count + ' pod(s) collected from "' + (data.namespace || '') + '".');
+    } else if (data.state === 'error') {
+      clearInterval(_diagPollTimer);
+      _diagPollTimer = null;
+      statusIcon.className = 'diag-status-icon diag-status-error';
+      statusText.textContent = 'Error: ' + (data.error || 'Unknown error');
+      btn.disabled = false;
+      btn.textContent = 'Collect Diagnostics';
+      notify.error('Diagnostics Failed', data.error || 'Unknown error');
+    }
+  } catch (err) {
+    clearInterval(_diagPollTimer);
+    _diagPollTimer = null;
+    document.getElementById('diagCollectBtn').disabled = false;
+    document.getElementById('diagCollectBtn').textContent = 'Collect Diagnostics';
+  }
+}
+
+function downloadDiagnostics() {
+  window.location.href = '/api/diagnostics/download';
+}
+
 /* ── Init ────────────────────────────────────────────────────── */
 window.addEventListener('load', function() {
   // Bind test buttons via data attributes (CSP-safe, no inline onclick)
@@ -482,6 +564,12 @@ window.addEventListener('load', function() {
   if (runAllBtn) runAllBtn.addEventListener('click', runAllTests);
   var dnsBtn = document.getElementById('dns-resolve-btn');
   if (dnsBtn) dnsBtn.addEventListener('click', resolveDns);
+
+  // Diagnostics buttons
+  var diagCollect = document.getElementById('diagCollectBtn');
+  if (diagCollect) diagCollect.addEventListener('click', collectDiagnostics);
+  var diagDownload = document.getElementById('diagDownloadBtn');
+  if (diagDownload) diagDownload.addEventListener('click', downloadDiagnostics);
 
   checkTestStatus();
   loadVersion();

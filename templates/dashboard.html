@@ -35,6 +35,43 @@
                 <button class="run-tests-button" id="runAllTestsBtn" aria-label="Run all infrastructure tests">Run All Tests</button>
             </div>
 
+            <!-- Pod Diagnostics -->
+            <div class="diagnostics-section">
+                <div class="diagnostics-card">
+                    <div class="diagnostics-header">
+                        <div>
+                            <h3>Pod Diagnostics</h3>
+                            <p>Collect pod details (status, logs, env vars, events) from any namespace and download as an archive.</p>
+                        </div>
+                    </div>
+                    <div class="diagnostics-controls">
+                        <div class="diagnostics-inputs">
+                            <div class="diagnostics-field">
+                                <label for="diag-namespace">Namespace</label>
+                                <input type="text" id="diag-namespace" value="airia" placeholder="e.g. airia" class="dns-input">
+                            </div>
+                            <div class="diagnostics-field">
+                                <label for="diag-since">Log History</label>
+                                <select id="diag-since" class="diag-select">
+                                    <option value="">All logs</option>
+                                    <option value="1h" selected>Last 1 hour</option>
+                                    <option value="6h">Last 6 hours</option>
+                                    <option value="24h">Last 24 hours</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="diagnostics-actions">
+                            <button class="run-tests-button" id="diagCollectBtn">Collect Diagnostics</button>
+                            <button class="test-button" id="diagDownloadBtn" style="display:none;">Download Archive</button>
+                        </div>
+                    </div>
+                    <div class="diagnostics-status" id="diagStatus" style="display:none;">
+                        <span class="diag-status-icon" id="diagStatusIcon"></span>
+                        <span id="diagStatusText"></span>
+                    </div>
+                </div>
+            </div>
+
             <!-- Storage Tests -->
             <div class="test-section">
                 <h2 class="section-title">Storage Tests</h2>

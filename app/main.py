@@ -9,7 +9,7 @@ from typing import Optional
 import uvicorn
 from fastapi import (Depends, FastAPI, Form,
                      HTTPException, Request, status)
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -119,7 +119,8 @@ async def add_security_and_cache_headers(request: Request, call_next):
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
         "script-src 'self'; "
-        "style-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
         "img-src 'self' data:; "
         "connect-src 'self'; "
         "frame-ancestors 'none'"
@@ -419,6 +420,66 @@ async def dns_resolve_adhoc(
 
     result = DNSTest.resolve_hostname(hostname)
     return result
+
+
+# ── Pod Diagnostics endpoints ────────────────────────────────────────────────
+
+
+@app.post("/api/diagnostics/collect")
+async def collect_diagnostics(request: Request, current_user: str = Depends(require_auth)):
+    """Start pod diagnostics collection for a namespace."""
+    from .diagnostics import diagnostics_collector
+
+    body = await request.json()
+    namespace = body.get("namespace", "").strip()
+    since = body.get("since", "").strip() or None
+
+    if not namespace:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Namespace is required",
+        )
+
+    result = diagnostics_collector.collect(namespace, since)
+    if "error" in result and result.get("state") == "error":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=result["error"],
+        )
+    if "error" in result and result.get("state") == "collecting":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=result["error"],
+        )
+
+    return result
+
+
+@app.get("/api/diagnostics/status")
+async def diagnostics_status(current_user: str = Depends(require_auth)):
+    """Get current diagnostics collection state."""
+    from .diagnostics import diagnostics_collector
+
+    return diagnostics_collector.state
+
+
+@app.get("/api/diagnostics/download")
+async def download_diagnostics(current_user: str = Depends(require_auth)):
+    """Download the collected diagnostics archive."""
+    from .diagnostics import diagnostics_collector
+
+    archive_path = diagnostics_collector.get_archive_path()
+    if not archive_path:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No diagnostics archive available. Run a collection first.",
+        )
+
+    return FileResponse(
+        path=archive_path,
+        media_type="application/gzip",
+        filename=diagnostics_collector.get_archive_filename(),
+    )
 
 
 if __name__ == "__main__":
