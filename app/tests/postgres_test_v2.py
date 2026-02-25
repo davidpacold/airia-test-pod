@@ -63,6 +63,7 @@ class PostgreSQLTestV2(BaseTest):
         try:
             # Test 1: Connection (also establishes shared connection)
             connection_result = self._test_connection()
+            conn = connection_result.pop("_conn", None)
             result.add_sub_test("connection", connection_result)
 
             if not connection_result["success"]:
@@ -71,9 +72,6 @@ class PostgreSQLTestV2(BaseTest):
                     remediation="Check host, credentials, and network connectivity",
                 )
                 return result
-
-            # Extract connection for reuse, keep clean result for serialization
-            conn = connection_result.pop("_conn")
 
             # Test 2: List databases
             databases_result = self._test_list_databases(conn)

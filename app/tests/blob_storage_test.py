@@ -65,6 +65,7 @@ class BlobStorageTest(BaseTest):
         try:
             # Test 1: Create Blob Service Client (reuse for all subsequent tests)
             client_result = self._test_create_client()
+            blob_service_client = client_result.pop("_client", None)
             result.add_sub_test("client_creation", client_result)
 
             if not client_result["success"]:
@@ -74,7 +75,7 @@ class BlobStorageTest(BaseTest):
                 )
                 return result
 
-            blob_service_client = client_result.get("_client") or self.get_blob_service_client()
+            blob_service_client = blob_service_client or self.get_blob_service_client()
 
             # Test 2: Check/Create Container
             container_result = self._test_container_operations(blob_service_client)
