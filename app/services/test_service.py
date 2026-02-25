@@ -38,6 +38,7 @@ class TestService(BaseService):
         from ..tests.azure_openai_test import AzureOpenAITest
         from ..tests.bedrock_test import BedrockTest
         from ..tests.blob_storage_test import BlobStorageTest
+        from ..tests.dedicated_embedding_test import DedicatedEmbeddingTest
         from ..tests.cassandra_test import CassandraTest
         from ..tests.dns_test import DNSTest
         from ..tests.document_intelligence_test import DocumentIntelligenceTest
@@ -61,6 +62,7 @@ class TestService(BaseService):
             AnthropicTest,
             GeminiTest,
             MistralTest,
+            DedicatedEmbeddingTest,
             DocumentIntelligenceTest,
             PostgreSQLTestV2,
             CassandraTest,

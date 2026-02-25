@@ -19,6 +19,7 @@ from .anthropic_test import AnthropicTest
 from .gemini_test import GeminiTest
 from .mistral_test import MistralTest
 from .azure_ml_vision_test import VisionModelTest
+from .dedicated_embedding_test import DedicatedEmbeddingTest
 
 # Document processing
 from .document_intelligence_test import DocumentIntelligenceTest
@@ -45,13 +46,13 @@ class TestRunner:
         self._register_tests()
 
     def _register_tests(self):
-        """Register all 17 test cards"""
+        """Register all 18 test cards"""
         tests = [
             # Storage (3)
             BlobStorageTest(),
             S3Test(),
             S3CompatibleTest(),
-            # AI providers (7)
+            # AI providers (8)
             AzureOpenAITest(),
             BedrockTest(),
             OpenAIDirectTest(),
@@ -59,6 +60,7 @@ class TestRunner:
             GeminiTest(),
             MistralTest(),
             VisionModelTest(),
+            DedicatedEmbeddingTest(),
             # Document processing (1)
             DocumentIntelligenceTest(),
             # Databases (2)

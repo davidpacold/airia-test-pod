@@ -294,6 +294,28 @@ spec:
                   name: {{ include "airia-test-pod.fullname" . }}-config
                   key: vision-model-name
             {{- end }}
+            {{- if .Values.config.dedicatedEmbedding.enabled }}
+            - name: DEDICATED_EMBEDDING_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: dedicated-embedding-base-url
+            - name: DEDICATED_EMBEDDING_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-dedicated-embedding
+                  key: api-key
+            - name: DEDICATED_EMBEDDING_MODEL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: dedicated-embedding-model
+            - name: DEDICATED_EMBEDDING_DIMENSIONS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "airia-test-pod.fullname" . }}-config
+                  key: dedicated-embedding-dimensions
+            {{- end }}
             {{- if .Values.config.documentIntelligence.enabled }}
             - name: AZURE_DOC_INTEL_ENDPOINT
               valueFrom:

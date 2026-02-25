@@ -357,6 +357,14 @@ const FORMATTERS = {
   gemini: function(result) { return formatAIProvider(result, 'Google Gemini'); },
   mistral: function(result) { return formatAIProvider(result, 'Mistral AI'); },
   vision_model: function(result) { return formatAIProvider(result, 'Vision Model'); },
+  dedicated_embedding: function(result) {
+    var h = '<div class="test-result-enhanced">' + buildHeader(result, 'Dedicated Embedding') + buildMessage(result);
+    var sub = result.sub_tests || {};
+    var labels = { connection: 'Connect', embedding: 'Embedding', dimensions: 'Dimensions' };
+    h += buildStepTimeline(sub, ['connection', 'embedding', 'dimensions'], labels);
+    h += buildRemediation(result) + '</div>';
+    return h;
+  },
 
   docintel: function(result) {
     var h = '<div class="test-result-enhanced">' + buildHeader(result, 'Document Intelligence') + buildMessage(result);

@@ -75,6 +75,13 @@ data:
   vision-model-name: {{ .Values.config.visionModel.model | quote }}
   {{- end }}
 
+  {{- if .Values.config.dedicatedEmbedding.enabled }}
+  # Dedicated Embedding configuration
+  dedicated-embedding-base-url: {{ .Values.config.dedicatedEmbedding.baseUrl | quote }}
+  dedicated-embedding-model: {{ .Values.config.dedicatedEmbedding.model | quote }}
+  dedicated-embedding-dimensions: {{ .Values.config.dedicatedEmbedding.dimensions | default 0 | quote }}
+  {{- end }}
+
   {{- if .Values.config.documentIntelligence.enabled }}
   # Azure Document Intelligence configuration
   azure-doc-intel-endpoint: {{ .Values.config.documentIntelligence.endpoint | quote }}

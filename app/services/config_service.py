@@ -233,6 +233,29 @@ class ConfigService(BaseService):
                 is_required=False,
                 is_secret=True,
             ),
+            # Dedicated Embedding configurations
+            "DEDICATED_EMBEDDING_BASE_URL": ConfigItem(
+                key="DEDICATED_EMBEDDING_BASE_URL",
+                value=None,
+                config_type=ConfigType.URL,
+                description="Dedicated embedding endpoint base URL",
+                is_required=False,
+            ),
+            "DEDICATED_EMBEDDING_API_KEY": ConfigItem(
+                key="DEDICATED_EMBEDDING_API_KEY",
+                value=None,
+                config_type=ConfigType.STRING,
+                description="Dedicated embedding API key",
+                is_required=False,
+                is_secret=True,
+            ),
+            "DEDICATED_EMBEDDING_MODEL": ConfigItem(
+                key="DEDICATED_EMBEDDING_MODEL",
+                value=None,
+                config_type=ConfigType.STRING,
+                description="Dedicated embedding model name",
+                is_required=False,
+            ),
             # Application configurations
             "JWT_SECRET": ConfigItem(
                 key="JWT_SECRET",

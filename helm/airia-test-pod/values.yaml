@@ -205,15 +205,15 @@ affinity: {}
 #   - Amazon S3 ............................... Line 269
 #
 # 🤖 AI & MACHINE LEARNING
-#   - Azure OpenAI & OpenAI-Compatible ........ Line 289
-#   - Azure Document Intelligence ............. Line 329
-#   - Dedicated Embedding Models .............. Line 345
-#   - Ollama Native API ....................... Line 406
+#   - Azure OpenAI & OpenAI-Compatible ........ Line 328
+#   - Dedicated Embedding Models .............. Line 422
+#   - Azure Document Intelligence ............. Line 443
 #
 # 🔧 INFRASTRUCTURE
-#   - SSL Certificate Validation .............. Line 410
-#   - Kubernetes Storage (always enabled) ..... Line 424
-#   - GPU Detection ........................... Line 437
+#   - DNS Resolution .......................... Line 459
+#   - SSL Certificate Validation .............. Line 471
+#   - Kubernetes Storage (always enabled) ..... Line 485
+#   - GPU Detection ........................... Line 497
 #
 # ===============================================================================
 
@@ -408,6 +408,23 @@ config:
     endpoint: ""  # Full URL, e.g., https://my-model.region.inference.ml.azure.com
     apiKey: ""
     model: ""  # Optional: model name if endpoint serves multiple models
+
+  # ---------------------------------------------------------------------------
+  # DEDICATED EMBEDDING TEST (Optional)
+  # ---------------------------------------------------------------------------
+  # UI Card: "Dedicated Embedding"
+  # Tests: Connection, embedding generation, optional dimension validation
+  # Works with any OpenAI-compatible embedding endpoint:
+  #   - LM Studio, vLLM, Ollama, TGI
+  #   - Self-hosted embedding models
+  #   - Any endpoint supporting POST /v1/embeddings
+  # Set enabled: true to show this test in the UI
+  dedicatedEmbedding:
+    enabled: false
+    baseUrl: ""        # e.g., http://host.docker.internal:1234/v1
+    apiKey: ""
+    model: ""          # e.g., text-embedding-qwen3-embedding-0.6b
+    dimensions: 0      # Optional: validate returned vector matches expected size
 
   # ---------------------------------------------------------------------------
   # AZURE DOCUMENT INTELLIGENCE TEST (Optional)
